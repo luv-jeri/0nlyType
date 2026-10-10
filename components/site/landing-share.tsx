@@ -8,8 +8,7 @@ import { Link } from "@/registry/0nlytype/ui/link"
 // Pass it on: one click copies the link and says so, and the places to send it open beside it, as words. Each
 // place is a link to its own share page, in a new tab. Where the system has a share sheet (phones, mostly),
 // "Other apps" opens it, and that reaches Instagram and the rest. Esc, a click elsewhere, or tabbing out
-// closes it, and focus goes back where it was. The noise section sets it in the silence the pointer makes;
-// "Help build it" sets it on a line.
+// closes it, and focus goes back where it was. The sea and "Help build it" set it on a line.
 
 export const REPO = "https://github.com/luv-jeri/0nlyType"
 

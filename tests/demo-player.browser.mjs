@@ -116,7 +116,7 @@ const only = process.env.DEMO_ONLY?.split(",")
 const items = only ?? (engine === "chromium" || process.env.MOTION_FULL ? scripted : sample)
 
 /** The control's label follows the published state by a render; wait for it rather than reading it the instant the state changes. */
-const labelBecomes = (page, text) => page.waitForFunction((want) => document.querySelector(".doc-demo-controls button, .pieces-actions [data-demo-control]")?.textContent?.trim() === want, text, { timeout: 2000, polling: 50 })
+const labelBecomes = (page, text) => page.waitForFunction((want) => document.querySelector(".doc-demo-controls button")?.textContent?.trim() === want, text, { timeout: 2000, polling: 50 })
   .catch(async () => { throw new Error(`the control should read "${text}" but reads "${(await page.locator(".doc-demo-controls button").first().textContent().catch(() => "")).trim()}"`) })
 
 /** The state the player publishes on the example, and whether a performance has begun. */
@@ -377,37 +377,7 @@ if (!only) {
 }
 await context.close()
 
-// The landing's stage.
-if (!only) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
-  await ctx.addInitScript((key) => { try { localStorage.setItem(key, "1") } catch {} }, "0nlytype-overture-seen")
-  const page = await ctx.newPage()
-  await page.addInitScript(watchAutoplay, { root: ".pieces-preview", ignore: null })
-  try {
-    await page.goto(site.url("/"))
-    await page.locator(".pieces-stage").scrollIntoViewIfNeeded()
-    await page.waitForSelector(".pieces-preview > *", { timeout: 15000 })
-    // Move to a scripted piece by focusing its name (focus is how a keyboard reader picks).
-    const name = scripted.includes("accordion") ? "accordion" : scripted[0]
-    await page.locator(`a.pieces-name[href$="/docs/${name}/"]`).focus()
-    const control = page.locator(".pieces-actions [data-demo-control]")
-    await control.waitFor({ timeout: 5000 })
-    await page.waitForFunction(() => { const b = document.querySelector(".pieces-actions [data-demo-control]"); return b && !b.disabled }, null, { timeout: 15000 })
-    await settled(page)
-    for (let i = 0; i < 8; i++) {
-      const { state } = await demoState(page, ".pieces-preview")
-      assert.ok(!["playing", "finished", "stopped"].includes(state), `the landing stage started by itself (${state})`)
-      await page.waitForTimeout(250)
-    }
-    await assertQuiet(page, "on the landing stage before Demonstrate was pressed")
-    await control.click()
-    await page.waitForFunction(() => document.querySelector(".pieces-preview")?.dataset.demoState === "playing", null, { timeout: 5000 })
-    await control.click()
-    await page.waitForFunction(() => document.querySelector(".pieces-preview")?.dataset.demoState === "stopped", null, { timeout: 2000 })
-  } catch (error) { failures.push(`landing stage: ${error.message.split("\n")[0]}`) } finally { await ctx.close() }
-}
-
 await browser.close()
 await site.close()
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Demo player browser check passed in ${engine}: ${items.length} of ${scripted.length} scripted demos stay quiet until Demonstrate, are seen to run, fall quiet on Stop and hand a real control back; the detector catches every injected autoplay${only ? "" : "; keyboard, right to left, forced colours and the landing stage hold"}.`)
+console.log(`Demo player browser check passed in ${engine}: ${items.length} of ${scripted.length} scripted demos stay quiet until Demonstrate, are seen to run, fall quiet on Stop and hand a real control back; the detector catches every injected autoplay${only ? "" : "; keyboard, right to left and forced colours hold"}.`)

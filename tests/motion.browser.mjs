@@ -1,7 +1,7 @@
 // Motion, proved in a browser on the packaged site (needs `npm run build`; the check starts and stops its own server).
 //   the home overture: plays once per browser, ends by one deadline under three seconds, skips by key, press and
 //   control, survives late fonts and unavailable storage, and is static under reduced motion
-//   shared toy links arrive turned down, docs titles stay still, nothing logs an error
+//   shared sea links arrive settled, docs titles stay still, nothing logs an error
 // One run is one engine in one colour scheme: MOTION_ENGINE (chromium, firefox or webkit) and MOTION_SCHEME (light is
 // day, dark is nocturne). tests/run-motion.mjs runs all six. An engine that is not installed or cannot launch fails
 // the run; nothing here skips an engine.
@@ -23,12 +23,16 @@ let ran = 0
 
 /** Watches the overture attribute from before the page's own scripts: when it appeared, and when it went. */
 const spy = (attr) => {
-  window.__overture = { starts: [], ends: [], weights: [] }
-  // The quiet line's weight, sampled from the start, so "it began heavy" does not depend on how soon a test looks.
+  window.__overture = { starts: [], ends: [], moving: [] }
+  // Whether the hands' letters were seen settling, sampled from the start while the overture plays, so the answer does
+  // not depend on how soon a test looks. The hands are drawn once the page's script runs; until then there is nothing.
   const sample = setInterval(() => {
-    const line = document.querySelector('.hero-line[data-line="quiet"]')
-    if (line) window.__overture.weights.push(Number(getComputedStyle(line).fontWeight))
-    if (window.__overture.ends.length) clearInterval(sample)
+    const log = window.__overture
+    if (log.starts.length && !log.ends.length) {
+      const letter = document.querySelector(".zero-hands text")
+      if (letter) log.moving.push(getComputedStyle(letter).animationName === "zero-settle")
+    }
+    if (log.ends.length) clearInterval(sample)
   }, 30)
   new MutationObserver(() => {
     const value = document.documentElement.getAttribute(attr)
@@ -64,7 +68,8 @@ async function tabToSkip(page) {
   }
   return false
 }
-const weight = (page) => page.evaluate(() => Number(getComputedStyle(document.querySelector('.hero-line[data-line="quiet"]')).fontWeight))
+// At rest: no letter of the hands, and not the dot, is animating, and every letter is fully drawn.
+const rest = (page) => page.evaluate(() => [...document.querySelectorAll(".zero-hands text, .zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); return s.animationName === "none" && Number(s.opacity) === 1 }))
 
 async function check(name, fn) {
   ran++
@@ -77,30 +82,18 @@ await check("first visit: plays, ends by the deadline, records itself once", asy
   const page = await context.newPage()
   await page.goto(site.url("/"))
   await started(page)
-  await page.waitForFunction(() => window.__overture.weights.length > 0, null, { polling: 30 })
   assert.ok(await page.locator(".hero-skip").isVisible(), "Skip intro should be visible while it plays")
   await ended(page)
-  const { starts, ends, weights } = await log(page)
-  assert.ok(Math.max(...weights) > 600, `the quiet line should begin heavy (heaviest seen: ${Math.max(...weights)})`)
+  const { starts, ends, moving } = await log(page)
+  assert.ok(moving.length > 0, "the hands were never drawn while the overture played")
+  assert.ok(moving.some(Boolean), "the hands' letters should settle into place while it plays")
   const took = ends[0] - starts[0].at
   assert.ok(took <= OVERTURE_DEADLINE + 150, `title and field ended after ${Math.round(took)}ms, past the ${OVERTURE_DEADLINE}ms deadline`)
   assert.ok(took < 3000)
-  assert.equal(await weight(page), 200, "the quiet line should rest at its quietest")
+  assert.ok(await rest(page), "the hands and the dot should rest once it ends")
   assert.equal(await page.locator(".hero-skip").isVisible(), false, "Skip intro should be gone after the overture")
-  assert.equal(await page.locator("canvas.hero-noise[data-arrival]").count(), 0, "the field should have settled with the title")
   assert.equal(await page.evaluate((k) => localStorage.getItem(k), OVERTURE_KEY), "1")
   assert.deepEqual(errors, [])
-  await context.close()
-})
-
-await check("the field arrives inside the overture and settles with it", async () => {
-  const { context } = await fresh()
-  const page = await context.newPage()
-  await page.goto(site.url("/"))
-  await started(page)
-  const arriving = await page.waitForSelector("canvas.hero-noise[data-arrival]", { timeout: 1500 }).then(() => true, () => false)
-  // On a very slow start the overture may have too little left to be worth playing the field; then it simply rests.
-  if (arriving) { await ended(page); assert.equal(await page.locator("canvas.hero-noise[data-arrival]").count(), 0) }
   await context.close()
 })
 
@@ -114,11 +107,11 @@ await check("later visits arrive settled: reload, another tab, back", async () =
     if (how === "reload") await page.reload()
     if (how === "tab") await page.goto(site.url("/"))
     if (how === "back") { await page.goto(site.url("/docs/")); await page.goBack() }
-    await page.waitForSelector(".hero-title")
+    await page.waitForSelector("#hero-title")
     await page.waitForTimeout(500)
     const { starts } = await log(page)
     assert.equal(starts.length, 0, `the overture replayed after ${how}`)
-    assert.equal(await weight(page), 200)
+    assert.ok(await rest(page), "the hands should be at rest")
     assert.equal(await page.locator(".hero-skip").isVisible(), false)
   }
   await context.close()
@@ -131,7 +124,7 @@ await check("Escape ends it", async () => {
   await started(page)
   await page.keyboard.press("Escape")
   await ended(page, 500)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   await context.close()
 })
 
@@ -207,7 +200,7 @@ await check("the deadline holds when fonts arrive late", async () => {
 
 // ── the clock belongs to the page's own script, not to React ──
 // The inline script ends the overture itself, so these hold while the framework's JavaScript is slow or absent.
-const hydrated = (page) => page.evaluate(() => [...document.querySelectorAll(".hero-skip, .hero-title")].some((el) => Object.keys(el).some((k) => k.startsWith("__reactFiber"))))
+const hydrated = (page) => page.evaluate(() => [...document.querySelectorAll(".hero-skip, #hero-title")].some((el) => Object.keys(el).some((k) => k.startsWith("__reactFiber"))))
 const holdFrameworkJs = (context, ms) => context.route("**/_next/**/*.js", async (route) => { await new Promise((r) => setTimeout(r, ms)); await route.continue() })
 
 await check("slow JavaScript: the deadline still ends it, before React has loaded", async () => {
@@ -220,7 +213,7 @@ await check("slow JavaScript: the deadline still ends it, before React has loade
   const { starts, ends } = await log(page)
   assert.ok(ends[0] - starts[0].at <= OVERTURE_DEADLINE + 150, `ended after ${Math.round(ends[0] - starts[0].at)}ms with React held back`)
   assert.equal(await hydrated(page), false, "React had already loaded; this case proves nothing")
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   assert.equal(await page.locator(".hero-skip").isVisible(), false)
   await context.close()
   assert.deepEqual(errors.filter((e) => !/Failed to load|net::/.test(e)), [])
@@ -273,10 +266,10 @@ await check("JavaScript blocked entirely: no overture starts and the page is com
   const { context } = await fresh({ javaScriptEnabled: false })
   const page = await context.newPage()
   await page.goto(site.url("/"))
-  await page.waitForSelector(".hero-title")
+  await page.waitForSelector("#hero-title")
   await page.waitForTimeout(600)
   assert.equal(await page.evaluate(() => document.documentElement.hasAttribute("data-overture-at")), false)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   assert.equal(await page.locator(".hero-skip").isVisible(), false)
   assert.ok(await page.locator("h1").isVisible())
   await context.close()
@@ -291,7 +284,7 @@ await check("framework scripts that fail to load: the overture still ends at the
   await ended(page, 3500)
   const { starts, ends } = await log(page)
   assert.ok(ends[0] - starts[0].at <= OVERTURE_DEADLINE + 150)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   await context.close()
 })
 
@@ -300,11 +293,11 @@ const never = (name, options, init, extra) => check(name, async () => {
   const { context, errors } = await fresh(options, init)
   const page = await context.newPage()
   await page.goto(site.url(extra?.route ?? "/"))
-  await page.waitForSelector(".hero-title")
+  await page.waitForSelector("#hero-title")
   await page.waitForTimeout(600)
   assert.equal((await log(page)).starts.length, 0, "the overture played")
   assert.equal(await page.locator(".hero-skip").isVisible(), false)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   assert.ok(await page.locator("h1").isVisible(), "the page should still render")
   if (extra?.stored !== undefined) assert.equal(await page.evaluate((k) => localStorage.getItem(k), OVERTURE_KEY), extra.stored)
   assert.deepEqual(errors, [])
@@ -317,7 +310,7 @@ await never("storage that refuses to be read: arrives settled", {}, () => {
 await never("storage that refuses to be written: arrives settled", {}, () => {
   Storage.prototype.setItem = function () { throw new DOMException("full", "QuotaExceededError") }
 })
-await never("a link to a part of the page: arrives settled", {}, null, { route: "/#noise", stored: "1" })
+await never("a link to a part of the page: arrives settled", {}, null, { route: "/#sea", stored: "1" })
 
 await check("reduced motion asked for mid-way ends it", async () => {
   const { context } = await fresh()
@@ -326,23 +319,32 @@ await check("reduced motion asked for mid-way ends it", async () => {
   await started(page)
   await page.emulateMedia({ reducedMotion: "reduce" })
   await ended(page, 500)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   await context.close()
 })
 
-// ── shared toy links, docs titles ──
-await check("a shared toy link arrives turned down and stays so", async () => {
-  const { context } = await fresh({ reducedMotion: "no-preference" })
+// ── shared sea links, docs titles ──
+await check("a shared sea link arrives settled and stays so", async () => {
+  const { context, errors } = await fresh({ reducedMotion: "no-preference" })
   const page = await context.newPage()
-  await page.goto(site.url("/?say=hello%20there#noise"))
-  await page.waitForFunction(() => document.querySelector(".toy-input")?.value === "hello there")
+  await page.goto(site.url("/?sea=hello%20there#sea"))
+  await page.waitForFunction(() => document.querySelector(".sea-input")?.value === "hello there")
+  await page.waitForFunction(() => document.querySelector(".sea-wave")?.dataset.line === "hello there" && document.querySelector(".sea-wave text"))
   const samples = []
-  for (let i = 0; i < 24; i++) {
-    samples.push(await page.evaluate(() => ({ quiet: document.querySelector(".toy")?.hasAttribute("data-quiet"), meter: document.querySelector(".toy-meter")?.textContent })))
+  for (let i = 0; i < 16; i++) {
+    samples.push(await page.evaluate(() => {
+      const wave = document.querySelector(".sea-wave"), first = wave.querySelector("text")
+      return { live: wave.hasAttribute("data-live"), running: wave.getAnimations({ subtree: true }).length, opacity: Number(getComputedStyle(first).opacity), words: first.textContent }
+    }))
     await page.waitForTimeout(100)
   }
-  assert.ok(samples.every((s) => s.quiet), "the toy left its quiet state without a gesture")
-  assert.ok(samples.every((s) => s.meter?.trim() === "0 dB"), "the toy's meter moved without a gesture")
+  assert.ok(samples.every((s) => !s.live && s.running === 0), "the sea moved without a gesture")
+  assert.ok(samples.every((s) => s.opacity === 1), "the shared sea was not fully drawn")
+  assert.ok(samples.every((s) => /hello|there/.test(s.words)), "the sea was not set in the shared line")
+  // Typing is a gesture: it re-sets the sea, once the person pauses.
+  await page.locator(".sea-input").fill("waves")
+  await page.waitForFunction(() => document.querySelector(".sea-wave").hasAttribute("data-live"), null, { timeout: 2000 })
+  assert.deepEqual(errors, [])
   await context.close()
 })
 
@@ -389,7 +391,7 @@ await check("667px, coarse pointer: plays, ends at the deadline, no sideways ove
   await ended(page)
   const { starts, ends } = await log(page)
   assert.ok(ends[0] - starts[0].at <= OVERTURE_DEADLINE + 150, `ended after ${Math.round(ends[0] - starts[0].at)}ms`)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   assert.ok(over <= 1, `sideways overflow of ${over}px`)
   assert.deepEqual(errors, [])
@@ -403,7 +405,7 @@ await check("667px, coarse pointer: a tap on the page ends it", async () => {
   await started(page)
   await page.touchscreen.tap(333, 120)
   await ended(page, 500)
-  assert.equal(await weight(page), 200)
+  assert.ok(await rest(page), "the hands should be at rest")
   await context.close()
 })
 
@@ -428,10 +430,10 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
     const page = how === "tab" ? await context.newPage() : first
     if (how === "reload") await page.reload()
     else await page.goto(site.url("/"))
-    await page.waitForSelector(".hero-title")
+    await page.waitForSelector("#hero-title")
     await page.waitForTimeout(400)
     assert.equal((await log(page)).starts.length, 0, `the overture replayed after ${how}`)
-    assert.equal(await weight(page), 200)
+    assert.ok(await rest(page), "the hands should be at rest")
   }
   await context.close()
 })
@@ -439,4 +441,4 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
 await browser.close()
 await site.close()
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, shared toy links, docs titles) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)
+console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, shared sea links, docs titles) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)

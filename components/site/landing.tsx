@@ -5,32 +5,11 @@ import * as React from "react"
 
 import { KEYS, PAIRS, SCHEMES, useTheme } from "@/components/site/theme-controls"
 import { Button } from "@/registry/0nlytype/ui/button"
-import { Checkbox, CheckboxGroup } from "@/registry/0nlytype/ui/checkbox"
 import { Input } from "@/registry/0nlytype/ui/field"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"
 import { Select } from "@/registry/0nlytype/ui/select"
 
 // The home page's small instruments: the ones that answer a hand. Everything else on the page is a server component.
-
-const LEFT_OUT = ["Icons", "Boxes", "Shadows", "Gradients", "Monospace", "A second colour"]
-
-/** Silence is structure: what 0nlyType leaves out, already struck through. Unstrike one to see it matters. */
-export function LeftOut() {
-  return (
-    <CheckboxGroup
-      tally
-      className="left-out"
-      legend={<span className="ot-sr">What 0nlyType leaves out</span>}
-      done={(count, total) => (count === total ? "left out, and not missed." : "left out.")}
-    >
-      {LEFT_OUT.map((word) => (
-        <Checkbox key={word} defaultChecked>
-          {word}
-        </Checkbox>
-      ))}
-    </CheckboxGroup>
-  )
-}
 
 /** One note of colour: the whole page, retuned from one sentence. */
 export function TuneSentence() {
