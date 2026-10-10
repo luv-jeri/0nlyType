@@ -428,7 +428,7 @@ const seen = `if (location.protocol.startsWith("http")) localStorage.setItem(${J
 // Down to the tunnel, a few pieces in, and wait for it to read.
 async function toTunnel(page, pieces = 30) {
   await page.goto(site.url("/"))
-  await page.waitForSelector(".tunnel-ring textPath.on", { state: "attached" })
+  await page.waitForSelector(".tunnel-ring .nm.on", { state: "attached" })
   await page.evaluate((n) => scrollTo(0, document.querySelector(".zero").getBoundingClientRect().top + scrollY + innerHeight * 0.75 + 20 + n * 24), pieces)
   await page.waitForFunction(() => document.querySelector(".zero-stage")?.hasAttribute("data-dial"), null, { polling: 50 })
   await page.waitForTimeout(1200)
@@ -436,7 +436,7 @@ async function toTunnel(page, pieces = 30) {
 // The reading, the ring and the list say the same piece.
 const reading = (page) => page.evaluate(() => {
   const boxes = [...document.querySelectorAll("[data-swap]")]
-  const on = document.querySelector(".tunnel-ring textPath.on"), current = document.querySelector(".pieces-list a[aria-current]")
+  const on = document.querySelector(".tunnel-ring .nm.on"), current = document.querySelector(".pieces-list a[aria-current]")
   return { copies: boxes.map((b) => b.children.length), on: on?.getAttribute("data-i"), current: current?.dataset.i, name: document.querySelector('[data-swap="name"] > :not(.out)')?.textContent, title: current?.textContent }
 })
 
@@ -467,6 +467,22 @@ await check("01: a fast scroll turns the tunnel, and the reading never holds mor
   assert.deepEqual(after.copies, [1, 1, 1, 1], "the reading should settle to one copy of each part")
   assert.equal(after.on, after.current, "the ring and the list should read the same piece")
   assert.ok(after.title?.includes(after.name ?? "\0"), `the reading says "${after.name}", the list "${after.title}"`)
+  assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
+  await context.close()
+})
+
+await check("01: the zero turns into the tunnel, one drawing at every step, with nothing over it", async () => {
+  const { context, errors } = await fresh({}, seen)
+  const page = await context.newPage()
+  await page.goto(site.url("/"))
+  await page.waitForSelector(".tunnel-ring .nm.on", { state: "attached" })
+  for (const h of [0.3, 0.5, 0.7]) {
+    await page.evaluate((h) => scrollTo(0, document.querySelector(".zero").getBoundingClientRect().top + scrollY + h * Math.round(document.querySelector(".zero-stage").clientHeight * 0.75)), h)
+    await page.waitForTimeout(400)
+    const seen = await page.evaluate(() => Object.fromEntries([".zero-ring", ".zero-hands", ".hero-band", ".pieces-part"].map((s) => [s, Number(getComputedStyle(document.querySelector(s)).opacity)])))
+    for (const [what, o] of Object.entries(seen)) assert.ok(o < 0.02, `at h ${h}, ${what} still shows (${o.toFixed(2)}) while the names travel`)
+    assert.ok(await page.evaluate(() => [...document.querySelectorAll(".tunnel-ring")].some((r) => Number(r.style.opacity) > 0.5)), `at h ${h}, the names should be on their way`)
+  }
   assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
   await context.close()
 })
