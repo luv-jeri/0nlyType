@@ -231,15 +231,18 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .copy-cmd { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--ot-space-4); row-gap: var(--ot-space-1); max-width: 100%; margin: 0; padding: var(--ot-space-2) 0; border: 0; background: none; font: inherit; color: var(--ot-ink); text-align: start; cursor: copy; }
 .copy-cmd-text { font-family: var(--ot-voice); font-stretch: 88%; font-size: var(--ot-mp); line-height: 1.35; color: var(--ot-graphite); overflow-wrap: anywhere; padding-bottom: 0.12em; background: linear-gradient(var(--ot-accent), var(--ot-accent)) no-repeat 0 100% / 0% var(--ot-stroke), linear-gradient(var(--ot-rule-strong), var(--ot-rule-strong)) no-repeat 0 100% / 100% var(--ot-hairline); transition: color var(--ot-allegro); }
 .copy-cmd-text i { font-family: var(--ot-expression); font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-ink); }
-.copy-cmd:hover .copy-cmd-text { color: var(--ot-ink); }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-text { color: var(--ot-ink); }
 .copy-cmd[data-copied] .copy-cmd-text { background-size: 100% var(--ot-stroke), 100% var(--ot-hairline); transition: background-size var(--ot-andante) var(--ot-exhale); }
 .copy-cmd-word { display: inline-grid; font-size: var(--ot-p); color: var(--ot-ink); }
 .copy-cmd-word > span, .copy-cmd-word::after { grid-area: 1 / 1; }
 .copy-cmd-word::after { content: "( " attr(data-text) " )"; visibility: hidden; }
 .copy-cmd-word > span::before { content: "("; margin-inline-end: 0.3em; display: inline-block; transition: translate var(--ot-allegro) var(--ot-spiccato); }
 .copy-cmd-word > span::after { content: ")"; margin-inline-start: 0.3em; display: inline-block; transition: translate var(--ot-allegro) var(--ot-spiccato); }
-.copy-cmd:hover .copy-cmd-word > span::before { translate: -0.12em 0; }
-.copy-cmd:hover .copy-cmd-word > span::after { translate: 0.12em 0; }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-word > span::before { translate: -0.12em 0; }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-word > span::after { translate: 0.12em 0; }
+/* Pressed, the parentheses close on the word. */
+.copy-cmd:active .copy-cmd-word > span::before { translate: 0.08em 0; transition-duration: var(--ot-arpeggio); }
+.copy-cmd:active .copy-cmd-word > span::after { translate: -0.08em 0; transition-duration: var(--ot-arpeggio); }
 .copy-cmd[data-copied] .copy-cmd-word { color: var(--ot-accent); font-family: var(--ot-expression); font-style: italic; }
 
 /* Share: words on a hairline, like a link; it answers with "Link copied" in the accent. */
