@@ -31,7 +31,7 @@ export type Movement = { num: string; name: string; pieces: Piece[] }
 type Flat = Piece & { mv: Movement; i: number }
 type Arc = { m: Movement; start: number; end: number; count: number; path: SVGPathElement; t1: SVGLineElement; t2: SVGLineElement; label: SVGTextElement; rest: SVGTSpanElement }
 type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rxi: number }
-type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: number }
+type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: number; plate: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
 
 const NS = "http://www.w3.org/2000/svg"
@@ -180,8 +180,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const bandTop = bandEl.offsetTop
       const bar = parseFloat(getComputedStyle(root).getPropertyValue("--bar")) * parseFloat(getComputedStyle(root).fontSize) || 64
       let hero: Shape, dial: Shape
-      // Where the hands may reach: under the bar, over the band. Skip intro, while the overture plays, waits under the
-      // zero on a wide screen, in the room the hands leave between them; on a phone it sits over the band, under the hands.
+      // Where the hands may reach: under the bar, over the band. Skip intro, while the overture plays, waits in the
+      // zero's counter on a wide screen; on a phone, where the zero is only the mark, it sits over the band, under the hands.
       const say = 44 + 18
       const room: [number, number] = phone ? [bar + 12, bandTop - 24 - say] : [bar + 24, bandTop - 14]
       // A full dial wants a reading column of at least 520px beside it (the install line and Copy on one row) and a
@@ -190,19 +190,23 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const narrow = !phone && fit < 260
       if (phone) {
         const t = room[0], b = room[1]
-        hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(clamp((b - t) / 2 - 22, 14, 30)) }
+        // The zero stands at the middle of the plate, not of the room left over Skip intro, which shows only once.
+        hero = { cx: W / 2, cy: (bar + bandTop) / 2, ...shape(clamp((b - t) / 2 - 22, 14, 30)) }
         const s1 = shape(Math.min(0.3 * H, 250))
         dial = { cx: -0.4 * s1.rxo, cy: 0.56 * H, ...s1 }
       } else {
-        // The zero is as tall as the hands are, so neither outweighs the other.
-        const t = bar + 24, b = bandTop - 26 - say
+        // The zero is as tall as the hands are, so neither outweighs the other, and it stands in the middle of the
+        // room between the bar and the band, the same air above and below.
+        const t = bar + 28, b = bandTop - 28
         hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300, Math.max(150, W * 0.125))) }
         // The dial sits in the room under the bar, with space above and below for its movement labels.
         const s1 = shape(Math.min(0.41 * H, (H - bar) / 2 - 56, 380, narrow ? 380 : fit))
         dial = narrow ? { cx: -0.4 * s1.rxo, cy: bar + (H - bar) / 2, ...s1 } : { cx: m + s1.rxo + 40, cy: bar + (H - bar) / 2, ...s1 }
       }
-      const skip = phone ? bandTop - 24 - 44 : hero.cy + hero.ryo + 18
-      return { W, H, m, phone, narrow, hero, dial, room, skip }
+      const skip = phone ? bandTop - 24 - 44 : hero.cy - 22
+      // The plate the picture is printed on: from under the bar to over the band, marked at its corners and on its axis.
+      const plate = bandTop - bar - 40
+      return { W, H, m, phone, narrow, hero, dial, room, skip, plate }
     }
     const geomAt = (g: Geometry, h: number): Shape => {
       const a = g.hero, b = g.dial, e = smooth(h)
@@ -256,15 +260,15 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const wdth = clamp((100 * L) / w100, 75, 100)
         const wAt = (w100 * wdth) / 100
         const f = wAt > L ? Math.max(4, (fs * L) / wAt) : fs
-        const el = names[i], was = drawn[i]
-        // The size, fit and width are set to the tenth and the width axis to the unit, so a turning name is set again
-        // only when the change would show: a frame re-shapes only the names whose fit moved.
-        const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
         const w = Math.min(L, wAt)
         setW[i] = w
         // On the right a name reads outward and ends at the rim; on the left it reads inward and starts there. Anchored
         // at the rim, a name set heavier (chosen, or read) grows inward, never over its dot.
         const x = xo - ux * pad, y = yo - uy * pad
+        const el = names[i], was = drawn[i]
+        // The size, fit and width are set to the tenth and the width axis to the unit, so a turning name is set again
+        // only when the change would show: a frame re-shapes only the names whose fit moved.
+        const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
         // Only a name that had to be condensed is held to its length; the rest keep their own spacing.
         const size = f.toFixed(1), fit = wAt > L ? L.toFixed(1) : "", stretch = `'wdth' ${Math.round(wdth)}`, end = right ? "end" : "start"
         if (was.at !== at) el.setAttribute("transform", (was.at = at))
@@ -581,7 +585,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (!felt) felt = requestAnimationFrame(feel)
     }
 
-    // Skip intro, while the overture plays, waits under the zero.
+    // Skip intro, while the overture plays, waits in the zero (over the band, on a phone).
     const placeSkip = (g: Geometry) => {
       const skip = st.querySelector<HTMLElement>(".hero-skip")
       if (skip) skip.style.transform = `translate(${g.hero.cx - skip.offsetWidth / 2}px, ${g.skip}px)`
@@ -599,6 +603,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       measureNames()
       G = stageGeometry()
       placeSkip(G)
+      put(bandEl, "--plate", `${G.plate.toFixed(0)}px`)
       void setHands(G)
       key = ""
       render(true)
@@ -802,17 +807,18 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         <svg ref={ring} className="zero-ring" aria-hidden="true" />
 
         <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollTo({ top: 0, behavior: "auto" })}>
+          <span className="hero-plate" aria-hidden="true" />
           <Wordmark id="hero-title" className="hero-mark" />
-          <div className="hero-says">
-            <span className="hero-cta">
-              <Cta href="/docs/">Read the docs</Cta>
-            </span>
-          </div>
-          <div className="hero-install">
+          <div className="hero-side">
             <p className="hero-count">
               {count} React components, set in words, for the shadcn CLI.
             </p>
-            <CopyCommand command={install("button")} emphasis="button" />
+            <span className="hero-cta">
+              <Cta href="/docs/">Read the docs</Cta>
+            </span>
+            <div className="hero-install">
+              <CopyCommand command={install("button")} emphasis="button" />
+            </div>
           </div>
         </div>
         <Overture />

@@ -13,7 +13,7 @@
 .wm-set .wm-type { font-size: 1.12em; margin-inline-start: 0.04em; }
 
 /* ── hero and 01 (landing-zero): one sticky stage the scroll turns. The script writes --h (0 hero, 1 dial) on the
-   hands, --notes on the caption, --out on the band and --inn on the pieces (each only where it is read, so a frame
+   hands, --out on the band and --inn on the pieces (each only where it is read, so a frame
    restyles only them), and --cy (the reading line) and --colx (the column beside the dial) on the pieces; nothing
    here reads layout. The section's height is the intro plus one notch per piece. ── */
 .zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
@@ -54,16 +54,26 @@
 .zero-hands .hand-a { translate: calc(var(--away) * -14vw) 0; }
 .zero-hands .hand-g { translate: calc(var(--away) * 14vw) 0; }
 
-/* The band: the lockup, the way into the docs, and one line to install. It lifts away as the dial arrives. */
-.hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: end; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
+/* The band: the lockup, and beside it one column on the lockup's baseline: what it is, the way into the docs, and one
+   line to install. It lifts away as the dial arrives. */
+.hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: last baseline; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
 .zero-stage:not([data-hero]) .hero-band { pointer-events: none; }
-/* The lockup is about 4em wide: it fills its five columns (40% of the band) and no more. */
-.hero-mark { grid-column: 1 / 6; --H: max(64px, min(calc(38cqi / 4), calc((100svh - 560px) / 1.1), 168px)); margin-block-end: -0.04em; }
-.hero-says { grid-column: 6 / 10; display: grid; justify-items: start; row-gap: var(--ot-space-5); padding-bottom: var(--ot-space-2); }
-.hero-install { grid-column: 10 / -1; display: grid; justify-items: start; row-gap: var(--ot-space-3); padding-bottom: var(--ot-space-2); }
+/* The lockup is about 4em wide: it fills its six columns and no more. The column beside it starts on the page's axis,
+   straight under the zero, and its last line stands on the lockup's baseline. */
+.hero-mark { grid-column: 1 / 7; --H: max(64px, min(calc(38cqi / 4), calc((100svh - 560px) / 1.1), 168px)); margin-block-end: -0.04em; }
+.hero-side { grid-column: 7 / -1; display: grid; justify-items: start; align-content: end; padding-bottom: var(--ot-space-1); }
+.hero-count { max-width: 60ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
+.hero-cta { margin-block: var(--ot-space-3) var(--ot-space-5); }
 .hero-cta .cta { font-size: var(--ot-mf); }
-.hero-count { max-width: 30ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
+.hero-install .copy-cmd { padding-block: 0; }
 .hero-install .copy-cmd-text { font-size: var(--ot-pp); }
+/* The proof's marks: the picture is a plate, trimmed at its corners and registered on the page's axis, the line the
+   zero stands on and the column beside the lockup starts from. The hands bleed past the trim, as a print does. */
+.hero-plate { --c: var(--ot-rule-strong); --l: 14px; --t: var(--ot-hairline); position: absolute; inset-inline: 0; bottom: calc(100% + 20px); height: var(--plate, 0px); pointer-events: none; background-repeat: no-repeat; background-image:
+  linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+  linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c));
+  background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%, 50% 0, 50% 100%;
+  background-size: var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--t) var(--l), var(--t) var(--l); }
 .zero .hero-skip { display: none; position: absolute; left: 0; top: 0; min-block-size: 44px; font-size: var(--ot-pp); }
 html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 
@@ -122,16 +132,16 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 @media (prefers-reduced-motion: reduce) { html[data-overture-at] .zero .hero-skip { display: none; } }
 
 @media (max-width: 1100px) and (min-width: 761px) {
-  .hero-mark { grid-column: 1 / 7; grid-row: 1 / 3; }
-  .hero-says, .hero-install { grid-column: 7 / -1; }
-  .hero-says { padding-bottom: 0; }
+  .hero-mark { grid-column: 1 / 7; }
+  .hero-side { grid-column: 7 / -1; }
 }
 @media (max-width: 760px) {
   .zero { --pitch: 20px; }
   .hero-band { bottom: 20px; grid-template-columns: 1fr; row-gap: var(--ot-space-4); padding-top: var(--ot-space-4); }
-  .hero-mark, .hero-says, .hero-install { grid-column: 1; }
+  .hero-plate { --l: 10px; }
+  .hero-mark, .hero-side { grid-column: 1; }
   .hero-mark { --H: min(calc(100cqi / 4.1), 120px); }
-  .hero-says { row-gap: var(--ot-space-3); }
+  .hero-cta { margin-block: 0 var(--ot-space-4); }
   .hero-cta .cta { font-size: var(--ot-mp); }
   .hero-count { display: none; }
   .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); bottom: auto; } /* clear of the rail's label */

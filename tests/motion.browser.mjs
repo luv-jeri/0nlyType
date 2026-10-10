@@ -183,7 +183,9 @@ await check("Skip intro mirrors in right to left and stays on screen", async () 
   await page.evaluate(() => { document.documentElement.dir = "rtl" })
   const rtl = await place()
   assert.ok(ltr.right <= ltr.width && rtl.left >= 0, "Skip intro left the screen")
-  assert.ok(rtl.left < ltr.left, "Skip intro should move to the other side in right to left")
+  // It stands on the page's axis, in the zero's counter: mirrored, its middle lands width minus where it was.
+  const mid = (r) => (r.left + r.right) / 2
+  assert.ok(Math.abs(mid(rtl) - (rtl.width - mid(ltr))) <= 1, "Skip intro should mirror about the page's axis in right to left")
   await context.close()
 })
 
