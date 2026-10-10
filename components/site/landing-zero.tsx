@@ -156,15 +156,17 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return { ...a, path, t1, t2, label, rest }
     })
     let natural: number[] = []
+    // How long each name is as set, so the callout can start where the name ends.
+    const setW = names.map(() => 0)
     // What each name and dot was last set to, so a frame writes only what changed.
-    const drawn = names.map(() => ({ at: "", size: "", fit: "", stretch: "", dx: "", dy: "" }))
+    const drawn = names.map(() => ({ at: "", size: "", fit: "", stretch: "", end: "", dx: "", dy: "" }))
     const measureNames = () => {
       for (const [i, t] of names.entries()) {
         t.setAttribute("font-size", "20")
         t.removeAttribute("textLength")
         t.setAttribute("lengthAdjust", "spacing")
         t.style.fontVariationSettings = "'wdth' 100"
-        drawn[i] = { ...drawn[i], size: "", fit: "", stretch: "" }
+        drawn[i] = { ...drawn[i], size: "", fit: "", stretch: "", end: "" }
       }
       natural = names.map((t) => t.getComputedTextLength() / 20)
     }
@@ -235,29 +237,44 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const hung = [...partEl.querySelectorAll<HTMLElement>(":scope > :is(.pieces-head, .readout, .pieces-skip, .pieces-keys)")]
     const layoutRing = (g: Geometry, z: Shape, o: number, h: number) => {
       const tab = midTab(z), { cx, cy, rxo, ryo, rxi, ryi } = z
-      const fs = Math.max(g.phone ? 5.5 : 7, ryo / 38)
+      // One size for every name, so the ring reads as one column of type turned round. A name keeps its own spacing:
+      // it is condensed (the width axis, then the size) only when it would not fit between the ellipses, and it is
+      // never spread to fill, so a short name reads as a word, not as letters. Each hangs from the outer rim, by its
+      // dot, so the chosen name meets the index; the counter keeps its ragged edge, as a set column does.
+      const fs = clamp(ryo / 30, g.phone ? 5.5 : 7, 11.5)
       const s = mod(Math.round(o), N)
       cur = z
       for (let i = 0; i < N; i++) {
         const t = tAt(tab, mod((i - o) / N, 1)), c = Math.cos(t), sn = Math.sin(t)
         const xi = cx + rxi * c, yi = cy + ryi * sn, xo = cx + rxo * c, yo = cy + ryo * sn
         const dx = xo - xi, dy = yo - yi, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len
-        const pad = 3, L = Math.max(4, len - pad * 2)
+        // A long name may reach a little into the counter, whose edge is ragged anyway, before it is condensed.
+        const pad = 3, L = Math.max(4, len * 1.35 - pad * 2)
         const ang = (Math.atan2(dy, dx) * 180) / Math.PI
         const right = c >= -0.0001
-        const x = right ? xi + ux * pad : xo - ux * pad, y = right ? yi + uy * pad : yo - uy * pad
         const w100 = natural[i] * fs
-        const wdth = clamp((100 * L) / w100, 62, 125)
+        const wdth = clamp((100 * L) / w100, 75, 100)
         const wAt = (w100 * wdth) / 100
         const f = wAt > L ? Math.max(4, (fs * L) / wAt) : fs
         const el = names[i], was = drawn[i]
         // The size, fit and width are set to the tenth and the width axis to the unit, so a turning name is set again
         // only when the change would show: a frame re-shapes only the names whose fit moved.
         const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
-        const size = f.toFixed(1), fit = L.toFixed(1), stretch = `'wdth' ${Math.round(wdth)}`
+        const w = Math.min(L, wAt)
+        setW[i] = w
+        // On the right a name reads outward and ends at the rim; on the left it reads inward and starts there. Anchored
+        // at the rim, a name set heavier (chosen, or read) grows inward, never over its dot.
+        const x = xo - ux * pad, y = yo - uy * pad
+        // Only a name that had to be condensed is held to its length; the rest keep their own spacing.
+        const size = f.toFixed(1), fit = wAt > L ? L.toFixed(1) : "", stretch = `'wdth' ${Math.round(wdth)}`, end = right ? "end" : "start"
         if (was.at !== at) el.setAttribute("transform", (was.at = at))
         if (was.size !== size) el.setAttribute("font-size", (was.size = size))
-        if (was.fit !== fit) el.setAttribute("textLength", (was.fit = fit))
+        if (was.fit !== fit) {
+          if (fit) el.setAttribute("textLength", fit)
+          else el.removeAttribute("textLength")
+          was.fit = fit
+        }
+        if (was.end !== end) el.setAttribute("text-anchor", (was.end = end))
         if (was.stretch !== stretch) el.style.fontVariationSettings = was.stretch = stretch
         const d = mod(i - s + N / 2, N) - N / 2
         el.toggleAttribute("data-sel", d === 0)
@@ -357,10 +374,13 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const placeCallout = (i: number) => {
       if (!cur) return
       const z = cur, t = tAt(midTab(z), mod((i - o) / N, 1)), c = Math.cos(t), s = Math.sin(t)
-      const xi = z.cx + z.rxi * c, yi = z.cy + z.ryi * s
+      const xi = z.cx + z.rxi * c, yi = z.cy + z.ryi * s, xo = z.cx + z.rxo * c, yo = z.cy + z.ryo * s
+      const len = Math.hypot(xo - xi, yo - yi), ux = (xo - xi) / len, uy = (yo - yi) / len
+      // The line leaves from where the name ends, a few points clear of its last letter.
+      const back = Math.min(len, 3 + setW[i] + 5)
       const ex = z.cx + (xi - z.cx) * 0.72, ey = z.cy + (yi - z.cy) * 0.72
-      callLine.setAttribute("x1", String(xi - c * 4))
-      callLine.setAttribute("y1", String(yi - s * 4))
+      callLine.setAttribute("x1", String(xo - ux * back))
+      callLine.setAttribute("y1", String(yo - uy * back))
       callLine.setAttribute("x2", String(ex))
       callLine.setAttribute("y2", String(ey))
       callDot.setAttribute("cx", String(ex))
