@@ -2,6 +2,8 @@
 //   the home overture: plays once per browser, ends by one deadline under three seconds, skips by key, press and
 //   control, survives late fonts and unavailable storage, and is static under reduced motion
 //   docs titles stay still, nothing logs an error
+//   01, the tunnel: a fast scroll turns it and its reading never holds more than two copies, the keyboard turns it
+//   through a real list, and reduced motion has it settled
 // One run is one engine in one colour scheme: MOTION_ENGINE (chromium, firefox or webkit) and MOTION_SCHEME (light is
 // day, dark is nocturne). tests/run-motion.mjs runs all six. An engine that is not installed or cannot launch fails
 // the run; nothing here skips an engine.
@@ -420,7 +422,96 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
   await context.close()
 })
 
+// ── 01, the tunnel: the scroll turns it, the list reads it, and it is settled under reduced motion ──
+const seen = `localStorage.setItem(${JSON.stringify(OVERTURE_KEY)}, "1")`
+// Down to the tunnel, a few pieces in, and wait for it to read.
+async function toTunnel(page, pieces = 30) {
+  await page.goto(site.url("/"))
+  await page.waitForSelector(".tunnel-ring textPath.on", { state: "attached" })
+  await page.evaluate((n) => scrollTo(0, document.querySelector(".zero").getBoundingClientRect().top + scrollY + innerHeight * 0.75 + 20 + n * 24), pieces)
+  await page.waitForFunction(() => document.querySelector(".zero-stage")?.hasAttribute("data-dial"), null, { polling: 50 })
+  await page.waitForTimeout(1200)
+}
+// The reading, the ring and the list say the same piece.
+const reading = (page) => page.evaluate(() => {
+  const boxes = [...document.querySelectorAll("[data-swap]")]
+  const on = document.querySelector(".tunnel-ring textPath.on"), current = document.querySelector(".pieces-list a[aria-current]")
+  return { copies: boxes.map((b) => b.children.length), on: on?.getAttribute("data-i"), current: current?.dataset.i, name: document.querySelector('[data-swap="name"] > :not(.out)')?.textContent, title: current?.textContent }
+})
+
+await check("01: a fast scroll turns the tunnel, and the reading never holds more than two copies", async () => {
+  const { context, errors } = await fresh({}, seen)
+  const page = await context.newPage()
+  await toTunnel(page)
+  await page.mouse.move(1100, 450)
+  await page.evaluate(() => {
+    window.__most = 0
+    window.__watch = true
+    const f = () => {
+      for (const box of document.querySelectorAll("[data-swap]")) window.__most = Math.max(window.__most, box.children.length)
+      if (window.__watch) requestAnimationFrame(f)
+    }
+    requestAnimationFrame(f)
+  })
+  const before = await reading(page)
+  for (let i = 0; i < 40; i++) {
+    await page.mouse.wheel(0, 48)
+    await page.waitForTimeout(16)
+  }
+  await page.waitForTimeout(1500)
+  const most = await page.evaluate(() => (window.__watch = false, window.__most))
+  assert.ok(most <= 2, `a reading box held ${most} copies`)
+  const after = await reading(page)
+  assert.notEqual(after.on, before.on, "the scroll did not turn the tunnel")
+  assert.deepEqual(after.copies, [1, 1, 1, 1], "the reading should settle to one copy of each part")
+  assert.equal(after.on, after.current, "the ring and the list should read the same piece")
+  assert.ok(after.title?.includes(after.name ?? "\0"), `the reading says "${after.name}", the list "${after.title}"`)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+await check("01: the pieces are a list of links the keyboard turns; the drawing is hidden from it", async () => {
+  const { context, errors } = await fresh({}, seen)
+  const page = await context.newPage()
+  await toTunnel(page)
+  assert.equal(await page.locator('nav[aria-label="Every piece"] ol > li > a').count(), 105)
+  assert.equal(await page.locator(".zero-tunnel").getAttribute("aria-hidden"), "true")
+  assert.equal(await page.locator(".pieces-skip a", { hasText: "Skip the index" }).getAttribute("href"), "#leaves")
+  assert.equal(await page.locator(".pieces-skip a", { hasText: "Every piece as a list" }).count(), 1)
+  const from = Number((await reading(page)).current)
+  await page.locator(".pieces-list a[tabindex='0']").focus()
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("ArrowDown")
+  await page.waitForTimeout(1500)
+  assert.equal(await page.evaluate(() => document.activeElement?.dataset.i), String(from + 2), "the arrows should move the focus along the list")
+  const after = await reading(page)
+  assert.equal(after.on, String(from + 2), "the arrows should turn the tunnel to the focused piece")
+  assert.equal(after.current, after.on)
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
+await check("01 under reduced motion: settled at once, and it still reads", async () => {
+  const { context, errors } = await fresh({ reducedMotion: "reduce" }, seen)
+  const page = await context.newPage()
+  await toTunnel(page)
+  const turns = () => page.evaluate(() => [...document.querySelectorAll(".tunnel-ring, .tunnel-disc, .tunnel-dot")].map((el) => `${el.style.transform}|${el.style.opacity}`))
+  const a = await turns()
+  await page.waitForTimeout(300)
+  assert.deepEqual(await turns(), a, "nothing in the tunnel should move once the scroll stops")
+  assert.equal(await page.locator(".tunnel-dot").evaluate((el) => el.style.opacity), "1.000", "the tunnel should stand fully arrived")
+  await page.locator(".pieces-list a[tabindex='0']").focus()
+  await page.keyboard.press("ArrowDown")
+  await page.waitForTimeout(300)
+  const r = await reading(page)
+  assert.deepEqual(r.copies, [1, 1, 1, 1], "the reading should change over at once, one copy each")
+  assert.equal(r.on, r.current)
+  assert.equal(await page.evaluate(() => document.querySelector(".readout").getAnimations({ subtree: true }).filter((x) => x.playState === "running").length), 0, "nothing in the reading should animate")
+  assert.deepEqual(errors, [])
+  await context.close()
+})
+
 await browser.close()
 await site.close()
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, docs titles) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)
+console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, docs titles, the tunnel in 01) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)
