@@ -27,7 +27,7 @@ export function WordmarkCompact() {
   )
 }
 
-/** The large lockup: "Type" set over the end of "0nly", the italic's hairlines crossing the voice's weight. */
+/** The large lockup, as A's: "0nly", then "Type" on its baseline, the T's crossbar reaching back over the y. */
 export function Wordmark({ id, className }: { id?: string; className?: string }) {
   return (
     <h1 className={className ? `wm-set ${className}` : "wm-set"} id={id}>

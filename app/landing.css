@@ -6,11 +6,11 @@
 /* No paragraph on the page ends on a word alone; headings balance where they are set (.sec-title, .coda-title). */
 :where(.landing) p { text-wrap: pretty; }
 
-/* ── the large lockup (G1, after A): "Type" set over the end of "0nly", its hairlines crossing the voice's weight ── */
-.wm-set { --H: 1em; position: relative; display: block; width: 2.02em; height: 1.16em; margin: 0; font-size: var(--H); line-height: 1; color: var(--ot-ink); direction: ltr; }
-.wm-set .wm-nly { position: absolute; left: -0.02em; top: 0; line-height: 1.088; white-space: nowrap; }
+/* ── the large lockup (G1, as A's): "0nly" heavy and condensed, then "Type" in the italic on the same baseline, the
+   T's crossbar reaching back over the y. Set as one line, so nothing sits on the letters it follows. ── */
+.wm-set { --H: 1em; display: flex; align-items: baseline; width: max-content; margin: 0; font-size: var(--H); line-height: 1; white-space: nowrap; color: var(--ot-ink); direction: ltr; }
 .wm-set .wm-zero::after { --zd: 0.1em; }
-.wm-set .wm-type { position: absolute; left: 0.86em; top: 0.27em; font-size: 0.72em; line-height: 1.525; white-space: nowrap; -webkit-text-stroke: 0.06em var(--ot-paper); paint-order: stroke fill; }
+.wm-set .wm-type { font-size: 1.12em; margin-inline-start: 0.04em; }
 
 /* ── hero and 01 (landing-zero): one sticky stage the scroll turns. The script writes --h (0 hero, 1 dial) and --notes
    on the hands, --notes on the notes, --out on the band and --inn on the pieces (each only where it is read, so a frame
@@ -44,13 +44,14 @@
 .zero-ring .call-name { font-family: var(--ot-voice); font-size: 22px; font-weight: 560; letter-spacing: -0.01em; fill: var(--ot-ink); }
 .zero-ring .call-meta { font-family: var(--ot-voice); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ot-pencil); }
 
-/* The hands (L2, after A): three weights by the fresco's tone, the light tone in pencil so the modelling reads. As
-   the scroll leaves the hero, each letter falls on its own seeded path, the fingertips last. All ink: the weight is
-   the shading. */
+/* The hands (L2, after A): three weights by the fresco's tone, the light tone in pencil so the modelling reads and
+   the two darker in ink, where the weight is the shading. As the scroll leaves the hero, each letter falls on its own
+   seeded path, the fingertips last. */
 .zero-hands text { --e: clamp(0, calc(var(--h, 0) * 1.25 - var(--r) * 0.25), 1); font-size: var(--hfs, 7.4px); dominant-baseline: central; transform-box: fill-box; transform-origin: center; transform: translate(calc((var(--r2) - 0.5) * 120px * var(--e)), calc(var(--e) * var(--e) * (0.35 + var(--r)) * var(--fall, 900px))) rotate(calc((var(--r2) - 0.5) * 70deg * var(--e))); opacity: calc(1 - var(--e)); }
 .zero-hands .yours { font-family: var(--ot-expression); font-style: italic; }
 .zero-hands .ours { font-family: var(--ot-voice); font-stretch: 62%; }
 .zero-hands text { fill: var(--ot-ink); }
+.zero-hands .w1 { fill: var(--ot-pencil); }
 .zero-hands .w1 { font-weight: 400; }
 .zero-hands .ours .w2 { font-weight: 700; }
 .zero-hands .yours .w2 { font-weight: 600; }
@@ -67,9 +68,10 @@
 .zero-notes b { font-weight: 600; color: var(--ot-ink); font-variant-numeric: tabular-nums; }
 
 /* The band: the lockup, what the zero means, and one line to install. It lifts away as the dial arrives. */
-.hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: end; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
+.hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: end; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
 .zero-stage:not([data-hero]) .hero-band { pointer-events: none; }
-.hero-mark { grid-column: 1 / 6; --H: max(96px, min(13vw, calc((100svh - 600px) / 1.2), 220px)); margin-block-end: -0.06em; }
+/* The lockup is about 4em wide: it fills its five columns (40% of the band) and no more. */
+.hero-mark { grid-column: 1 / 6; --H: max(64px, min(calc(38cqi / 4), calc((100svh - 560px) / 1.1), 168px)); margin-block-end: -0.04em; }
 .hero-says { grid-column: 6 / 10; display: grid; justify-items: start; row-gap: var(--ot-space-5); padding-bottom: var(--ot-space-2); }
 .hero-install { grid-column: 10 / -1; display: grid; justify-items: start; row-gap: var(--ot-space-3); padding-bottom: var(--ot-space-2); }
 .hero-zero { max-width: 26ch; font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); text-wrap: pretty; }
@@ -151,7 +153,7 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .zero-notes .note { max-width: 17ch; font-size: 11.5px; }
   .hero-band { bottom: 20px; grid-template-columns: 1fr; row-gap: var(--ot-space-4); padding-top: var(--ot-space-4); }
   .hero-mark, .hero-says, .hero-install { grid-column: 1; }
-  .hero-mark { --H: min(30vw, 120px); }
+  .hero-mark { --H: min(calc(100cqi / 4.1), 120px); }
   .hero-says { row-gap: var(--ot-space-3); }
   .hero-zero { max-width: none; font-size: var(--ot-p); line-height: 1.4; }
   .hero-cta .cta { font-size: var(--ot-mp); }
