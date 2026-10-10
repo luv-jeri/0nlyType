@@ -1,5 +1,6 @@
 // One pattern for every numbered section after the dial, after C's programme: a hairline, the number and name as
-// corner labels in the margin with one note under them, then the title and the body on the stave. Every section
+// corner labels in the margin with one note under them, then the title and the body on the stave. On a phone it
+// reads as one column: the labels, the title, the note as its lede, then the body. Every section
 // keeps the same space above and below and the same gap from title to body (app/landing.css, ".sec"). A section whose
 // picture wants the whole width (the sea) puts it in `wide`, a row under the title on the page's full grid.
 
@@ -20,10 +21,12 @@ export function Sec({ id, num, name, title, note, className, children, wide }: S
   return (
     <section className={className ? `sec ${className}` : "sec"} aria-labelledby={id}>
       <div className="sec-margin margin">
-        <p className="sec-num" aria-hidden="true">
-          {num}
-        </p>
-        <p className="sec-name">{name}</p>
+        <div className="sec-label">
+          <p className="sec-num" aria-hidden="true">
+            {num}
+          </p>
+          <p className="sec-name">{name}</p>
+        </div>
         {note ? <p className="sec-note">{note}</p> : null}
       </div>
       <div className="stave">

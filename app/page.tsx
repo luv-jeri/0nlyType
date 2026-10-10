@@ -147,7 +147,7 @@ export default function Home() {
       </section>
 
       <footer className="landing-foot">
-        <p>0nlyType is MIT licensed. Its typefaces are under the SIL Open Font Licence.</p>
+        <p>0nlyType is made by The Directors, in the open.</p>
         <p>
           <Link href={sitePath("/requests/")}>Request a component</Link>. <Link href={sitePath("/feedback/?kind=bug")}>Report a bug</Link>.{" "}
           <Link href={REPO} external>
