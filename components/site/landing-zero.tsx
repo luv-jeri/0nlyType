@@ -31,7 +31,7 @@ export type Movement = { num: string; name: string; pieces: Piece[] }
 type Flat = Piece & { mv: Movement; i: number }
 type Arc = { m: Movement; start: number; end: number; count: number; path: SVGPathElement; t1: SVGLineElement; t2: SVGLineElement; label: SVGTextElement; rest: SVGTSpanElement }
 type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rxi: number }
-type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: number; plate: number }
+type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: { y: number; beside: boolean }; plate: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
 
 const NS = "http://www.w3.org/2000/svg"
@@ -203,7 +203,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const s1 = shape(Math.min(0.41 * H, (H - bar) / 2 - 56, 380, narrow ? 380 : fit))
         dial = narrow ? { cx: -0.4 * s1.rxo, cy: bar + (H - bar) / 2, ...s1 } : { cx: m + s1.rxo + 40, cy: bar + (H - bar) / 2, ...s1 }
       }
-      const skip = phone ? bandTop - 24 - 44 : hero.cy - 22
+      // On a phone held sideways the room over the band is too short to hold it under the zero: it stands beside it.
+      const over = bandTop - 24 - 44, beside = phone && over < bar
+      const skip = { y: beside ? Math.max(bar, hero.cy - 22) : phone ? over : hero.cy - 22, beside }
       // The plate the picture is printed on: from under the bar to over the band, marked at its corners and on its axis.
       const plate = bandTop - bar - 40
       return { W, H, m, phone, narrow, hero, dial, room, skip, plate }
@@ -585,10 +587,15 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (!felt) felt = requestAnimationFrame(feel)
     }
 
-    // Skip intro, while the overture plays, waits in the zero (over the band, on a phone).
+    // Skip intro, while the overture plays, waits in the zero (over the band, on a phone). The CSS has it on the axis
+    // before this runs; this sets it to the pixel, from the band it is placed in.
     const placeSkip = (g: Geometry) => {
-      const skip = st.querySelector<HTMLElement>(".hero-skip")
-      if (skip) skip.style.transform = `translate(${g.hero.cx - skip.offsetWidth / 2}px, ${g.skip}px)`
+      const skip = bandEl.querySelector<HTMLElement>(".hero-skip")
+      if (!skip) return
+      const x = g.skip.beside ? g.hero.cx + g.hero.rxo + 16 : g.hero.cx - skip.offsetWidth / 2
+      skip.style.left = `${(x - bandEl.offsetLeft - bandEl.clientLeft).toFixed(1)}px`
+      skip.style.top = `${(g.skip.y - bandEl.offsetTop - bandEl.clientTop).toFixed(1)}px`
+      skip.style.transform = "none"
     }
 
     /* ── the scroll: the hands fall away, the zero moves aside and becomes the dial, then the dial turns ── */
@@ -820,8 +827,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
               <CopyCommand command={install("button")} emphasis="button" />
             </div>
           </div>
+          <Overture />
         </div>
-        <Overture />
 
         <div ref={part} className="pieces-part" onFocus={into}>
           <div className="pieces-head">

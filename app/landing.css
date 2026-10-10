@@ -76,7 +76,11 @@
   linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c));
   background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%, 50% 0, 50% 100%;
   background-size: var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--t) var(--l), var(--t) var(--l); }
-.zero .hero-skip { display: none; position: absolute; left: 0; top: 0; min-block-size: 44px; font-size: var(--ot-pp); }
+/* Skip intro, while the overture plays, stands on the page's axis from the first paint, before the script has run:
+   in the zero's counter, the middle of the room between the bar and the band. It is placed from the band, so 100% is
+   the band's height and the band's top is the screen less its bottom inset and that height. The script then sets it
+   to the pixel. */
+.zero .hero-skip { display: none; position: absolute; left: 50%; top: calc((var(--bar) - 100svh + 32px + 100% - var(--ot-hairline)) / 2); transform: translate(-50%, -50%); align-self: start; justify-self: start; min-block-size: 44px; font-size: var(--ot-pp); }
 html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 
 /* After the turn: the column beside the dial, hung from the reading line. */
@@ -141,6 +145,8 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .zero { --pitch: 20px; }
   .hero-band { bottom: 20px; grid-template-columns: 1fr; row-gap: var(--ot-space-4); padding-top: var(--ot-space-4); }
   .hero-plate { --l: 10px; }
+  /* Over the band, under the zero, and never under the bar (on a phone held sideways the band leaves little room). */
+  .zero .hero-skip { top: max(calc(-46px - var(--ot-hairline)), calc(var(--bar) + 22px + 20px + 100% - 100svh)); }
   .hero-mark, .hero-side { grid-column: 1; }
   .hero-mark { --H: min(calc(100cqi / 4.1), 120px); }
   .hero-cta { margin-block: 0 var(--ot-space-4); }
