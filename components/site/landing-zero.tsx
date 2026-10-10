@@ -506,7 +506,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     // script's: begun at --r of the first 15svh, over 60svh, a quarter-curve so it accelerates as it drops. They wait for
     // the overture to end, since an animation from script would sit over its settle.
     type Ranged = KeyframeAnimationOptions & { rangeStart: unknown; rangeEnd: unknown }
-    const Timeline = (window as unknown as { ViewTimeline?: new (o: { subject: Element; axis: string }) => AnimationTimeline }).ViewTimeline
+    const Timeline = (window as unknown as { ViewTimeline?: new (o: { subject: Element; axis: string; inset: string }) => AnimationTimeline }).ViewTimeline
     let falling: Animation[] = []
     function unfall() {
       for (const a of falling) a.cancel()
@@ -515,7 +515,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const fall = () => {
       unfall()
       if (!Timeline || !driven || !G || reduce || overtureActive()) return
-      const timeline = new Timeline({ subject: sec, axis: "block" })
+      // No inset: the page's scroll padding (room for the bar) would start the fall before the scroll does.
+      const timeline = new Timeline({ subject: sec, axis: "block", inset: "0px" })
       const vh = st.clientHeight / 100, drop = G.H
       const at = (v: number) => ({ rangeName: "contain", offset: CSS.px(Math.round(v)) })
       falling = fallers.map(({ t, r, r2 }) => {

@@ -113,7 +113,7 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
    with reduced motion. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .zero { view-timeline: --zero block; }
+    .zero { view-timeline: --zero block; view-timeline-inset: 0px; }
     :is(.zero-notes, .zero-hands .note-line, .zero-hands .note-dot) { animation: zero-quiet linear both; animation-timeline: --zero; animation-range: contain 0px contain 25svh; }
     .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 41.667svh; }
     .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 45svh contain 75svh; }
