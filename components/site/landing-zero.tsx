@@ -23,7 +23,7 @@ import { Wordmark } from "@/components/site/wordmark"
 // Everything the scroll moves is written, never read: positions are measured once per layout (on resize, when the
 // fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. Each
 // value is written only where it is read, and only when it changes. Screen readers and keyboards get
-// the index as a real list of links; the drawing is aria-hidden and captioned under the zero.
+// the index as a real list of links; the drawing is aria-hidden.
 
 export type Piece = { name: string; title: string; summary: string }
 export type Movement = { num: string; name: string; pieces: Piece[] }
@@ -31,7 +31,7 @@ export type Movement = { num: string; name: string; pieces: Piece[] }
 type Flat = Piece & { mv: Movement; i: number }
 type Arc = { m: Movement; start: number; end: number; count: number; path: SVGPathElement; t1: SVGLineElement; t2: SVGLineElement; label: SVGTextElement; rest: SVGTSpanElement }
 type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rxi: number }
-type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; cap: number }
+type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
 
 const NS = "http://www.w3.org/2000/svg"
@@ -96,7 +96,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const ring = React.useRef<SVGSVGElement>(null)
   const hands = React.useRef<HTMLDivElement>(null)
   const band = React.useRef<HTMLDivElement>(null)
-  const notes = React.useRef<HTMLDivElement>(null)
   const part = React.useRef<HTMLDivElement>(null)
   const list = React.useRef<HTMLOListElement>(null)
   // The engine's two doors for React: turn to a piece, and say where the scroll stands.
@@ -105,8 +104,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const picked = React.useRef<(i: number) => void>(() => {})
 
   React.useEffect(() => {
-    const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, notesEl = notes.current, partEl = part.current
-    if (!sec || !st || !ringSvg || !handsEl || !bandEl || !notesEl || !partEl) return
+    const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, partEl = part.current
+    if (!sec || !st || !ringSvg || !handsEl || !bandEl || !partEl) return
     const root = document.documentElement
     const motion = matchMedia("(prefers-reduced-motion: reduce)")
     let reduce = motion.matches
@@ -179,11 +178,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const bandTop = bandEl.offsetTop
       const bar = parseFloat(getComputedStyle(root).getPropertyValue("--bar")) * parseFloat(getComputedStyle(root).fontSize) || 64
       let hero: Shape, dial: Shape
-      // Where the hands may reach: under the bar, over the band. On a wide screen the caption hangs under the zero, in
-      // the room the hands leave between them; on a phone it sits over the band, and the hands have the room above it.
-      const capH = (notesEl.firstElementChild as HTMLElement).offsetHeight
-      const room: [number, number] = phone ? [bar + 12, bandTop - 40 - capH] : [bar + 24, bandTop - 14]
-      const caption = capH + 18
+      // Where the hands may reach: under the bar, over the band. Skip intro, while the overture plays, waits under the
+      // zero on a wide screen, in the room the hands leave between them; on a phone it sits over the band, under the hands.
+      const say = 44 + 18
+      const room: [number, number] = phone ? [bar + 12, bandTop - 24 - say] : [bar + 24, bandTop - 14]
       // A full dial wants a reading column of at least 520px beside it (the install line and Copy on one row) and a
       // ring tall enough to keep its names legible; short of either, it sits off the left edge, as on a phone.
       const fit = (W - 2 * m - 140 - 520) / 2 / 0.76
@@ -195,14 +193,14 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         dial = { cx: -0.4 * s1.rxo, cy: 0.56 * H, ...s1 }
       } else {
         // The zero is as tall as the hands are, so neither outweighs the other.
-        const t = bar + 24, b = bandTop - 26 - caption
+        const t = bar + 24, b = bandTop - 26 - say
         hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300, Math.max(150, W * 0.125))) }
         // The dial sits in the room under the bar, with space above and below for its movement labels.
         const s1 = shape(Math.min(0.41 * H, (H - bar) / 2 - 56, 380, narrow ? 380 : fit))
         dial = narrow ? { cx: -0.4 * s1.rxo, cy: bar + (H - bar) / 2, ...s1 } : { cx: m + s1.rxo + 40, cy: bar + (H - bar) / 2, ...s1 }
       }
-      const cap = phone ? bandTop - 24 - capH : hero.cy + hero.ryo + 18
-      return { W, H, m, phone, narrow, hero, dial, room, cap }
+      const skip = phone ? bandTop - 24 - 44 : hero.cy + hero.ryo + 18
+      return { W, H, m, phone, narrow, hero, dial, room, skip }
     }
     const geomAt = (g: Geometry, h: number): Shape => {
       const a = g.hero, b = g.dial, e = smooth(h)
@@ -563,12 +561,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (!felt) felt = requestAnimationFrame(feel)
     }
 
-    // The plate's caption sits under the zero; Skip intro, while the overture plays, waits under it.
-    const placeNotes = (g: Geometry) => {
-      const c = notesEl.firstElementChild as HTMLElement, ny = g.cap
-      c.style.transform = `translate(${g.hero.cx - c.offsetWidth / 2}px, ${ny}px)`
+    // Skip intro, while the overture plays, waits under the zero.
+    const placeSkip = (g: Geometry) => {
       const skip = st.querySelector<HTMLElement>(".hero-skip")
-      if (skip) skip.style.transform = `translate(${g.hero.cx - skip.offsetWidth / 2}px, ${ny + c.offsetHeight + 8}px)`
+      if (skip) skip.style.transform = `translate(${g.hero.cx - skip.offsetWidth / 2}px, ${g.skip}px)`
     }
 
     /* ── the scroll: the hands fall away, the zero moves aside and becomes the dial, then the dial turns ── */
@@ -582,7 +578,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       range = Math.max(1, sec.offsetHeight - Hh)
       measureNames()
       G = stageGeometry()
-      placeNotes(G)
+      placeSkip(G)
       void setHands(G)
       key = ""
       render(true)
@@ -608,9 +604,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       key = k
       layoutRing(G, geomAt(G, h), o, h)
       const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
-      const scripted = !driven || reduce, quiet = (1 - clamp(h * 3)).toFixed(3)
+      const scripted = !driven || reduce
       put(handsEl, "--h", scripted ? h.toFixed(4) : "")
-      put(notesEl, "--notes", scripted ? quiet : "")
       put(bandEl, "--out", scripted ? out.toFixed(3) : "")
       put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
       st.toggleAttribute("data-dial", h >= 0.6)
@@ -785,13 +780,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
           <canvas className="hand-g" />
         </div>
         <svg ref={ring} className="zero-ring" aria-hidden="true" />
-
-        <div ref={notes} className="zero-notes">
-          <p className="note note-c">
-            Michelangelo&rsquo;s hands, set in <i>what you ask for</i> and what we hand back, reach for a zero of all <b>{count}</b> components, by name.{" "}
-            <span className="note-turn">Scroll, and it turns.</span>
-          </p>
-        </div>
 
         <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollTo({ top: 0, behavior: "auto" })}>
           <Wordmark id="hero-title" className="hero-mark" />
