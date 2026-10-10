@@ -384,7 +384,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const ctx = document.createElement("canvas").getContext("2d")
     const streams = {
       yours: ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ",
-      ours: pieces.map((p) => install(p.name).toUpperCase()).join("   ") + "   ",
+      // The short form of each piece's install line: whole URLs in capitals were noise, not a hand.
+      ours: pieces.map((p) => `add ${p.name}`).join(" · ") + " · ",
     }
     let noteLines: SVGGElement | null = null
     // Each letter with the two seeds of its fall.
@@ -399,7 +400,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const css = getComputedStyle(root)
       const voice = css.getPropertyValue("--ot-voice").trim(), expr = css.getPropertyValue("--ot-expression").trim()
       const sideW = hero.cx - hero.rxo - 16
-      const k = phone ? clamp(sideW / 40, 1.6, 3.8) : clamp(sideW / 78, 3, 6.4)
+      const k = phone ? clamp(sideW / 40, 1.6, 3.8) : clamp(sideW / 56, 3, 8.4)
       handsSvg.style.setProperty("--hfs", `${fs}px`)
       handsSvg.style.setProperty("--gap", `${(hero.rxo * 0.5 + 24).toFixed(1)}px`)
       handsSvg.style.setProperty("--fall", `${g.H}px`)
@@ -428,10 +429,20 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
             }
           }
         })
-        const ay = hero.cy
-        // The hand keeps its scale unless it would run into the notes above or the band below.
-        const first = rows.findIndex((r) => /[1-3]/.test(r)), last = rows.length - 1 - [...rows].reverse().findIndex((r) => /[1-3]/.test(r))
-        const kk = Math.min(k, tipRow > first ? (ay - g.room[0]) / ((tipRow - first) * cell) : k, (g.room[1] - ay) / ((last + 1 - tipRow) * cell))
+        // The hand is as large as the room between the notes and the band allows, and sits where it fills that room,
+        // as long as its fingertip still points into the zero's counter; then it keeps clear of both. Only the rows
+        // with ink on screen count: the arm runs off the edge, and what is off it takes no room. Seen columns depend on
+        // the scale, so it is settled in a few rounds.
+        const reach0 = Math.max(1, P.tip === "right" ? P.ax : W - P.ax)
+        let kk = k, ay = hero.cy
+        for (let round = 0; round < 4; round++) {
+          const span = reach0 / kk / cell, lo = P.tip === "right" ? tipCol - span : tipCol, hi = P.tip === "right" ? tipCol : tipCol + span
+          const inked = (r: string) => /[1-3]/.test(r.slice(Math.max(0, Math.floor(lo)), Math.ceil(hi) + 1))
+          const first = rows.findIndex(inked), last = rows.length - 1 - [...rows].reverse().findIndex(inked)
+          const fill = Math.min(k, (g.room[1] - g.room[0]) / ((last + 1 - first) * cell))
+          ay = clamp(g.room[0] + (tipRow - first) * cell * fill, hero.cy - hero.ryi * 0.4, hero.cy + hero.ryi * 0.4)
+          kk = Math.min(fill, tipRow > first ? (ay - g.room[0]) / ((tipRow - first) * cell) : fill, (g.room[1] - ay) / ((last + 1 - tipRow) * cell))
+        }
         const toCol = (x: number) => Math.floor((x - P.ax) / kk / cell + tipCol)
         const yTop = ay - tipRow * cell * kk, yBottom = ay + (rows.length - tipRow) * cell * kk
         const x0 = P.tip === "right" ? 0 : P.ax - 2, x1 = P.tip === "right" ? P.ax + 2 : W
