@@ -1,49 +1,52 @@
 /* The home page. Everything it draws is a 0nlyType item or plain type; this file only places and tunes them.
-   It arrives as noise and turns it down, then opens the whole library before anything else. */
+   Two hands set in letters reach toward a zero made of every piece's name; the zero turns into the index; then the
+   numbered sections, one pattern each (".sec"); then the coda. */
 
-/* On a very wide screen the page keeps the site's measured width (site.css) and the hero's noise alone runs to the edges. */
-.landing { overflow-x: clip; } /* the coda's echoes and the noise may run off the edge; the page never scrolls sideways */
+.landing { overflow-x: clip; } /* the hands run off the edges; the page never scrolls sideways */
 
-/* ── the hero: "All type. No noise." after "It has to be design." ── */
-.hero { grid-column: 1 / -1; position: relative; isolation: isolate; container-type: inline-size; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; padding-block: calc(var(--bar) + var(--ot-space-7)) var(--ot-space-8); }
-.hero-noise { position: absolute; z-index: -1; inset-block: 0; left: 50%; width: 100vw; height: 100%; translate: -50% 0; pointer-events: none; color: var(--ot-ink); }
-/* The headline: one size for both lines, set so the widest (the quiet line, at its widest) fills the width. */
-.hero-title { margin-top: var(--ot-space-6); margin-inline-start: -0.04em; font-size: min(16.2cqi, 38svh); line-height: 0.8; letter-spacing: -0.035em; color: var(--ot-ink); }
-.hero-line { display: block; white-space: nowrap; }
-.hero-line[data-line="loud"] { font-weight: 850; font-stretch: 62%; letter-spacing: -0.02em; }
-/* The quiet line rests at its quietest. On a browser's first visit only (landing-overture sets data-overture-at on <html>
-   before the hero paints) it arrives as loud as the first and exhales, 8 steps then 1400ms: done by 1.7s, inside the
-   overture's 2s deadline. Ending the overture removes the attribute, which settles the line at once. */
-.hero-line[data-line="quiet"] { font-weight: 200; font-stretch: 112%; }
-html[data-overture-at] .hero-line[data-line="quiet"] { animation: hero-exhale var(--ot-adagio) var(--ot-exhale) calc(8 * var(--ot-arpeggio)) both; }
-@keyframes hero-exhale { from { font-weight: 850; font-stretch: 62%; letter-spacing: -0.02em; } }
-/* Skip intro: a real control for as long as the overture plays, and nothing after. It sits at the end of the headline's
-   block, on the stave of the first row, clear of the bar. */
-.hero .hero-skip { display: none; position: absolute; inset-block-start: calc(var(--bar) + var(--ot-space-3)); inset-inline-end: 0; min-block-size: 44px; font-size: var(--ot-pp); }
-html[data-overture-at] .hero .hero-skip { display: inline-flex; }
-@media (prefers-reduced-motion: reduce) { html[data-overture-at] .hero-line[data-line="quiet"] { animation: none; } html[data-overture-at] .hero .hero-skip { display: none; } }
-.hero-stop { justify-self: end; color: var(--ot-accent); font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; }
-.hero-line[data-line="quiet"] .hero-word { display: inline-grid; }
-.hero-line[data-line="quiet"] .hero-word > *, .hero-line[data-line="quiet"] .hero-word::after { grid-area: 1 / 1; }
-.hero-line[data-line="quiet"] .hero-word::after { content: attr(data-text); font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; visibility: hidden; }
-.hero-gap { font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; }
-/* The ink takes no room of its own: the reserve alone sizes the box, so however wide a word is mid-breath, nothing after it moves. */
-.hero-line[data-line="quiet"] .hero-ink { width: 0; white-space: nowrap; }
-.hero-base { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
-.hero-foot { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); row-gap: var(--ot-space-6); align-items: end; margin-top: var(--ot-space-7); }
-.hero-promise { grid-column: 1 / 6; font-size: clamp(var(--ot-mp), 2.1cqi, 52px); line-height: 1.25; letter-spacing: -0.01em; font-weight: 400; color: var(--ot-ink); text-wrap: balance; }
-.hero-promise-quiet { color: var(--ot-graphite); }
-/* Two rows, read across: the reading beside the call, the promise beside the line that installs it. */
-.hero-level { grid-column: 1 / 6; grid-row: 1; display: grid; justify-items: start; row-gap: var(--ot-space-2); }
-.hero-meter { font-size: clamp(var(--ot-f), 5.4cqi, 150px); line-height: 1.1; font-weight: 200; font-stretch: 112%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ot-ink); }
-.hero-meter-def { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
-.hero-promise { grid-row: 2; }
-.hero-cta { grid-column: 7 / -1; grid-row: 1; }
-.hero-install { grid-column: 7 / -1; grid-row: 2; }
+/* ── the large lockup (G1, after A): "Type" set over the end of "0nly", its hairlines crossing the voice's weight ── */
+.wm-set { --H: 1em; position: relative; display: block; width: 2.02em; height: 1.16em; margin: 0; font-size: var(--H); line-height: 1; color: var(--ot-ink); direction: ltr; }
+.wm-set .wm-nly { position: absolute; left: -0.02em; top: 0; line-height: 1.088; white-space: nowrap; }
+.wm-set .wm-zero::after { --zd: 0.1em; }
+.wm-set .wm-type { position: absolute; left: 0.86em; top: 0.27em; font-size: 0.72em; line-height: 1.525; white-space: nowrap; -webkit-text-stroke: 0.06em var(--ot-paper); paint-order: stroke fill; }
+
+/* ── hero and 01 (landing-zero) ── */
+.zero { grid-column: 1 / -1; position: relative; display: grid; grid-template-columns: subgrid; padding-block: calc(var(--bar) + var(--ot-space-7)) var(--ot-space-8); }
+.hero-band { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: end; row-gap: var(--ot-space-6); }
+.hero-mark { grid-column: 1 / 6; --H: clamp(96px, 13vw, 220px); }
+.hero-says { grid-column: 6 / 10; display: grid; justify-items: start; row-gap: var(--ot-space-5); }
+.hero-install { grid-column: 10 / -1; display: grid; justify-items: start; row-gap: var(--ot-space-3); }
+.hero-zero { max-width: 26ch; font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); text-wrap: pretty; }
+.hero-zero-k { font-weight: 700; margin-inline-end: 0.2em; }
+.hero-count { max-width: 30ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
+.hero-install .copy-cmd-text { font-size: var(--ot-pp); }
+.zero .hero-skip { display: none; position: absolute; inset-block-start: calc(var(--bar) + var(--ot-space-3)); inset-inline-end: 0; min-block-size: 44px; font-size: var(--ot-pp); }
+html[data-overture-at] .zero .hero-skip { display: inline-flex; }
+@media (prefers-reduced-motion: reduce) { html[data-overture-at] .zero .hero-skip { display: none; } }
+.pieces-part { grid-column: 1 / -1; margin-top: var(--ot-space-9); }
+.pieces-title { font-size: clamp(48px, 5.4vw, 80px); line-height: 0.92; letter-spacing: -0.04em; font-weight: 800; font-stretch: 74%; color: var(--ot-ink); }
+.pieces-list { columns: 4 12rem; margin: var(--ot-space-7) 0 0; padding: 0; list-style: none; font-size: var(--ot-p); line-height: 1.6; }
+
+/* ── the numbered sections: a hairline, the corner labels in the margin, the title and body on the stave (P1) ── */
+.sec { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; padding-block: var(--ot-space-7) var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.sec-margin { display: grid; justify-items: start; align-content: start; row-gap: var(--ot-space-3); }
+.sec-num { font-size: clamp(var(--ot-ff), calc(8.4 * var(--site-vw)), 150px); line-height: 0.8; letter-spacing: -0.04em; font-weight: 200; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
+.sec-name { margin-top: var(--ot-space-3); font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ot-ink); }
+.sec-note { margin-top: var(--ot-space-3); max-width: 28ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
+.sec-title { max-width: 16em; padding-top: 0.04em; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 120px); line-height: var(--ot-ff-lh); letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-ink); text-wrap: balance; }
+.sec-body { margin-top: var(--ot-space-7); display: grid; justify-items: start; row-gap: var(--ot-space-7); }
+.sec-body > * { max-width: 100%; }
+
+/* ── 02 what it leaves out: each refused word struck by a line drawn as it scrolls in; the kept words stay roman ── */
+.leaves-list { max-width: 15em; font-size: clamp(var(--ot-f), calc(5.2 * var(--site-vw)), 120px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-wrap: balance; }
+.leaves-strike { position: relative; text-decoration: none; }
+.leaves-strike::after { content: ""; position: absolute; left: -0.04em; right: -0.04em; top: 0.56em; height: max(var(--ot-stroke), 0.05em); background: var(--ot-ink); transform-origin: 0 50%; }
+.leaves-kept { font-size: var(--ot-mf); line-height: var(--ot-mf-lh); letter-spacing: var(--ot-mf-tr); color: var(--ot-graphite); }
+.leaves-k { color: var(--ot-ink); }
+.leaves-sign, .sea-later { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
 
 /* ── the big call to action: light type on a hairline; coming to it, a crescendo runs through the letters ── */
 .cta { display: inline-flex; align-items: baseline; padding-block: 0.08em 0.14em; font-size: var(--ot-f); line-height: 1.1; letter-spacing: -0.025em; font-weight: 250; color: var(--ot-ink); text-decoration: none; background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% var(--ot-hairline); transition: background-size var(--ot-moderato) var(--ot-breath); }
-.cta[data-size="l"] { font-size: clamp(var(--ot-f), 5.4cqi, 150px); }
 .cta-word { display: inline-grid; }
 .cta-word > *, .cta-word::after { grid-area: 1 / 1; white-space: pre; }
 .cta-word::after { content: attr(data-text); font-weight: 720; visibility: hidden; }
@@ -69,95 +72,24 @@ html[data-overture-at] .hero .hero-skip { display: inline-flex; }
 .copy-cmd:hover .copy-cmd-word > span::after { translate: 0.12em 0; }
 .copy-cmd[data-copied] .copy-cmd-word { color: var(--ot-accent); font-family: var(--ot-expression); font-style: italic; }
 
-/* ── passages: each hangs under its rule and keeps its silence for the end (DESIGN.md "Space, line, shape": 40, 60, 135) ── */
-.passage { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; padding-block: var(--ot-space-6) var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
-/* The first passage after the hero begins in silence alone. */
-.hero + .passage { border-top: 0; padding-top: var(--ot-space-8); }
-.passage-margin { display: grid; gap: var(--ot-space-4); padding-top: 0.55em; }
-.passage-mark { font-family: var(--ot-expression); font-style: italic; font-weight: 600; font-size: var(--ot-mf); line-height: 1; letter-spacing: -0.02em; color: var(--ot-pencil); }
-.passage-mark abbr { text-decoration: none; cursor: help; }
-.passage-note { max-width: 28ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
-.passage-title { position: relative; max-width: 16em; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 150px); line-height: var(--ot-ff-lh); letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-ink); text-wrap: balance; }
-.passage-line { position: absolute; display: block; width: max-content; overflow: clip; pointer-events: none; line-height: 1; }
-.passage-line > span { display: block; white-space: pre; }
-.passage-body { margin-top: var(--ot-space-7); display: grid; justify-items: start; row-gap: var(--ot-space-7); }
-.passage-body > * { max-width: 100%; }
-.passage-wide { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; margin-top: var(--ot-space-7); }
-
-/* ── the pieces: every name as one wall of type, by movement; beside it, the stage ── */
-.pieces { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; }
-.pieces-lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; color: var(--ot-rule-strong); }
-.pieces-lead path { fill: none; stroke: currentColor; stroke-width: var(--ot-hairline); }
-.pieces-wall { grid-column: 1 / 6; display: grid; row-gap: var(--ot-space-4); font-size: clamp(var(--ot-mp), calc(2.05 * var(--site-vw)), 60px); line-height: 1.28; letter-spacing: -0.012em; font-weight: 300; color: var(--ot-pencil); }
-.pieces-movement { text-wrap: pretty; }
-/* A movement's name runs in ahead of its pieces, small, as a programme sets it. */
-.pieces-move { display: inline; margin-inline-end: 0.5em; font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.01em; font-weight: 400; color: var(--ot-pencil); vertical-align: 0.9em; white-space: nowrap; }
-.pieces-num { font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1.15em); color: var(--ot-ink); }
-.pieces-names { display: inline; margin: 0; padding: 0; list-style: none; }
-.pieces-names > li { display: inline; }
-.pieces-name { position: relative; padding-inline-end: 0.45em; white-space: nowrap; color: inherit; text-decoration: none; transition: color var(--ot-allegro); }
-.pieces-name:hover, .pieces-name:focus-visible { color: var(--ot-ink); }
-.pieces-name[data-current] { color: var(--ot-ink); text-decoration: underline; text-decoration-thickness: var(--ot-hairline); text-underline-offset: 0.18em; }
-.pieces-name:focus-visible { outline: var(--ot-hairline) solid var(--ot-ink); outline-offset: 4px; }
-/* The one accent belongs to the name being read, next to its ink. */
-.pieces-name::after { content: ""; position: absolute; inset-inline-end: 0.04em; inset-block-start: 0.45em; width: var(--ot-dot); height: var(--ot-dot); border-radius: 50%; background: var(--ot-accent); scale: 0; transition: scale var(--ot-allegro) var(--ot-exhale); }
-.pieces-name[data-current]::after { scale: 1; }
-.pieces-n { margin-inline-start: 0.15em; font-size: 0.34em; letter-spacing: 0; font-variant-numeric: tabular-nums; vertical-align: 1.5em; line-height: 0; color: var(--ot-pencil); }
-
-.pieces-stage { grid-column: 6 / -1; position: sticky; top: calc(var(--bar) + var(--ot-space-6)); display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-4); }
-.pieces-where { display: flex; align-items: baseline; gap: var(--ot-space-4); font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
-.pieces-where::after { content: ""; order: 1; flex: 1; height: var(--ot-hairline); background: var(--ot-rule-strong); align-self: center; }
-.pieces-where > :last-child { order: 2; }
-.pieces-where-num { font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-ink); }
-.pieces-count { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; color: var(--ot-ink); }
-.pieces-of { color: var(--ot-pencil); }
-.pieces-title { overflow: clip; white-space: nowrap; font-size: clamp(var(--ot-mf), calc(3 * var(--site-vw)), 92px); line-height: 1.2; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
-.pieces-title > span { display: block; animation: pieces-cut var(--ot-allegro) var(--ot-exhale); }
-.pieces-where-name { display: inline-block; }
-@keyframes pieces-cut { from { transform: translateY(105%); } to { transform: translateY(0); } }
-/* The accent stays at the selected name. The specimens retain their full ink/pencil hierarchy. */
-.pieces-preview { --ot-accent: var(--ot-ink); --ot-mark: var(--ot-rule); --ot-on-mark: var(--ot-ink); --ot-signal: var(--ot-ink); --ot-andante: var(--ot-moderato); --ot-corner: var(--ot-space-3); position: relative; height: clamp(26rem, 58svh, 44rem); padding: var(--ot-space-4); overflow: clip; isolation: isolate; }
-.pieces-preview-scale { position: absolute; top: 50%; left: 50%; width: var(--preview-width); transform: translate(-50%, -50%) scale(var(--preview-scale, 0.5)); transform-origin: center; }
-.pieces-preview-demo { display: grid; justify-items: center; }
-.pieces-preview-demo > :is(.grid, .flex) { width: 100%; max-width: none; gap: var(--ot-space-5); }
-.pieces-preview-demo > .grid { grid-template-columns: repeat(var(--preview-columns), minmax(0, 1fr)); align-items: center; justify-items: stretch; }
-.pieces-preview-demo > .grid > * { min-width: 0; max-width: 100%; grid-column: auto; }
-.pieces-preview-demo > .grid > .grid { width: 100%; gap: var(--ot-space-3); margin-block: 0; }
-.pieces-preview-demo > .grid > p:not([class*="ot-"]) { grid-column: 1 / -1; }
-.pieces-preview-demo > .flex { justify-content: center; }
-.pieces-preview-demo > .grid > .flex { justify-content: center; gap: var(--ot-space-5); }
-.pieces-preview-scale[data-piece="calendar"] .pieces-preview-demo > .grid > .grid { align-self: start; }
-.pieces-preview-scale[data-piece="calendar"] .ot-month { --big: 90px; width: 100%; gap: var(--ot-space-4); }
-.pieces-preview-scale[data-piece="calendar"] .ot-month-head { row-gap: var(--ot-space-4); }
-.pieces-preview-scale[data-piece="button"] .pieces-preview-demo > .grid > .grid { justify-items: center; }
-.pieces-preview-scale[data-piece="button"] .ot-btn[data-variant="space"] { width: 100%; }
-.pieces-preview-scale[data-pinned] .pieces-preview-demo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ot-space-5); align-items: center; }
-.pieces-preview-scale[data-pinned] .state { width: 100%; min-width: 0; }
-.pieces-preview-demo .grid:is([class*="sm:grid-cols-2"], [class*="md:grid-cols-2"], [class*="lg:grid-cols-2"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-demo .grid:is([class*="sm:grid-cols-3"], [class*="md:grid-cols-3"]) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="sidebar"] .pieces-preview-demo > .grid { grid-template-columns: auto minmax(0, 1fr); }
-.pieces-preview-scale[data-piece="contour"] .pieces-preview-demo > .grid > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="tiling"] .pieces-preview-demo > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="agent-state"] .pieces-preview-demo > .grid { justify-items: center; }
-.pieces-preview-scale[data-piece="tabs"] .pieces-preview-demo > .grid > .grid:last-child { grid-column: 1 / -1; }
-.pieces-preview-scale[data-piece="steps"] .ot-steps[data-variant="rise"] { grid-auto-flow: column; }
-.pieces-preview-scale[data-piece="activity-feed"] .ot-feed-date { font-size: var(--ot-f); }
-.pieces-preview-scale[data-piece="waterfall"] { --ot-ffff: 120px; --ot-fff: 80px; --ot-ff: 60px; }
-.pieces-loading { color: var(--ot-pencil); font-size: var(--ot-p); }
-@media (prefers-reduced-motion: reduce) { .pieces-title > span { animation: none; } }
-@media (forced-colors: active) { .pieces-name[data-current]::after { background: Highlight; } }
-.pieces-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; height: calc(3 * var(--ot-p-lh) * var(--ot-p)); font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
-.pieces-actions { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--ot-space-6); row-gap: var(--ot-space-3); font-size: var(--ot-p); }
-.pieces-more { margin-top: var(--ot-space-6); font-size: var(--ot-p); line-height: var(--ot-p-lh); letter-spacing: 0; color: var(--ot-graphite); }
-
 /* Share: words on a hairline, like a link; it answers with "Link copied" in the accent. */
 .share { margin: 0; padding: 0 0 0.12em; border: 0; background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% var(--ot-hairline); font: inherit; color: var(--ot-ink); cursor: pointer; transition: background-size var(--ot-moderato) var(--ot-breath); }
 .share:hover { background-size: 100% var(--ot-stroke); }
 .share[data-copied] { color: var(--ot-accent); font-family: var(--ot-expression); font-style: italic; }
 
-/* ── less, on purpose: what 0nlyType leaves out, struck through ── */
-.left-out.ot-checklist { display: flex; flex-wrap: wrap; column-gap: 0.55em; row-gap: 0; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 150px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); }
-.left-out + .ot-tally { margin-top: var(--ot-space-6); font-size: var(--ot-mp); }
+/* Pass it on: what happened, then where to send it, in words. */
+.places { font-size: var(--ot-p); line-height: 1.3; color: var(--ot-ink); transition: opacity var(--ot-moderato) var(--ot-exhale) var(--ot-allegro); }
+.places:not([data-open]) { visibility: hidden; opacity: 0; transition: none; }
+.places-list { margin: 0; padding: 0; list-style: none; }
+.places-more { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-decoration: underline var(--ot-hairline) var(--ot-rule); text-underline-offset: 0.2em; }
+.places-more:is(:hover, :focus-visible) { text-decoration-color: currentColor; }
+.places-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-2) var(--ot-space-4); max-width: 44ch; }
+.places-line .places-list { display: flex; flex-wrap: wrap; gap: var(--ot-space-2) var(--ot-space-4); }
+/* Help build it: the places take the note's place, and the cell keeps room for both, so opening moves nothing. */
+.share-call { margin: 0; padding-inline: 0; border: 0; font-family: inherit; text-align: start; cursor: pointer; }
+.share-swap { display: grid; }
+.share-swap > * { grid-area: 1 / 1; }
+.share-swap[data-open] > .help-note { visibility: hidden; }
 
 /* ── one sentence retunes the page: its words are the settings ── */
 .tune-sentence { max-width: 22em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: 1.3; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); text-wrap: pretty; }
@@ -181,90 +113,31 @@ html[data-overture-at] .hero .hero-skip { display: inline-flex; }
 .ask .ask-what { width: auto; min-width: 4ch; max-width: 100%; field-sizing: content; padding-block: 0 0.08em; font-size: calc(var(--ot-expression-scale) * 1em); letter-spacing: 0; }
 .ask .ask-what::placeholder { font-size: 1em; font-family: var(--ot-expression); font-style: italic; }
 
-/* ── make some noise: your words, set huge, and the same words running loud around them ── */
-.toy { grid-column: 1 / -1; position: relative; isolation: isolate; container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-8); padding-block: var(--ot-space-7) var(--ot-space-6); }
-.toy-noise { position: absolute; z-index: -1; inset-block: 0; left: 50%; width: 100vw; height: 100%; translate: -50% 0; pointer-events: none; color: var(--ot-ink); }
-/* Yours in italic. Its box keeps room for the loudest setting, so turning it down never moves what's below. */
-.toy-say { display: grid; max-width: 13em; font-family: var(--ot-expression); font-style: italic; font-size: clamp(var(--ot-ff), 10cqi, 280px); line-height: 0.95; letter-spacing: -0.02em; font-weight: 400; color: var(--ot-ink); overflow-wrap: anywhere; text-wrap: balance; }
-.toy-say > span, .toy-say::after { grid-area: 1 / 1; }
-.toy-say::after { content: attr(data-text); font-weight: 800; visibility: hidden; }
-.toy-say > span { transition: font-weight var(--ot-adagio) var(--ot-exhale); }
-.toy:not([data-quiet]) .toy-say > span { font-weight: 800; transition-duration: var(--ot-allegro); }
-.toy-controls { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); row-gap: var(--ot-space-6); align-items: end; }
-.toy-field { grid-column: 1 / 6; display: grid; row-gap: var(--ot-space-2); }
-.toy-label { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
-.toy .toy-input { font-size: var(--ot-mp); }
-.toy-reading { grid-column: 6 / 9; justify-self: end; }
-.toy-meter { font-size: clamp(var(--ot-f), 4.4cqi, 120px); line-height: 1; font-weight: 200; font-stretch: 112%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ot-ink); }
-.toy-actions { grid-column: 9 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: end; column-gap: var(--ot-space-6); row-gap: var(--ot-space-3); font-size: var(--ot-p); }
-/* The pointer's pause in the noise, drawn: a hairline ring with one word in it. Inside the ring it is quiet, your
-   words too (landing-noise writes --x, --y and --r). While it shows, it is the pointer; over a control, the control's own. */
-.toy-ring { position: absolute; z-index: 1; top: 0; left: 0; width: calc(2 * var(--r, 0px)); aspect-ratio: 1; translate: calc(var(--x, 0px) - var(--r, 0px)) calc(var(--y, 0px) - var(--r, 0px)); display: grid; place-items: center; border: var(--ot-hairline) solid var(--ot-ink); border-radius: 50%; pointer-events: none; visibility: hidden; }
-.toy[data-ring] .toy-ring { visibility: visible; }
-.toy-ring-say { font-size: var(--ot-p); line-height: 1; white-space: nowrap; color: var(--ot-ink); }
-.toy-ring-stop, .places-stop { color: var(--ot-accent); }
-.toy[data-held] .toy-ring-say { visibility: hidden; }
-.toy[data-ring] .toy-say { mask-image: radial-gradient(circle var(--r) at var(--x) calc(var(--y) - var(--ot-space-7)), transparent 100%, #000 100%); }
-.toy[data-ring]:not([data-held]) { cursor: none; }
-.toy :is(.toy-controls, .places) { cursor: auto; }
-/* Pass it on: what happened, then where to send it, in words. In the noise the ring stops and opens, and they stand in it. */
-.places { font-size: var(--ot-p); line-height: 1.3; color: var(--ot-ink); transition: opacity var(--ot-moderato) var(--ot-exhale) var(--ot-allegro); }
-.places:not([data-open]) { visibility: hidden; opacity: 0; transition: none; }
-.places-list { margin: 0; padding: 0; list-style: none; }
-.places-more { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-decoration: underline var(--ot-hairline) var(--ot-rule); text-underline-offset: 0.2em; }
-.places-more:is(:hover, :focus-visible) { text-decoration-color: currentColor; }
-.toy-places { --hold: clamp(8.5rem, 13cqi, 14rem); position: absolute; z-index: 1; top: 0; left: 0; width: calc(2 * var(--hold)); aspect-ratio: 1; translate: calc(var(--hx, 0px) - 50%) calc(var(--hy, 0px) - 50%); display: grid; place-content: center; justify-items: center; row-gap: var(--ot-space-3); text-align: center; }
-.toy-places .places-list { display: grid; justify-items: center; line-height: max(1.5em, 24px); }
-.places-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-2) var(--ot-space-4); max-width: 44ch; }
-.places-line .places-list { display: flex; flex-wrap: wrap; gap: var(--ot-space-2) var(--ot-space-4); }
-/* Help build it: the places take the note's place, and the cell keeps room for both, so opening moves nothing. */
-.share-call { margin: 0; padding-inline: 0; border: 0; font-family: inherit; text-align: start; cursor: pointer; }
-.share-swap { display: grid; }
-.share-swap > * { grid-area: 1 / 1; }
-.share-swap[data-open] > .help-note { visibility: hidden; }
-
-
 /* ── help build it: three calls, each with its reason ── */
 .help-list { display: grid; row-gap: var(--ot-space-7); margin: 0; padding: 0; list-style: none; }
 .help-list > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
 .help-note { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
 
-/* ── the coda: the last call, then the echo into silence ── */
-.coda { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: var(--ot-space-9) var(--ot-space-8); }
+/* ── the coda: start from zero ── */
+.coda { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
 .coda > * { grid-column: 4 / -1; }
-.coda-title { max-width: 12em; font-size: clamp(var(--ot-ff), calc(7.4 * var(--site-vw)), 220px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); text-wrap: balance; }
+.coda-title { max-width: 12em; font-size: clamp(var(--ot-ff), calc(7.4 * var(--site-vw)), 200px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); text-wrap: balance; }
 .coda-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-6); }
-.landing .fine { margin-block: var(--ot-space-7) 0; font-family: var(--ot-expression); font-style: italic; font-size: var(--ot-mf); line-height: 1; color: var(--ot-graphite); }
+.coda-licence { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
 .landing-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ot-space-3) var(--ot-space-6); padding-block: var(--ot-space-6) var(--ot-space-7); border-top: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
 
-@media (max-width: 1100px) {
-  .hero-promise, .hero-level { grid-column: 1 / 7; }
-}
 @media (max-width: 860px) {
-  .passage > *, .coda > * { grid-column: 1 / -1; }
-  .passage-margin { margin-bottom: var(--ot-space-5); padding-top: 0; }
-  .passage { padding-block: var(--ot-space-5) var(--ot-space-8); }
-  .hero-foot > * { grid-column: 1 / -1; grid-row: auto; }
-  .toy-controls > * { grid-column: 1 / -1; justify-self: start; }
-  .toy-actions { justify-content: start; }
-  /* The stage stands at the top of the view and the wall scrolls under it; the name crossing the playhead plays. */
-  .pieces-lead { display: none; }
-  .pieces { grid-template-columns: minmax(0, 1fr); }
-  .pieces-stage { grid-column: 1; grid-row: 1; z-index: 2; top: var(--bar); margin-inline: calc(-1 * var(--ot-margin)); padding: var(--ot-space-4) var(--ot-margin) var(--ot-space-5); background: var(--ot-paper); box-shadow: inset 0 calc(-1 * var(--ot-hairline)) var(--ot-rule); row-gap: var(--ot-space-3); }
-  .pieces-wall { grid-column: 1; grid-row: 2; margin-top: var(--ot-space-7); padding-bottom: 30svh; font-size: var(--ot-mp); }
-  .pieces-preview { height: clamp(17rem, 40svh, 22rem); padding: var(--ot-space-3); }
-  .pieces-summary { -webkit-line-clamp: 2; height: calc(2 * var(--ot-p-lh) * var(--ot-pp)); font-size: var(--ot-pp); }
-}
-/* A phone: the headline stacks a word to a line, the way "Less / is / more." stands. */
-@container (max-width: 560px) {
-  .toy-places { font-size: var(--ot-pp); }
-  .hero-word { display: block; }
-  .hero-line[data-line="quiet"] .hero-word { display: grid; justify-content: start; }
-  .hero-title { font-size: min(26cqi, 22svh); line-height: 0.82; }
-  .cta[data-size="l"] { font-size: min(var(--ot-f), 14cqi); }
+  .sec > *, .coda > *, .hero-band > * { grid-column: 1 / -1; }
+  .sec-margin { margin-bottom: var(--ot-space-6); grid-template-columns: auto 1fr; column-gap: var(--ot-space-4); align-items: end; }
+  .sec-num { grid-row: 1 / 3; font-size: var(--ot-ff); }
+  .sec-name { margin-top: 0; }
+  .sec-note { grid-column: 1 / -1; margin-top: var(--ot-space-3); }
+  .sec { padding-block: var(--ot-space-6) var(--ot-space-8); }
+  .hero-mark { --H: min(30vw, 160px); }
 }
 @media (max-width: 560px) {
-  .left-out.ot-checklist, .passage-title { font-size: var(--ot-f); line-height: var(--ot-f-lh); }
+  .sec-title { font-size: var(--ot-f); line-height: var(--ot-f-lh); }
+  .leaves-list { font-size: var(--ot-mf); }
   .tune-sentence, .ask-line { font-size: min(var(--ot-mf), 8vw); }
   .cta { font-size: min(var(--ot-f), 12vw); }
   .help-list .cta { font-size: min(var(--ot-f), 8.4vw); }

@@ -3,55 +3,19 @@ import NextLink from "next/link"
 
 import "./landing.css"
 
-import { AskFor, LeftOut, Share, TuneSentence } from "@/components/site/landing"
-import { Cta, Hero } from "@/components/site/landing-hero"
-import { PassageTitle, PieceIndex, type Movement } from "@/components/site/landing-index"
-import { ShareCall } from "@/components/site/landing-share"
-import { Toy } from "@/components/site/landing-toy"
+import { AskFor, Share, TuneSentence } from "@/components/site/landing"
+import { Cta } from "@/components/site/landing-hero"
+import { Sec } from "@/components/site/landing-section"
+import { REPO, ShareCall } from "@/components/site/landing-share"
+import { LandingZero, type Movement } from "@/components/site/landing-zero"
 import { catalog } from "@/lib/site/catalog"
 import { entries } from "@/lib/site/entries"
 import { CommandLine } from "@/registry/0nlytype/ui/command-line"
 import { Link } from "@/registry/0nlytype/ui/link"
 
-// The home page arrives as noise and turns it down to 0 dB. Then, in order: the whole library, playing; your
-// own words to turn down; what it leaves out; one sentence that retunes the page; the line that installs it;
-// the kit that teaches your AI; how to help build it; and a last call. Each passage carries its dynamic in
-// the margin, the way a score does.
-
-const DYNAMICS: Record<string, string> = { pp: "pianissimo", p: "piano", mp: "mezzo piano", mf: "mezzo forte", f: "forte", ff: "fortissimo" }
-
-type PassageProps = {
-  id: string
-  mark: string
-  title: string
-  note?: React.ReactNode
-  rail: string
-  className?: string
-  /** The body leaves the stave for the whole width, under the margin too. */
-  wide?: boolean
-  children: React.ReactNode
-}
-
-/** A passage: its dynamic and a note in the margin, a title whose lines rise through their baselines as it comes into view. */
-function Passage({ id, mark, title, note, rail, className, wide, children }: PassageProps) {
-  return (
-    <section className={className ? `passage ${className}` : "passage"} aria-labelledby={id}>
-      <div className="passage-margin margin">
-        <p className="passage-mark" lang="it">
-          <abbr title={DYNAMICS[mark]}>{mark}</abbr>
-        </p>
-        {note ? <p className="passage-note">{note}</p> : null}
-      </div>
-      <div className="stave">
-        <PassageTitle id={id} data-rail={rail} className="passage-title">
-          {title}
-        </PassageTitle>
-        {wide ? null : <div className="passage-body">{children}</div>}
-      </div>
-      {wide ? <div className="passage-wide">{children}</div> : null}
-    </section>
-  )
-}
+// The home page, in order: two hands set in letters reach toward a zero made of every piece's name; the zero turns
+// into the index; what the library leaves out; your own line set as the sea; one sentence that retunes the page;
+// the line that installs it; the kit that teaches your AI; how to help build it; and a last call.
 
 const movements: Movement[] = catalog.map((m) => ({
   num: m.num,
@@ -60,49 +24,57 @@ const movements: Movement[] = catalog.map((m) => ({
 }))
 const count = entries.length
 
-const REPO = "https://github.com/luv-jeri/0nlyType"
+// What the library refuses (INTENT.md, "What it refuses"), each struck as it scrolls into view.
+const LEFT_OUT = ["Pictures", "boxes", "cards", "shadows", "gradients", "icons drawn as pictures"]
 
 export default function Home() {
   return (
     <main id="content" className="page landing">
-      <Hero count={count} />
+      <LandingZero movements={movements} count={count} />
 
-      <Passage
-        id="pieces"
-        rail="The pieces"
-        mark="p"
-        className="passage-pieces"
-        wide
-        title={`${count} pieces. Try one.`}
-        note="Point at a name, or scroll through them: the piece plays on the stage, live. Every name opens its page."
+      <Sec
+        id="leaves"
+        num="02"
+        name="What it leaves out"
+        className="sec-leaves"
+        title="What it leaves out."
+        note="Each of these does a job that type can do on its own. So each one goes, on purpose."
       >
-        <PieceIndex movements={movements} total={count} />
-      </Passage>
+        <p className="leaves-list">
+          {LEFT_OUT.map((w, i) => (
+            <span key={w} className="leaves-word">
+              <s className="leaves-strike" style={{ "--i": i } as React.CSSProperties}>
+                {w}
+              </s>
+              {i < LEFT_OUT.length - 1 ? ", " : "."}
+            </span>
+          ))}
+        </p>
+        <p className="leaves-kept">
+          Kept: <span className="leaves-k">words</span>, <span className="leaves-k">space</span> and <span className="leaves-k">one accent</span>.
+        </p>
+        <p className="leaves-sign">An icon stays only as a sign made of its own word.</p>
+      </Sec>
 
-      <Passage
-        id="noise"
-        rail="Noise"
-        mark="ff"
-        className="passage-noise"
-        wide
-        title="Make some noise."
-        note="Type anything, as loud as you like. Then turn it down, and send it to someone."
+      <Sec
+        id="sea"
+        num="03"
+        name="The sea"
+        className="sec-sea"
+        title="Your words, drawn as the sea."
+        note="Type a line. We set it in your italic, over and over, until it draws the wave. Change one word and the whole sea is set again."
       >
-        <Toy />
-      </Passage>
+        <p className="sea-later">After Hokusai, about 1831 · set in Bodoni Moda italic at 3 weights · no image file</p>
+      </Sec>
 
-      <Passage id="less" rail="Less" mark="mp" title="Less, on purpose." note="Each struck word is a checkbox. Unstrike one to see why it went.">
-        <LeftOut />
-      </Passage>
-
-      <Passage id="tune" rail="Tune" mark="mf" title="One sentence retunes the page." note="Every italic word is a choice. Change one, and everything follows: the noise at the top too.">
+      <Sec id="tune" num="04" name="Tune" title="One sentence retunes the page." note="Every italic word is a choice. Change one, and everything follows.">
         <TuneSentence />
-      </Passage>
+      </Sec>
 
-      <Passage
+      <Sec
         id="install"
-        rail="Install"
-        mark="f"
+        num="05"
+        name="Install"
         title="One line."
         note="0nlyType is a shadcn registry. Each piece arrives as source in your project, with its styles and the tokens it stands on."
       >
@@ -113,9 +85,9 @@ export default function Home() {
             <NextLink href="/docs/install/">Set up a project</NextLink>
           </Link>
         </p>
-      </Passage>
+      </Sec>
 
-      <Passage id="ask" rail="Ask" mark="mf" title="Or ask for it." note="The AI kit puts 0nlyType's rules and every contract in your project, so your assistant builds in type too.">
+      <Sec id="ask" num="06" name="Ask" title="Or ask for it." note="The AI kit puts 0nlyType's rules and every contract in your project, so your assistant builds in type too.">
         <ol className="ask-steps">
           <li>
             <p className="ask-step">Add the kit.</p>
@@ -131,13 +103,12 @@ export default function Home() {
             <NextLink href="/docs/build-with-ai/">Build with AI</NextLink>
           </Link>
         </p>
-      </Passage>
+      </Sec>
 
-      <Passage
+      <Sec
         id="help"
-        rail="Help"
-        mark="mp"
-        className="passage-help"
+        num="07"
+        name="Help"
         title="Help build it."
         note="0nlyType is made by a small team, in the open. You don't need to write code to shape what it becomes."
       >
@@ -160,11 +131,11 @@ export default function Home() {
             </ShareCall>
           </li>
         </ul>
-      </Passage>
+      </Sec>
 
       <section className="coda" aria-labelledby="coda-title">
         <h2 className="coda-title" id="coda-title">
-          Now make something quiet.
+          Start from zero.
         </h2>
         <div className="coda-actions">
           <Cta href="/docs/">Read the docs</Cta>
@@ -172,9 +143,7 @@ export default function Home() {
             Share 0nlyType
           </Share>
         </div>
-        <p className="fine" lang="it">
-          Fine.
-        </p>
+        <p className="coda-licence">Free to use and change: MIT licensed, with typefaces under the SIL Open Font Licence.</p>
       </section>
 
       <footer className="landing-foot">
