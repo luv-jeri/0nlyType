@@ -256,8 +256,10 @@ body { overflow-x: clip; }
   .doc-props tr > td:nth-child(3):not(:empty)::before { content: "Default "; font-size: var(--ot-pp); color: var(--ot-pencil); }
 }
 
-/* The smallest phones: the row keeps every word by tightening its gaps. */
-@media (max-width: 380px) {
+/* Phones: the row keeps every word by tightening its gaps. Under 375px that is not enough, and the mark stands alone,
+   as it does at 32px (the link keeps its name). */
+@media (max-width: 374px) { .bar-mark .wm-word { display: none; } }
+@media (max-width: 430px) {
   .bar { column-gap: var(--ot-space-4); }
   .bar-mark { gap: var(--ot-space-2); }
   .bar-end, .bar-controls { gap: var(--ot-space-3); }
