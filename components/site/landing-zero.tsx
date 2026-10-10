@@ -45,16 +45,20 @@ type Tab = { ls: Float64Array; L: number; steps: number }
 // drawn at while it lies flat, where the zero stands (near) and once it has moved aside (flat), so it keeps to the stage.
 type Dial = { S: number; R: number; cx: number; cy: number; tilt: number; P: number; near: number; flat: number }
 // A letter of a name in the tunnel: where it stands from the name's middle, in the zero (A) and on its ring (B), and
-// how far it is turned from the name, on the ring.
-type Letter = { el: SVGTextElement; xA: number; yA: number; xB: number; yB: number; f: number }
+// how far it is turned from the name, on the ring; and its sprites, set and read (see Sprite).
+type Letter = { el: SVGTextElement; ch: string; xA: number; yA: number; xB: number; yB: number; f: number; c: Sprite | null; b: Sprite | null }
+// A letter drawn once into the sheet, for while it travels: its cell, where in the cell its anchor stands (the SVG's,
+// its advance's middle and the type's central line), and how much larger than at a scale of 1 it is drawn there.
+type Sprite = { x: number; y: number; w: number; h: number; ax: number; ay: number; m: number }
 // A name in the tunnel, the same letters in both places: its middle (radius and angle from the disc's middle), its turn
 // and its size, in the zero (A, measured from the hero's own names) and on its ring (B); `ob` is B's turn counted from A.
 type Name = { g: SVGGElement; i: number; ls: Letter[]; rA: number; tA: number; oA: number; sA: number; rB: number; tB: number; oB: number; ob: number }
 // A ring: its radius and size in viewBox units, its layer, its names and where along it each sits (the middle of the
 // name), its dashed rule, and its turn and tone, each a value easing toward its aim. `slot` is when its names leave the
 // zero; `shift` is the whole turns they travel by, so a movement's names unroll side by side and never cross (`set`
-// once it is counted for this layout); `fin` holds once they have all arrived.
-type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; nm: Map<number, SVGGElement>; at: Map<number, number>; names: Name[]; ref: Name; rule: SVGUseElement; slot: number; shift: number; set: boolean; fin: boolean; x: number; v: number; to: number; tone: number; toneTo: number }
+// once it is counted for this layout); `fin` holds once they have all arrived. `face` holds its letters, hidden while
+// they are `flying`, when they are drawn on the canvas instead.
+type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; face: SVGGElement; flying: boolean; nm: Map<number, SVGGElement>; at: Map<number, number>; names: Name[]; ref: Name; rule: SVGUseElement; slot: number; shift: number; set: boolean; fin: boolean; x: number; v: number; to: number; tone: number; toneTo: number }
 type Spring = { x: number; v: number; to: number }
 type Tempo = { quick: number; mid: number; slow: number; step: number; breath: string; exhale: string }
 
@@ -472,7 +476,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
             const t = svg("text", null, g), tj = -90 - ((s + mids[i][j] * fs) / r) * deg
             t.textContent = ch
             const px = rB * Math.cos(tj * RAD) - cx, py = rB * Math.sin(tj * RAD) - cy
-            return { el: t, xA: 0, yA: 0, xB: px * ca + py * sa, yB: py * ca - px * sa, f: tj - tB }
+            return { el: t, ch, xA: 0, yA: 0, xB: px * ca + py * sa, yB: py * ca - px * sa, f: tj - tB, c: null, b: null }
           })
           nm.set(i, g)
           at.set(i, sc)
@@ -485,7 +489,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         dash.push(0, len * 2)
         const rule = svg("use", { href: `#${id}`, class: "rule", "stroke-width": Math.max(0.6, fs / 16).toFixed(2), "stroke-dasharray": dash.map((v) => v.toFixed(1)).join(" ") }, el)
         const old = kept[k]
-        return { k, r, fs, el, nm, at, names: list, ref: list[list.length >> 1], rule, slot: 0, shift: 0, set: false, fin: false, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0 }
+        return { k, r, fs, el, face: set, flying: false, nm, at, names: list, ref: list[list.length >> 1], rule, slot: 0, shift: 0, set: false, fin: false, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0 }
       })
       for (const r of rings) {
         if (r.k === ringOf[SEL]) r.to = near(r.to, front(r, r.at.get(SEL)!))
@@ -494,6 +498,75 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       shown.clear()
       toned.clear()
       onNm = null
+      discEl.append(sprites)
+    }
+    // The letters on their way are drawn on one canvas over the rings, from a sheet of each ring's letters drawn once per
+    // layout. SVG type whose turn and size change every frame is set again from its outlines each time, and seven
+    // hundred letters of it were what made the turn stutter. Landed, the letters are the SVG's again, at the same pose
+    // in the same frame, so the names stay pointable and read by assistive technology.
+    const sprites = document.createElement("canvas"), pen = sprites.getContext("2d"), sheet = document.createElement("canvas")
+    sprites.className = "tunnel-sprites"
+    sprites.setAttribute("aria-hidden", "true")
+    // The canvas reaches a tenth of the disc past each edge (app/landing.css), so a name set outside the disc still
+    // shows; `kU` is its pixels to a unit of the disc and `c0` its middle. `drew` holds while it has letters on it.
+    const OVER = 1.2
+    let kU = 1, c0 = 0, drew = false
+    // Each ring's letters, set and read, in its face and inks as styled, a little sharper than the canvas needs where a
+    // name in the zero is set larger than on its ring. Once per layout, after the fonts, the pair and the mode.
+    const drawSheet = () => {
+      const S = D?.S ?? 0, dpr = devicePixelRatio || 1, ink = sheet.getContext("2d")
+      const side = Math.max(1, Math.round(S * OVER * dpr * Math.min(1.25, 4096 / (S * OVER * dpr))))
+      sprites.width = sprites.height = side
+      kU = side / (800 * OVER)
+      c0 = side / 2
+      drew = false
+      if (!pen || !ink || !rings.length) return
+      const first = rings[0].names[0].ls[0].el, css = getComputedStyle(first), family = css.fontFamily
+      // The read name's weight and ink, as its letters compute them, so the sheet draws what the SVG does.
+      const probe = svg("text", null, svg("g", { class: "nm on" }, rings[0].face)), on = getComputedStyle(probe)
+      const looks = { c: { w: css.fontWeight, fill: css.fill }, b: { w: on.fontWeight, fill: on.fill } }
+      probe.parentElement?.remove()
+      // Canvas takes a width only by its keyword: semi-condensed is the 87.5% the rings are set in.
+      const font = (w: string, px: number) => `${w} semi-condensed ${px.toFixed(2)}px ${family}`
+      type Job = { p: Sprite; ch: string; look: "c" | "b"; px: number; bx: number; by: number }
+      const jobs: Job[] = [], pad = 2, SW = 2048
+      let x = 0, y = 0, row = 0
+      ink.textAlign = "center"
+      ink.textBaseline = "alphabetic"
+      for (const r of rings) {
+        const m = clamp(Math.max(...r.names.map((n) => n.sA)), 1, 2), px = r.fs * kU * m
+        for (const look of ["c", "b"] as const) {
+          ink.font = font(looks[look].w, px)
+          const got = new Map<string, Sprite | null>()
+          for (const n of r.names)
+            for (const l of n.ls) {
+              if (!got.has(l.ch)) {
+                const t = ink.measureText(l.ch), L = t.actualBoundingBoxLeft, R = t.actualBoundingBoxRight, A = t.actualBoundingBoxAscent
+                let p: Sprite | null = null
+                if (l.ch.trim() && L + R > 0) {
+                  const cw = Math.ceil(L + R) + 2 * pad, ch = Math.ceil(A + t.actualBoundingBoxDescent) + 2 * pad
+                  if (x + cw > SW) [x, y, row] = [0, y + row, 0]
+                  p = { x, y, w: cw, h: ch, ax: pad + L, ay: pad + A - base * px, m }
+                  jobs.push({ p, ch: l.ch, look, px, bx: x + pad + L, by: y + pad + A })
+                  x += cw
+                  row = Math.max(row, ch)
+                }
+                got.set(l.ch, p)
+              }
+              l[look] = got.get(l.ch)!
+            }
+        }
+      }
+      sheet.width = SW
+      sheet.height = Math.max(1, y + row)
+      ink.textAlign = "center"
+      ink.textBaseline = "alphabetic"
+      for (const j of jobs) {
+        ink.font = font(looks[j.look].w, j.px)
+        ink.fillStyle = looks[j.look].fill
+        ink.fillText(j.ch, j.bx, j.by)
+      }
+      pen.imageSmoothingQuality = "high"
     }
     // Where every letter stands in the zero, taken from the zero's own names as set (each letter's middle, less where a
     // letter set on its middle has it), as seen from the zero's middle, in the disc's units. Once per layout.
@@ -584,7 +657,13 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     // One ring's names on their way, u from 0 (the zero) to 1 (the ring). Angles are counted on from where each name
     // starts, the same whole turns for a whole movement, so its names unroll side by side and never cross.
-    const unroll = (r: Ring, u: number) => {
+    // On its way a ring's names are drawn on the canvas, at `a`, its tone; landed, they are its own letters again.
+    const unroll = (r: Ring, u: number, a: number) => {
+      const ink = u < 1 ? pen : null
+      if (r.flying !== !!ink) {
+        r.flying = !!ink
+        r.face.style.visibility = ink ? "hidden" : ""
+      }
       if (u >= 1 && r.fin) return
       const { pr: ps, pa, ro, dip } = stages(u)
       // Counted afresh only while the names stand still, at either end, so a turn of the ring never moves them mid-way.
@@ -597,14 +676,27 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         }
       }
       r.fin = u >= 1
+      // On the canvas a letter is turned with its ring, as the ring's own layer turns it, and drawn from its middle
+      // (the SVG's anchor) at the pose the SVG would take.
+      const rc = Math.cos(r.x * RAD), rs = Math.sin(r.x * RAD)
+      if (ink) ink.globalAlpha = a
       for (const n of r.names) {
         const t = lerp(n.tA - r.x, n.tB + r.shift, pa) * RAD, rho = lerp(n.rA, n.rB, ps), o = lerp(n.oA - r.x, n.ob, ro)
-        const cx = rho * Math.cos(t), cy = rho * Math.sin(t), ca = Math.cos(o * RAD), sa = Math.sin(o * RAD), sc = (lerp(n.sA, 1, ps) * dip).toFixed(3)
+        const cx = rho * Math.cos(t), cy = rho * Math.sin(t), ca = Math.cos(o * RAD), sa = Math.sin(o * RAD), sc = lerp(n.sA, 1, ps) * dip, on = n.g === onNm
         for (const l of n.ls) {
-          const lx = lerp(l.xA, l.xB, ps), ly = lerp(l.yA, l.yB, ro)
-          move(l.el, `translate(${(cx + lx * ca - ly * sa).toFixed(2)}px, ${(cy + lx * sa + ly * ca).toFixed(2)}px) rotate(${(o + l.f * ro).toFixed(2)}deg) scale(${sc})`)
+          const lx = lerp(l.xA, l.xB, ps), ly = lerp(l.yA, l.yB, ro), X = cx + lx * ca - ly * sa, Y = cy + lx * sa + ly * ca, deg = o + l.f * ro
+          if (!ink) {
+            move(l.el, `translate(${X.toFixed(2)}px, ${Y.toFixed(2)}px) rotate(${deg.toFixed(2)}deg) scale(${sc.toFixed(3)})`)
+            continue
+          }
+          const p = on ? l.b : l.c
+          if (!p) continue
+          const g = sc / p.m, f = (r.x + deg) * RAD, gc = g * Math.cos(f), gs = g * Math.sin(f)
+          ink.setTransform(gc, gs, -gs, gc, c0 + kU * (X * rc - Y * rs), c0 + kU * (X * rs + Y * rc))
+          ink.drawImage(sheet, p.x, p.y, p.w, p.h, -p.ax, -p.ay, p.w, p.h)
         }
       }
+      if (ink) drew = true
     }
     // One frame of the turn from hero to tunnel, and of the tunnel's own turning. The disc starts where the zero stands
     // and moves aside to its own place, lying flat as the zero did and tipping back as the last rings form; the zero's
@@ -619,12 +711,18 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       tone(ringSvg, (1 - lit).toFixed(3))
       move(spinEl, `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${spin.toFixed(3)}deg) scale(${fit.toFixed(4)})`)
       move(discEl, `perspective(${D.P.toFixed(0)}px) rotateX(${tilt.toFixed(3)}deg)`)
+      // The canvas is drawn afresh while any names are on their way, and cleared once when the last of them lands.
+      if (pen && (drew || (lit > 0 && rings.some((r) => travelled(r) < 1)))) {
+        pen.setTransform(1, 0, 0, 1, 0, 0)
+        pen.clearRect(0, 0, sprites.width, sprites.height)
+        drew = false
+      }
       for (const r of rings) {
-        const u = travelled(r)
+        const u = travelled(r), a = lit * lerp(HERO_TONE, r.tone, smooth(u))
         move(r.el, `rotate(${r.x.toFixed(3)}deg)`)
-        tone(r.el, (lit * lerp(HERO_TONE, r.tone, smooth(u))).toFixed(3))
+        tone(r.el, a.toFixed(3))
         tone(r.rule, (0.5 * ruled).toFixed(3))
-        if (lit > 0) unroll(r, u)
+        if (lit > 0) unroll(r, u, a)
       }
       // The index dot travels with the read name, the same way round, from beside it in the zero to the read ring's near
       // edge: the turn, the perspective's divide, then the turn from square, the same sum the transforms make, worked
@@ -642,6 +740,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       T = tempo.current = { quick: ms("--ot-allegro", 160), mid: ms("--ot-moderato", 320), slow: ms("--ot-andante", 640), step: ms("--ot-arpeggio", 36), breath: ease("--ot-breath", TEMPO.breath), exhale: ease("--ot-exhale", TEMPO.exhale) }
       buildRings()
       capture()
+      drawSheet()
       read(true)
     }
 
