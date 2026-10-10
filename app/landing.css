@@ -12,10 +12,10 @@
 .wm-set .wm-zero::after { --zd: 0.1em; }
 .wm-set .wm-type { font-size: 1.12em; margin-inline-start: 0.04em; }
 
-/* ── hero and 01 (landing-zero): one sticky stage the scroll turns. The script writes --h (0 hero, 1 dial) on the
-   hands, --out on the band and --inn on the pieces (each only where it is read, so a frame
-   restyles only them), and --cy (the reading line) and --colx (the column beside the dial) on the pieces; nothing
-   here reads layout. The section's height is the intro plus one notch per piece. ── */
+/* ── hero and 01 (landing-zero): one sticky stage the scroll turns. Without scroll timelines, or under reduced
+   motion, the script writes --h (0 hero, 1 tunnel) on the hands, --out on the band and --inn on the pieces (each only
+   where it is read, so a frame restyles only them); the tunnel it turns by transforms and opacity alone. Nothing here
+   reads layout. The section's height is the intro plus one notch per piece. ── */
 .zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
 .zero-at { position: absolute; inset-inline: 0; top: calc(75svh + 20px); height: 1px; scroll-margin-top: 0; pointer-events: none; }
 /* The stage bleeds to the window's edges by a negative margin on both sides: with one only, a right to left page
@@ -23,7 +23,7 @@
 .zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: hidden; direction: ltr; }
 .zero-hands, .zero-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .zero-hands { pointer-events: none; }
-.zero-ring { cursor: default; }
+.zero-ring { cursor: default; will-change: transform, opacity; }
 .zero-ring[data-pointing] { cursor: pointer; }
 
 /* The ring: names between the two ellipses, the chosen one in ink and heavy, its neighbours in graphite. */
@@ -36,15 +36,26 @@
 .zero-ring .dot[data-sel] { fill: var(--ot-ink); }
 .zero-ring .index-dot, .zero-ring .mk-dot { fill: var(--ot-accent); }
 .zero-ring .mk-o { fill: var(--ot-ink); }
-.zero-ring .lead, .zero-ring .arc { fill: none; stroke: var(--ot-ink); stroke-width: var(--ot-hairline); }
-.zero-ring .arc-label { font-family: var(--ot-voice); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; fill: var(--ot-graphite); font-weight: 520; }
-.zero-ring .arc-label .n { fill: var(--ot-ink); font-weight: 760; }
-.zero-ring .dims line { stroke: var(--ot-pencil); stroke-width: var(--ot-hairline); }
-.zero-ring .dim-label { font-family: var(--ot-voice); font-size: 11px; letter-spacing: 0.02em; fill: var(--ot-pencil); }
 .zero-ring .call-line { stroke: var(--ot-pencil); stroke-width: var(--ot-hairline); }
 .zero-ring .call-dot { fill: var(--ot-pencil); }
 .zero-ring .call-name { font-family: var(--ot-voice); font-size: 22px; font-weight: 560; letter-spacing: -0.01em; fill: var(--ot-ink); }
 .zero-ring .call-meta { font-family: var(--ot-voice); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ot-pencil); }
+
+/* The tunnel (01): one ring of names per movement, each its own layer, so a turn moves painted type and never
+   repaints it. The script sizes and places the disc once per layout and writes only each layer's turn and tone. The
+   names are set in graphite; the read one in ink and heavier; what a ring's names leave is a dashed hairline. */
+.zero-tunnel { position: absolute; inset: 0; pointer-events: none; }
+.tunnel-spin { position: absolute; will-change: transform; }
+.tunnel-disc { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+.tunnel-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 50%; will-change: transform, opacity; opacity: 0; }
+.tunnel-ring text { font-family: var(--ot-voice); font-stretch: 88%; font-weight: 420; fill: var(--ot-graphite); }
+.tunnel-ring textPath { transition: fill var(--ot-allegro) var(--ot-exhale); }
+.tunnel-ring textPath.on { fill: var(--ot-ink); font-weight: 560; }
+.zero-stage[data-dial] .tunnel-ring text { pointer-events: auto; cursor: pointer; }
+.tunnel-ring textPath:hover { fill: var(--ot-ink); }
+.tunnel-ring .rule { fill: none; stroke: var(--ot-graphite); opacity: 0.5; }
+/* The one accent in view: the index, on the read ring's near edge. */
+.tunnel-dot { position: absolute; left: 0; top: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--ot-accent); opacity: 0; will-change: transform, opacity; }
 
 /* The hands (L2, after A): three weights by the fresco's tone, the light tone in pencil so the modelling reads and
    the two darker in ink, where the weight is the shading. As the scroll leaves the hero, each letter falls on its own
@@ -83,31 +94,56 @@
 .zero .hero-skip { display: none; position: absolute; left: 50%; top: calc((var(--bar) - 100svh + 32px + 100% - var(--ot-hairline)) / 2); transform: translate(-50%, -50%); align-self: start; justify-self: start; min-block-size: 44px; font-size: var(--ot-pp); }
 html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 
-/* After the turn: the column beside the dial, hung from the reading line. */
+/* After the turn: the heading and the reading in the column the tunnel's near edge points to, the movements and the
+   ways past it along the floor. */
 .pieces-part { position: absolute; inset: 0; opacity: var(--inn, 0); pointer-events: none; }
-/* The part lies over the ring; only its own words take the pointer, so the names stay pointable. */
-.zero-stage[data-dial] :is(.pieces-head, .readout, .pieces-skip) { pointer-events: auto; }
-.pieces-head, .readout, .pieces-skip, .pieces-keys { position: absolute; left: var(--colx, 760px); right: var(--pad); }
-.pieces-head { bottom: calc(100% - var(--cy, 460px) + 104px); }
-.pieces-meta { display: flex; gap: var(--ot-space-4); margin-bottom: var(--ot-space-5); padding-bottom: var(--ot-space-3); border-bottom: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ot-pencil); }
-.pieces-meta span:first-child { color: var(--ot-ink); font-variant-numeric: tabular-nums; }
+/* The part lies over the tunnel; only its own words take the pointer, so the names stay pointable. */
+.zero-stage[data-dial] :is(.pieces-head, .readout, .pieces-foot) { pointer-events: auto; }
+.pieces-head, .readout, .pieces-keys { position: absolute; left: 62vw; right: var(--pad); }
+.pieces-head { top: calc(var(--bar) + 7svh); }
+.pieces-meta { display: flex; gap: var(--ot-space-4); padding-bottom: var(--ot-space-3); border-bottom: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: 1.1; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ot-pencil); }
+.pieces-meta > span:first-child { color: var(--ot-ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .pieces-meta-r { margin-inline-start: auto; }
-.pieces-title { font-size: clamp(48px, 5.4vw, 80px); line-height: 0.92; letter-spacing: -0.04em; font-weight: 800; font-stretch: 74%; color: var(--ot-ink); }
-.readout { top: calc(var(--cy, 460px) - 62px); display: grid; grid-template-columns: auto 1fr; column-gap: var(--ot-space-5); align-items: start; }
-.ro-num { display: flex; align-items: center; height: 124px; font-size: 124px; line-height: 1; letter-spacing: -0.05em; font-weight: 820; font-stretch: 86%; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
-.ro-lead { font-weight: 200; color: var(--ot-rule-strong); }
-.ro-body { max-width: 38ch; padding-top: 14px; }
-.ro-of { display: flex; gap: var(--ot-space-4); margin-bottom: var(--ot-space-3); font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ot-pencil); }
-.ro-of span:last-child { font-variant-numeric: tabular-nums; }
-.ro-name { font-size: var(--ot-mf); line-height: 1.05; letter-spacing: var(--ot-mf-tr); font-weight: 680; color: var(--ot-ink); }
-.ro-desc { margin-top: var(--ot-space-2); font-size: var(--ot-p); line-height: 1.45; color: var(--ot-graphite); text-wrap: pretty; }
-.ro-cmd { grid-column: 1 / -1; margin-top: var(--ot-space-5); padding-top: var(--ot-space-3); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.pieces-title { margin-top: var(--ot-space-5); font-size: clamp(56px, 6.2vw, 96px); line-height: 0.86; letter-spacing: -0.035em; font-weight: 800; font-stretch: 72%; color: var(--ot-ink); }
+/* The reading changes over a part at a time (the script animates it): each part is a box one copy tall, the leaving
+   copy laid over the arriving one, so the page under it never moves. */
+.ro-swap { position: relative; display: block; overflow: hidden; }
+.ro-swap > span { display: block; }
+.ro-swap > .out { position: absolute; left: 0; top: 0; width: 100%; }
+.readout { top: 54svh; }
+.ro-of { font-size: var(--ot-pp); line-height: 1.1; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ot-pencil); }
+.ro-of > span { display: flex; gap: var(--ot-space-4); }
+.ro-of > span > span:last-child { font-variant-numeric: tabular-nums; }
+.ro-row { display: flex; align-items: flex-start; gap: var(--ot-space-5); margin-top: var(--ot-space-3); }
+/* The number turns over like a counter, each digit on its own wheel, the leading zeros in pencil. */
+.ro-num { display: flex; flex: none; height: 1em; overflow: hidden; font-size: clamp(84px, 8vw, 124px); line-height: 1; letter-spacing: -0.04em; font-weight: 700; font-stretch: 80%; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
+.ro-dg { display: block; height: 1em; overflow: hidden; }
+.ro-dg i { display: flex; flex-direction: column; font-style: normal; transition: transform var(--ot-andante) var(--ot-exhale), color var(--ot-moderato) var(--ot-exhale); }
+.ro-dg b { display: block; height: 1em; font-weight: inherit; }
+.ro-dg[data-lead] i { color: var(--ot-pencil); font-weight: 200; }
+.ro-body { min-width: 0; padding-top: 6px; }
+.ro-name { height: 1.15em; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.15; letter-spacing: -0.01em; font-weight: 600; white-space: nowrap; color: var(--ot-ink); }
+/* The description keeps one height, five lines, whatever it says, so nothing under it moves as it changes. */
+.ro-desc { height: 7.5em; max-width: 38ch; margin-top: var(--ot-space-2); font-size: 15px; line-height: 1.5; color: var(--ot-graphite); }
+.ro-desc > span { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
+.ro-cmd { margin-top: var(--ot-space-5); padding-top: var(--ot-space-4); border-top: var(--ot-hairline) solid var(--ot-rule); }
 .ro-cmd .copy-cmd-text { font-size: var(--ot-pp); }
-.pieces-skip { bottom: 40px; display: flex; gap: var(--ot-space-5); font-size: var(--ot-pp); }
+.ro-cmd .copy-cmd-text i { display: inline-block; }
+/* The floor: the movements, the read one in ink and underlined, then the ways past the index. */
+.pieces-foot { position: absolute; left: var(--pad); right: var(--pad); bottom: 24px; display: flex; justify-content: space-between; align-items: baseline; gap: var(--ot-space-5); }
+.pieces-groups { display: flex; flex-wrap: wrap; gap: 0 22px; }
+.pieces-group { position: relative; margin: 0; padding: var(--ot-space-1) 0 6px; border: 0; background: none; font: inherit; font-size: 11.5px; line-height: 1.2; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ot-pencil); cursor: pointer; transition: color var(--ot-moderato) var(--ot-exhale); }
+.pieces-group::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--ot-hairline); background: var(--ot-ink); transform: scaleX(0); transform-origin: 0 50%; transition: transform var(--ot-andante) var(--ot-exhale); }
+.pieces-group:is(:hover, :focus-visible) { color: var(--ot-graphite); }
+.pieces-group[aria-current] { color: var(--ot-ink); }
+.pieces-group[aria-current]::after { transform: scaleX(1); }
+.pieces-skip { display: flex; flex: none; gap: var(--ot-space-5); font-size: var(--ot-pp); }
 .pieces-keys { bottom: 72px; font-size: var(--ot-pp); color: var(--ot-pencil); opacity: 0; transition: opacity var(--ot-allegro); }
 .zero-stage[data-keys] .pieces-keys { opacity: 1; }
-/* On a short screen the description keeps to four lines, so the install line never meets the links under it. */
-@media (max-height: 780px) and (min-width: 761px) { .ro-desc { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; } }
+/* Where the floor is too short for every movement's name, it keeps their numerals; the names stay for screen readers. */
+@media (max-width: 1200px) { .pieces-group-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
+/* On a short screen the description keeps to four lines, so the install line never meets the floor. */
+@media (max-height: 780px) and (min-width: 761px) { .ro-desc { height: 6em; } .ro-desc > span { -webkit-line-clamp: 4; } .pieces-keys { display: none; } }
 /* Where scroll timelines run, the scroll itself draws the turn from hero to dial, so a frame restyles only what moves
    and no script writes a number per frame: the band lifts away and the hands step back over the first 42svh, and the
    pieces arrive between 45svh and 75svh. The numbers match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or with reduced motion. */
@@ -127,7 +163,7 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 
 /* The list is for keyboards and screen readers: hidden from sight, never from them. The focused name is the readout. */
 .pieces-list { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; list-style: none; }
-.zero-stage[data-keys] .ro-name { text-decoration: underline var(--ot-stroke) var(--ot-ink); text-underline-offset: 0.16em; }
+.zero-stage[data-keys] .ro-name { text-decoration: underline var(--ot-stroke) var(--ot-ink); text-underline-offset: 0.12em; }
 
 /* The overture (P4): the hands' letters come up from the fingertips back and the hands close the gap (drawn by the
    script on a clock, 1220ms), then the dot lights, inside the 2000ms deadline; a late start skips what has passed. */
@@ -152,19 +188,42 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .hero-cta { margin-block: 0 var(--ot-space-4); }
   .hero-cta .cta { font-size: var(--ot-mp); }
   .hero-count { display: none; }
-  .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); bottom: auto; } /* clear of the rail's label */
-  .pieces-meta { margin-bottom: var(--ot-space-4); }
-  .pieces-title { font-size: 40px; }
-  .readout { right: 16px; top: calc(var(--cy) - 34px); grid-template-columns: 1fr; }
-  .ro-num { height: 58px; font-size: 56px; }
-  .ro-body { padding-top: 4px; }
-  .ro-of { flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
+  /* The tunnel takes the room between the heading and the reading, so both are placed here and the script measures
+     them: the heading under the bar, the reading over the floor. */
+  .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); } /* clear of the rail's label */
+  .pieces-title { margin-top: var(--ot-space-3); font-size: 40px; }
+  .readout { left: var(--pad); right: var(--pad); top: auto; bottom: 92px; }
+  .ro-row { gap: var(--ot-space-4); margin-top: var(--ot-space-2); }
+  .ro-num { font-size: 56px; }
+  .ro-body { padding-top: 2px; }
+  .ro-of { font-size: 11px; }
+  .ro-of > span { gap: 10px; }
   .ro-name { font-size: var(--ot-mp); }
-  .ro-desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.4; }
-  .ro-cmd { margin-top: var(--ot-space-3); }
+  .ro-desc { height: 4.2em; max-width: none; margin-top: var(--ot-space-1); font-size: 13px; line-height: 1.4; }
+  .ro-desc > span { -webkit-line-clamp: 3; }
+  .ro-cmd { margin-top: var(--ot-space-3); padding-top: var(--ot-space-2); }
   .ro-cmd .copy-cmd-text { font-size: 11px; }
-  .pieces-skip { left: auto; right: 16px; bottom: 20px; flex-direction: column; align-items: end; gap: var(--ot-space-2); }
+  .pieces-foot { bottom: 12px; flex-direction: column; align-items: stretch; gap: var(--ot-space-1); }
+  .pieces-groups { justify-content: space-between; gap: 0; }
+  .pieces-group { min-width: 32px; min-height: 32px; font-size: 11px; }
+  .pieces-skip { justify-content: space-between; }
   .pieces-keys { display: none; }
+}
+/* A phone held sideways: the tunnel takes the left half (the script places it), the heading and the reading the right,
+   the floor one row. */
+@media (max-width: 760px) and (orientation: landscape) {
+  .pieces-head, .readout { left: 50%; right: calc(var(--pad) + 24px); }
+  .pieces-head { top: calc(var(--bar) + var(--ot-space-2)); }
+  .pieces-meta { padding-bottom: var(--ot-space-2); font-size: 11px; }
+  .pieces-title { margin-top: var(--ot-space-2); font-size: 24px; line-height: 1; }
+  .pieces-title br { display: none; }
+  .readout { bottom: 52px; }
+  .ro-num { font-size: 44px; }
+  .ro-name { font-size: 18px; }
+  .ro-desc { height: 2.8em; font-size: 12px; }
+  .ro-desc > span { -webkit-line-clamp: 2; }
+  .pieces-foot { bottom: 6px; flex-direction: row; align-items: baseline; gap: var(--ot-space-4); }
+  .pieces-groups { flex: 1; }
 }
 
 /* ── the numbered sections: a hairline, the corner labels in the margin, the title and body on the stave (P1) ── */

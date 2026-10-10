@@ -14,28 +14,42 @@ import { Wordmark } from "@/components/site/wordmark"
 // The hero and 01, the pieces, on one sticky stage turned by the scroll. Michelangelo's two hands, set in real letters,
 // reach toward a zero made of every piece's name: Adam's hand is what you ask for, in the italic; God's is what we hand
 // back, a line for every piece, in roman. Every letter takes its weight and ink from the fresco's light where it sits,
-// so the fingers read (components/site/hands.ts). Scroll, and the hands step back, the zero moves aside and becomes a
-// dial, and the dial turns, one piece per notch, with a settled spring. Point at a name to read it; click it, or use the
-// arrow keys in the list, to turn to it. Point at a hand and a loupe follows over its letters, the phrase under it is
-// read out in full ink, and the hands lean in as you near the zero; a line of God's hand names its piece in the zero,
-// and clicking it turns there.
+// so the fingers read (components/site/hands.ts). Point at a hand and a loupe follows over its letters, the phrase under
+// it is read out in full ink, and the hands lean in as you near the zero; a line of God's hand names its piece in the
+// zero, and clicking it turns there.
+//
+// Scroll, and the hands step back while the zero moves aside and opens into the tunnel (01, owner's choice 2026-10-11):
+// one ring of names per movement, the outer nearest, each further one smaller and a step fainter, the disc lying flat
+// as the zero did and tipping back as the rings wind into place, all of it as far along as the scroll is. Then the
+// scroll turns it, one piece per notch: the read ring brings its name round to the near edge on a settled spring, the
+// other rings drift the same way, the inner ones faster, and the reading beside it changes over, the old copy leaving
+// as the new one rises. Click a name, or use the arrow keys in the list, to turn to it.
 //
 // Everything the scroll moves is written, never read: positions are measured once per layout (on resize, when the
-// fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. Each
-// value is written only where it is read, and only when it changes. Screen readers and keyboards get
-// the index as a real list of links; the drawing is aria-hidden.
+// fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. A frame
+// writes only transforms and opacity, each only when it changes: every ring is its own layer, turned and toned on the
+// compositor, and the index dot's place is the same sum the transforms make, worked out rather than measured. Screen
+// readers and keyboards get the index as a real list of links; the drawing is aria-hidden.
 
 export type Piece = { name: string; title: string; summary: string }
 export type Movement = { num: string; name: string; pieces: Piece[] }
 
 type Flat = Piece & { mv: Movement; i: number }
-type Arc = { m: Movement; start: number; end: number; count: number; path: SVGPathElement; t1: SVGLineElement; t2: SVGLineElement; label: SVGTextElement; rest: SVGTSpanElement }
 type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rxi: number }
-type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; skip: { y: number; beside: boolean }; plate: number }
+type Geometry = { W: number; H: number; m: number; bar: number; phone: boolean; hero: Shape; room: [number, number]; skip: { y: number; beside: boolean }; plate: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
+// The tunnel, laid out once per layout: the box the disc is drawn in (S, its viewBox 800 units), where its middle
+// stands, its outer radius on screen, how far it tips back, and the perspective it is seen in.
+type Dial = { S: number; R: number; cx: number; cy: number; tilt: number; P: number }
+// A ring: its radius and size in viewBox units, its layer, where along it each name sits (the middle of the name), and
+// its turn and tone, each a value easing toward its aim.
+type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; tp: Map<number, SVGTextPathElement>; at: Map<number, number>; x: number; v: number; to: number; tone: number; toneTo: number; was: string; op: string }
+type Spring = { x: number; v: number; to: number }
+type Tempo = { quick: number; mid: number; slow: number; step: number; breath: string; exhale: string }
 
 const NS = "http://www.w3.org/2000/svg"
 const TAU = Math.PI * 2
+const RAD = Math.PI / 180
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v))
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const smooth = (t: number) => t * t * (3 - 2 * t)
@@ -79,7 +93,50 @@ function fAt(tab: Tab, t: number) {
   return (a + (b - a) * r) / tab.L
 }
 
+// The tunnel's proportions, in the disc's viewBox (800 across): the outer ring's radius and size, how much smaller each
+// ring further in is set, how far it is turned from square, and each ring's tone by depth, the outer nearest.
+const R0 = 360, F0 = 30, SHR = 0.84, FSH = 0.87, SPIN = -14
+const DEPTH = [1, 0.84, 0.7, 0.58, 0.48, 0.4, 0.33, 0.27]
+// One stiffness for every turn, damped just short of critical, so it settles with no bounce you can count.
+const K = 140, C = 2 * 0.9 * Math.sqrt(K)
+// The motion tokens (registry/0nlytype/styles/tokens.css), read again at each layout; these are their values.
+const TEMPO: Tempo = { quick: 160, mid: 320, slow: 640, step: 36, breath: "cubic-bezier(0.65, 0, 0.35, 1)", exhale: "cubic-bezier(0.16, 1, 0.3, 1)" }
+
+// The reading changes over a part at a time: the current copy leaves upward as the new one rises in, a beat apart.
+// One copy leaves at a time: a newer turn removes whatever was still leaving, and a copy caught halfway in leaves from
+// where it is, so however fast the scroll, a box never holds more than two. Read in quick succession (under 240ms
+// apart), every part changes over at once, and faster.
+function swap(box: HTMLElement | null, text: string[], delay: number, fast: boolean, still: boolean, T: Tempo) {
+  if (!box) return
+  const cur = box.querySelector<HTMLElement>(":scope > :not(.out)"), key = text.join("\n")
+  if (cur && cur.dataset.text === key) return
+  for (const o of box.querySelectorAll(":scope > .out")) o.remove()
+  const nu = document.createElement("span")
+  nu.dataset.text = key
+  for (const t of text) nu.appendChild(document.createElement("span")).textContent = t
+  if (still || !cur) return box.replaceChildren(nu)
+  const cs = getComputedStyle(cur), from = { transform: cs.transform === "none" ? "none" : cs.transform, opacity: cs.opacity }
+  for (const a of cur.getAnimations()) a.cancel()
+  cur.classList.add("out")
+  cur.setAttribute("aria-hidden", "true")
+  box.appendChild(nu)
+  const d = fast ? 0 : delay
+  cur.animate([from, { transform: "translateY(-45%)", opacity: 0 }], { duration: fast ? T.quick / 2 : T.quick, delay: d, easing: T.breath, fill: "forwards" }).finished.then(() => cur.remove(), () => {})
+  nu.animate([{ transform: "translateY(55%)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: fast ? T.quick + T.step : T.mid + T.quick, delay: d + (fast ? 2 : 4) * T.step, easing: T.exhale, fill: "backwards" })
+}
+
 const ASKS = ["a pricing page", "a sign-up form", "a settings screen", "an empty state", "a changelog", "a booking calendar", "a command menu", "a data table", "a page for when nothing is found", "a checkout", "a profile page", "a dashboard", "an onboarding letter", "a search page"]
+
+// One line of the list, set again only when it becomes, or stops being, the read one or the tab stop.
+const PieceLink = React.memo(function PieceLink({ q, stop, current, at }: { q: Flat; stop: boolean; current: boolean; at: (i: number, el: HTMLAnchorElement | null) => void }) {
+  return (
+    <li>
+      <NextLink ref={(el) => at(q.i, el)} href={`/docs/${q.name}/`} prefetch={false} data-i={q.i} tabIndex={stop ? 0 : -1} aria-current={current ? "true" : undefined}>
+        {pad3(q.i + 1)}. {q.title}, {q.mv.name}. {q.summary}
+      </NextLink>
+    </li>
+  )
+})
 
 export function LandingZero({ movements, count }: { movements: Movement[]; count: number }) {
   const pieces = React.useMemo<Flat[]>(() => {
@@ -87,6 +144,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     return movements.flatMap((mv) => mv.pieces.map((p) => ({ ...p, mv, i: i++ })))
   }, [movements])
   const N = pieces.length
+  const starts = React.useMemo(() => movements.map((m) => pieces.findIndex((q) => q.mv === m)), [movements, pieces])
   const [sel, setSel] = React.useState(0)
   const [active, setActive] = React.useState(0)
   const [keys, setKeys] = React.useState(false)
@@ -97,34 +155,30 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const hands = React.useRef<HTMLDivElement>(null)
   const band = React.useRef<HTMLDivElement>(null)
   const part = React.useRef<HTMLDivElement>(null)
-  const list = React.useRef<HTMLOListElement>(null)
+  const tunnel = React.useRef<HTMLDivElement>(null)
+  const cmd = React.useRef<HTMLDivElement>(null)
   // The engine's two doors for React: turn to a piece, and say where the scroll stands.
   const api = React.useRef<{ turnTo: (i: number) => void; h: () => number }>({ turnTo: () => {}, h: () => 0 })
   // A name picked on the ring also takes the keyboard's place, so Tab and the arrows carry on from it.
   const picked = React.useRef<(i: number) => void>(() => {})
+  // What the engine knows that the install line's change-over needs: the tokens, and whether the reading is quick.
+  const tempo = React.useRef<Tempo>(TEMPO)
+  const quick = React.useRef(false)
 
   React.useEffect(() => {
-    const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, partEl = part.current
-    if (!sec || !st || !ringSvg || !handsEl || !bandEl || !partEl) return
+    const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, partEl = part.current, tunnelEl = tunnel.current
+    if (!sec || !st || !ringSvg || !handsEl || !bandEl || !partEl || !tunnelEl) return
     const root = document.documentElement
     const motion = matchMedia("(prefers-reduced-motion: reduce)")
     let reduce = motion.matches
     const late = overtureActive() ? OVERTURE_DEADLINE - overtureLeft() : 0
     sec.style.setProperty("--late", `${Math.round(late)}ms`)
 
-    const mvs = movements.map((m) => {
-      const start = pieces.findIndex((p) => p.mv === m)
-      return { m, start, end: start + m.pieces.length - 1, count: m.pieces.length }
-    })
-
-    /* ── the ring: every piece's name between two ellipses, the movements labelled round the outside ── */
+    /* ── the hero's zero: every piece's name between two ellipses ── */
     ringSvg.replaceChildren()
-    const gArcs = svg("g", { class: "arcs" }, ringSvg)
     const track = svg("ellipse", { class: "faint" }, ringSvg)
     const gDots = svg("g", null, ringSvg)
     const gNames = svg("g", null, ringSvg)
-    const gDims = svg("g", { class: "dims" }, ringSvg)
-    const lead = svg("line", { class: "lead" }, ringSvg)
     const indexDot = svg("circle", { class: "index-dot", r: 3.5 }, ringSvg)
     // On a phone the hero zero is too small for names: it is the mark itself, set in the gap between the fingers.
     const gMark = svg("g", { class: "gap-mark" }, ringSvg)
@@ -141,24 +195,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return t
     })
     const dots = pieces.map(() => svg("circle", { class: "dot", r: 1.5 }, gDots))
-    // The dimension across the counter: the hole of the zero is part of the drawing.
-    const dim = { line: svg("line", null, gDims), t1: svg("line", null, gDims), t2: svg("line", null, gDims), h: svg("line", null, gDims), v: svg("line", null, gDims) }
-    const dimLabel = svg("text", { class: "dim-label", "text-anchor": "middle" }, gDims)
-    dimLabel.textContent = "the counter, empty on purpose"
-    const arcs: Arc[] = mvs.map((a, k) => {
-      const path = svg("path", { id: `zero-arc-${k}`, class: "arc" }, gArcs)
-      const t1 = svg("line", { class: "arc" }, gArcs), t2 = svg("line", { class: "arc" }, gArcs)
-      const label = svg("text", { class: "arc-label", "text-anchor": "middle" }, gArcs)
-      const tp = svg("textPath", { href: `#zero-arc-${k}`, startOffset: "50%" }, label)
-      const n = svg("tspan", { class: "n" }, tp)
-      n.textContent = a.m.num
-      const rest = svg("tspan", null, tp)
-      return { ...a, path, t1, t2, label, rest }
-    })
     let natural: number[] = []
     // How long each name is as set, so the callout can start where the name ends.
     const setW = names.map(() => 0)
-    // What each name and dot was last set to, so a frame writes only what changed.
+    // What each name and dot was last set to, so a draw writes only what changed.
     const drawn = names.map(() => ({ at: "", size: "", fit: "", stretch: "", end: "", dx: "", dy: "" }))
     const measureNames = () => {
       for (const [i, t] of names.entries()) {
@@ -172,47 +212,57 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
 
     /* ── geometry, measured once per layout ── */
-    let G: Geometry | null = null
+    let G: Geometry | null = null, D: Dial | null = null
     let top = 0, intro = 1, pitch = 24, range = 1, y = scrollY
     const stageGeometry = (): Geometry => {
       const W = st.clientWidth, H = st.clientHeight, phone = W <= 760
       const m = bandEl.offsetLeft
       const bandTop = bandEl.offsetTop
       const bar = parseFloat(getComputedStyle(root).getPropertyValue("--bar")) * parseFloat(getComputedStyle(root).fontSize) || 64
-      let hero: Shape, dial: Shape
+      let hero: Shape
       // Where the hands may reach: under the bar, over the band. Skip intro, while the overture plays, waits in the
       // zero's counter on a wide screen; on a phone, where the zero is only the mark, it sits over the band, under the hands.
       const say = 44 + 18
       const room: [number, number] = phone ? [bar + 12, bandTop - 24 - say] : [bar + 24, bandTop - 14]
-      // A full dial wants a reading column of at least 520px beside it (the install line and Copy on one row) and a
-      // ring tall enough to keep its names legible; short of either, it sits off the left edge, as on a phone.
-      const fit = (W - 2 * m - 140 - 520) / 2 / 0.76
-      const narrow = !phone && fit < 260
       if (phone) {
         const t = room[0], b = room[1]
         // The zero stands at the middle of the plate, not of the room left over Skip intro, which shows only once.
         hero = { cx: W / 2, cy: (bar + bandTop) / 2, ...shape(clamp((b - t) / 2 - 22, 14, 30)) }
-        const s1 = shape(Math.min(0.3 * H, 250))
-        dial = { cx: -0.4 * s1.rxo, cy: 0.56 * H, ...s1 }
       } else {
         // The zero is as tall as the hands are, so neither outweighs the other, and it stands in the middle of the
         // room between the bar and the band, the same air above and below.
         const t = bar + 28, b = bandTop - 28
         hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300, Math.max(150, W * 0.125))) }
-        // The dial sits in the room under the bar, with space above and below for its movement labels.
-        const s1 = shape(Math.min(0.41 * H, (H - bar) / 2 - 56, 380, narrow ? 380 : fit))
-        dial = narrow ? { cx: -0.4 * s1.rxo, cy: bar + (H - bar) / 2, ...s1 } : { cx: m + s1.rxo + 40, cy: bar + (H - bar) / 2, ...s1 }
       }
       // On a phone held sideways the room over the band is too short to hold it under the zero: it stands beside it.
       const over = bandTop - 24 - 44, beside = phone && over < bar
       const skip = { y: beside ? Math.max(bar, hero.cy - 22) : phone ? over : hero.cy - 22, beside }
       // The plate the picture is printed on: from under the bar to over the band, marked at its corners and on its axis.
       const plate = bandTop - bar - 40
-      return { W, H, m, phone, narrow, hero, dial, room, skip, plate }
+      return { W, H, m, bar, phone, hero, room, skip, plate }
     }
-    const geomAt = (g: Geometry, h: number): Shape => {
-      const a = g.hero, b = g.dial, e = smooth(h)
-      return { cx: lerp(a.cx, b.cx, e), cy: lerp(a.cy, b.cy, e), ...shape(lerp(a.ryo, b.ryo, e)) }
+    // Where the tunnel stands. On a wide screen it owns the left and the floor, its middle at three tenths across and a
+    // little under half way down, and the reading stands where its near edge points. On a phone it tips back less, and
+    // it is as large as the room between the heading and the reading allows (both are placed by the CSS, and measured
+    // here, once), its outer names clear of the screen's edge and the rail, and it stands in the middle of that room:
+    // the near side, drawn nearer, takes more of it than the far side. A phone held sideways gives it the left half,
+    // the heading and the reading the right.
+    const dialGeometry = (g: Geometry): Dial => {
+      const { W, H, bar, phone } = g
+      if (!phone) {
+        const S = Math.min(W * 0.6, (H - bar) * 1.16)
+        return { S, R: 0.45 * S, cx: W * 0.3, cy: bar + (H - bar) * 0.47, tilt: 56, P: 1.33 * S }
+      }
+      const tilt = 40, c = Math.cos(tilt * RAD), s = Math.sin(tilt * RAD), q = 1.33 / 0.45
+      const up = (c * q) / (q + s), down = (c * q) / (q - s)
+      const head = partEl.querySelector<HTMLElement>(".pieces-head"), read = partEl.querySelector<HTMLElement>(".readout"), foot = partEl.querySelector<HTMLElement>(".pieces-foot")
+      const wide = W > H
+      const a = wide ? bar + 8 : head ? head.offsetTop + head.offsetHeight + 14 : bar + 160
+      const b = wide ? (foot ? foot.offsetTop - 8 : H - 64) : read ? read.offsetTop - 10 : H - 260
+      // The outer names stand a twelfth beyond their ring; the rail keeps 24px of the right edge.
+      const across = wide ? W / 2 - 16 : W - 24 - 2 * 12, cx = wide ? W / 4 : (W - 24) / 2
+      const R = Math.max(60, Math.min(across / 2 / 1.08, (b - a) / (up + down)))
+      return { S: R / 0.45, R, cx, cy: a + R * up + Math.max(0, b - a - R * (up + down)) / 2, tilt, P: (1.33 * R) / 0.45 }
     }
     let tabKey = "", tabCache: Tab | null = null
     const midTab = (g: Shape) => {
@@ -224,9 +274,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return tabCache
     }
 
-    /* ── drawing the ring for one moment of the scroll ── */
+    /* ── drawing the hero's zero, once per layout and when a name is pointed at ── */
     // `hover` is the piece being read in the zero: the name pointed at on the ring, else the line pointed at in God's hand.
-    let shown = -1, hover = -1, onRing = -1, onHand = -1, cur: Shape | null = null, o = 0, h = 0
+    let hover = -1, onRing = -1, onHand = -1, h = 0
     // A custom property restyles everything under the element it is set on, so each goes only to what reads it, and
     // only when it changes.
     const written = new Map<string, string>()
@@ -236,22 +286,30 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       written.set(k, value)
       el.style.setProperty(name, value)
     }
+    // A frame's transforms and opacities, each written only when it changes.
+    const shown = new Map<HTMLElement | SVGElement, string>(), toned = new Map<HTMLElement | SVGElement, string>()
+    const move = (el: HTMLElement | SVGElement, value: string) => {
+      if (shown.get(el) === value) return
+      shown.set(el, value)
+      el.style.transform = value
+    }
+    const tone = (el: HTMLElement | SVGElement, value: string) => {
+      if (toned.get(el) === value) return
+      toned.set(el, value)
+      el.style.opacity = value
+    }
     // Where scroll timelines run, the turn from hero to dial is drawn by the scroll itself (app/landing.css); the
     // script writes its numbers only without them, or under reduced motion, where it snaps from one to the other.
     const driven = CSS.supports("animation-timeline: view()")
-    // The column beside the dial hangs from the reading line: only these four read it.
-    const hung = [...partEl.querySelectorAll<HTMLElement>(":scope > :is(.pieces-head, .readout, .pieces-skip, .pieces-keys)")]
-    const layoutRing = (g: Geometry, z: Shape, o: number, h: number) => {
+    const layoutRing = (g: Geometry, z: Shape) => {
       const tab = midTab(z), { cx, cy, rxo, ryo, rxi, ryi } = z
       // One size for every name, so the ring reads as one column of type turned round. A name keeps its own spacing:
       // it is condensed (the width axis, then the size) only when it would not fit between the ellipses, and it is
       // never spread to fill, so a short name reads as a word, not as letters. Each hangs from the outer rim, by its
-      // dot, so the chosen name meets the index; the counter keeps its ragged edge, as a set column does.
+      // dot; the counter keeps its ragged edge, as a set column does.
       const fs = clamp(ryo / 30, g.phone ? 5.5 : 7, 11.5)
-      const s = mod(Math.round(o), N)
-      cur = z
       for (let i = 0; i < N; i++) {
-        const t = tAt(tab, mod((i - o) / N, 1)), c = Math.cos(t), sn = Math.sin(t)
+        const t = tAt(tab, i / N), c = Math.cos(t), sn = Math.sin(t)
         const xi = cx + rxi * c, yi = cy + ryi * sn, xo = cx + rxo * c, yo = cy + ryo * sn
         const dx = xo - xi, dy = yo - yi, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len
         // A long name may reach a little into the counter, whose edge is ragged anyway, before it is condensed.
@@ -268,8 +326,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         // at the rim, a name set heavier (chosen, or read) grows inward, never over its dot.
         const x = xo - ux * pad, y = yo - uy * pad
         const el = names[i], was = drawn[i]
-        // The size, fit and width are set to the tenth and the width axis to the unit, so a turning name is set again
-        // only when the change would show: a frame re-shapes only the names whose fit moved.
         const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
         // Only a name that had to be condensed is held to its length; the rest keep their own spacing.
         const size = f.toFixed(1), fit = wAt > L ? L.toFixed(1) : "", stretch = `'wdth' ${Math.round(wdth)}`, end = right ? "end" : "start"
@@ -282,14 +338,13 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         }
         if (was.end !== end) el.setAttribute("text-anchor", (was.end = end))
         if (was.stretch !== stretch) el.style.fontVariationSettings = was.stretch = stretch
-        const d = mod(i - s + N / 2, N) - N / 2
-        el.toggleAttribute("data-sel", d === 0)
-        el.toggleAttribute("data-near", Math.abs(d) === 1)
+        el.toggleAttribute("data-sel", i === 0)
+        el.toggleAttribute("data-near", i === 1 || i === N - 1)
         el.toggleAttribute("data-hover", i === hover)
         const dot = dots[i], dx2 = (cx + (rxo + 10) * c).toFixed(1), dy2 = (cy + (ryo + 10) * sn).toFixed(1)
         if (was.dx !== dx2) dot.setAttribute("cx", (was.dx = dx2))
         if (was.dy !== dy2) dot.setAttribute("cy", (was.dy = dy2))
-        dot.toggleAttribute("data-sel", d === 0)
+        dot.toggleAttribute("data-sel", i === 0)
       }
       const named = clamp((ryo - 50) / 70)
       for (const e of [gNames, gDots, track, indexDot]) e.style.opacity = String(named)
@@ -307,79 +362,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       track.setAttribute("ry", String(ryo + 10))
       indexDot.setAttribute("cx", String(cx + rxo + 10))
       indexDot.setAttribute("cy", String(cy))
-      const colx = g.phone ? cx + rxo + 44 : cx + rxo + (g.narrow ? 72 : 100)
-      lead.setAttribute("x1", String(cx + rxo + 18))
-      lead.setAttribute("y1", String(cy))
-      lead.setAttribute("x2", String(g.phone ? cx + rxo + 26 : colx - 18))
-      lead.setAttribute("y2", String(cy))
-      lead.style.opacity = String(smooth(clamp((h - 0.55) / 0.45)))
-      for (const e of hung) {
-        put(e, "--cy", `${cy.toFixed(1)}px`)
-        put(e, "--colx", `${colx.toFixed(1)}px`)
-      }
-
-      // Movement sectors on an outer arc, each labelled along its own curve.
-      const arcOpacity = smooth(clamp((h - 0.4) / 0.6))
-      gArcs.style.opacity = String(arcOpacity)
-      gArcs.style.display = arcOpacity < 0.01 ? "none" : ""
-      if (arcOpacity >= 0.01) {
-        const rxA = rxo + 24, ryA = ryo + 24
-        for (const A of arcs) {
-          const f0 = (A.start - 0.5 + 0.3 - o) / N, f1 = (A.end + 0.5 - 0.3 - o) / N
-          const pts: [number, number, number][] = []
-          const steps = Math.max(6, Math.round(A.count * 3))
-          for (let k = 0; k <= steps; k++) {
-            const t = tAt(tab, f0 + ((f1 - f0) * k) / steps)
-            pts.push([cx + rxA * Math.cos(t), cy + ryA * Math.sin(t), t])
-          }
-          const bottom = Math.sin(tAt(tab, (f0 + f1) / 2)) > 0.2
-          const seq = bottom ? pts.slice().reverse() : pts
-          A.path.setAttribute("d", "M" + seq.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join("L"))
-          const tick = (ln: SVGLineElement, p: [number, number, number]) => {
-            const c = Math.cos(p[2]), sn = Math.sin(p[2])
-            ln.setAttribute("x1", String(cx + (rxA - 5) * c))
-            ln.setAttribute("y1", String(cy + (ryA - 5) * sn))
-            ln.setAttribute("x2", String(cx + (rxA + 5) * c))
-            ln.setAttribute("y2", String(cy + (ryA + 5) * sn))
-          }
-          tick(A.t1, pts[0])
-          tick(A.t2, pts[pts.length - 1])
-          A.label.setAttribute("dy", bottom ? "13" : "-6")
-          const arcLen = (A.count / N) * Math.PI * (rxA + ryA)
-          A.rest.textContent = arcLen > (A.m.name.length + 10) * 7.6 ? ` · ${A.m.name} · ${A.count}` : ` · ${A.count}`
-          // A label passing the reading line steps aside for the lead; its movement is named in the readout.
-          const tm = tAt(tab, (f0 + f1) / 2), half = (A.m.num.length + A.rest.textContent.length) * 3.9 + 10
-          A.label.style.opacity = Math.cos(tm) > 0 ? String(smooth(clamp((Math.abs(ryA * Math.sin(tm)) - half) / 24))) : "1"
-        }
-      }
-
-      // The counter's dimension, only once the zero is the dial, and not while a name is being read in it.
-      gDims.style.opacity = String(g.phone ? 0 : smooth(clamp((h - 0.6) / 0.4)) * (hover >= 0 ? 0 : 1))
-      const x1 = cx - rxi + 8, x2 = cx + rxi - 8
-      const line = (e: SVGLineElement, a: number, b: number, c: number, d: number) => {
-        e.setAttribute("x1", String(a))
-        e.setAttribute("y1", String(b))
-        e.setAttribute("x2", String(c))
-        e.setAttribute("y2", String(d))
-      }
-      line(dim.line, x1, cy, x2, cy)
-      line(dim.t1, x1, cy - 5, x1, cy + 5)
-      line(dim.t2, x2, cy - 5, x2, cy + 5)
-      line(dim.h, cx - 6, cy + 40, cx + 6, cy + 40)
-      line(dim.v, cx, cy + 34, cx, cy + 46)
-      dimLabel.setAttribute("x", String(cx))
-      dimLabel.setAttribute("y", String(cy - 12))
-
-      if (s !== shown) {
-        shown = s
-        setSel(s)
-      }
       if (hover >= 0) placeCallout(hover)
     }
 
     const placeCallout = (i: number) => {
-      if (!cur) return
-      const z = cur, t = tAt(midTab(z), mod((i - o) / N, 1)), c = Math.cos(t), s = Math.sin(t)
+      if (!G) return
+      const z = G.hero, t = tAt(midTab(z), i / N), c = Math.cos(t), s = Math.sin(t)
       const xi = z.cx + z.rxi * c, yi = z.cy + z.ryi * s, xo = z.cx + z.rxo * c, yo = z.cy + z.ryo * s
       const len = Math.hypot(xo - xi, yo - yi), ux = (xo - xi) / len, uy = (yo - yi) / len
       // The line leaves from where the name ends, a few points clear of its last letter.
@@ -398,6 +386,151 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       callName.textContent = pieces[i].name
       callMeta.textContent = `${pieces[i].mv.num} · ${pad3(i + 1)}`
       gCall.setAttribute("visibility", "visible")
+    }
+
+    /* ── 01, the tunnel: one ring of names per movement, built once per layout ── */
+    const spinEl = tunnelEl.querySelector<HTMLElement>(".tunnel-spin")!, discEl = tunnelEl.querySelector<HTMLElement>(".tunnel-disc")!, dotEl = tunnelEl.querySelector<HTMLElement>(".tunnel-dot")!
+    const groups = movements.map((m) => pieces.filter((q) => q.mv === m).map((q) => q.i))
+    const ringOf = pieces.map((q) => movements.indexOf(q.mv))
+    const box = (name: string) => partEl.querySelector<HTMLElement>(`[data-swap="${name}"]`)
+    const kgBox = box("kg"), metaBox = box("meta"), nameBox = box("name"), descBox = box("desc")
+    const digits = [...partEl.querySelectorAll<HTMLElement>(".ro-dg")]
+    let rings: Ring[] = [], SEL = -1, T: Tempo = TEMPO
+    const dotR: Spring = { x: 0, v: 0, to: 0 }
+    // The angle that brings a point along a ring to the front: the bottom of the disc, nearest the reader.
+    const front = (r: Ring, s: number) => 180 + (s / r.r) * (180 / Math.PI)
+    const near = (cur: number, to: number) => cur + ((((to - cur) % 360) + 540) % 360) - 180
+    const buildRings = () => {
+      // Each name is measured once, at a hundred units, in the face the rings are set in.
+      const probe = svg("svg", { class: "tunnel-ring" }, discEl), mt = svg("text", { "font-size": 100 }, probe)
+      const width = pieces.map((q) => {
+        mt.textContent = q.name
+        return mt.getComputedTextLength() / 100
+      })
+      probe.remove()
+      const kept = rings
+      discEl.replaceChildren()
+      rings = groups.map((items, k) => {
+        const r = R0 * SHR ** k, len = TAU * r, id = `tunnel-path-${k}`
+        const el = svg("svg", { class: "tunnel-ring", viewBox: "-400 -400 800 800" }, discEl)
+        // Counterclockwise from the back: the near side reads upright, the far side upside down.
+        svg("path", { id, d: `M0 ${-r}A${r} ${r} 0 1 0 0 ${r}A${r} ${r} 0 1 0 0 ${-r}` }, svg("defs", null, el))
+        // A ring keeps its size unless its names would not fit in all but a twenty-fifth of it.
+        const gap = 0.95, need = (f: number) => items.reduce((a, i) => a + width[i] * f, 0) + f * gap * items.length
+        let fs = F0 * FSH ** k
+        if (need(fs) > len * 0.96) fs *= (len * 0.96) / need(fs)
+        const text = svg("text", { "font-size": fs.toFixed(2) }, el)
+        const tp = new Map<number, SVGTextPathElement>(), at = new Map<number, number>()
+        let s = 0
+        for (const i of items) {
+          const w = width[i] * fs, p = svg("textPath", { href: `#${id}`, startOffset: s.toFixed(1), "data-i": i }, text)
+          p.textContent = pieces[i].name
+          tp.set(i, p)
+          at.set(i, s + w / 2)
+          s += w + fs * gap
+        }
+        // What the names leave of the ring is a dashed hairline.
+        const used = s - fs * gap, dash = [0, used + fs * 0.6], seg = fs * 1.1, sp = fs * 0.8
+        for (let left = len - used - fs * 1.2; left > seg; left -= seg + sp) dash.push(seg, sp)
+        dash.push(0, len * 2)
+        svg("use", { href: `#${id}`, class: "rule", "stroke-width": Math.max(0.6, fs / 16).toFixed(2), "stroke-dasharray": dash.map((v) => v.toFixed(1)).join(" ") }, el)
+        const old = kept[k]
+        return { k, r, fs, el, tp, at, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0, was: "", op: "" }
+      })
+      for (const r of rings) {
+        if (r.k === ringOf[SEL]) r.to = near(r.to, front(r, r.at.get(SEL)!))
+        r.x = r.to
+      }
+      shown.clear()
+      toned.clear()
+      onTp = null
+    }
+    // A turn: the read ring brings the name round to the front by the shorter way; the rest drift the same way, the
+    // inner ones faster, a vortex, never a jump.
+    const aim = (prev: number) => {
+      const kr = ringOf[SEL], d = SEL - prev
+      for (const r of rings) {
+        if (r.k === kr) r.to = near(r.to, front(r, r.at.get(SEL)!))
+        else r.to += -d * (1.6 + r.k * 0.55)
+      }
+    }
+    // The reading: the movement, the number on its own wheels, the name, what it is for; the install line follows in
+    // React. Tone lives in each ring's opacity: the read ring comes forward, the rest keep their depth a step back.
+    let lastRead = 0, onTp: SVGTextPathElement | null = null
+    const read = (still: boolean) => {
+      const q = pieces[SEL], k = ringOf[SEL], now = performance.now(), fast = now - lastRead < 240, calm = still || reduce
+      lastRead = now
+      quick.current = fast
+      const n = pad3(SEL + 1)
+      let lead = true
+      digits.forEach((d, j) => {
+        if (n[j] !== "0") lead = false
+        d.toggleAttribute("data-lead", lead && j < 2)
+        const col = d.firstElementChild as HTMLElement
+        col.style.transition = calm ? "none" : ""
+        col.style.transitionDelay = fast ? "0ms" : `${(2 - j) * T.step}ms`
+        col.style.transform = `translateY(${-Number(n[j])}em)`
+      })
+      const mv = `${q.mv.num} ${q.mv.name}`
+      swap(kgBox, [mv], 0, fast, calm, T)
+      swap(metaBox, [mv, `${SEL + 1}/${N}`], 0, fast, calm, T)
+      swap(nameBox, [q.title], T.step, fast, calm, T)
+      swap(descBox, [q.summary], 2.5 * T.step, fast, calm, T)
+      onTp?.classList.remove("on")
+      onTp = rings[k]?.tp.get(SEL) ?? null
+      onTp?.classList.add("on")
+      for (const r of rings) {
+        r.toneTo = r.k === k ? 1 : DEPTH[Math.min(DEPTH.length - 1, r.k + 1)]
+        if (calm) r.tone = r.toneTo
+      }
+      if (rings[k]) dotR.to = rings[k].r + rings[k].fs * 0.9
+      if (calm) dotR.x = dotR.to
+      setSel(SEL)
+    }
+    const select = (i: number) => {
+      const prev = SEL
+      SEL = i
+      aim(prev)
+      read(false)
+    }
+    // One frame of the tunnel. Its place is shared with the zero's as the one hands over to the other: it starts where
+    // the zero stands and arrives at its own, lying flat as the zero did and tipping back while the rings wind into
+    // place, outer first, each a little behind the one outside it.
+    const turn = () => {
+      if (!G || !D) return
+      const e = smooth(clamp((h - 0.1) / 0.75)), tip = smooth(clamp((h - 0.4) / 0.55))
+      const dx = (G.hero.cx - D.cx) * (1 - e), dy = (G.hero.cy - D.cy) * (1 - e)
+      const spin = SPIN * tip, tilt = D.tilt * tip
+      move(spinEl, `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${spin.toFixed(3)}deg)`)
+      move(discEl, `perspective(${D.P.toFixed(0)}px) rotateX(${tilt.toFixed(3)}deg)`)
+      for (const r of rings) {
+        const lag = 0.02 * r.k, wind = (1 - smooth(clamp((h - 0.35 - lag) / 0.55))) * (-140 - r.k * 26)
+        move(r.el, `rotate(${(r.x + wind).toFixed(3)}deg)`)
+        tone(r.el, (r.tone * smooth(clamp((h - 0.3 - lag) / 0.3))).toFixed(3))
+      }
+      // The index dot, on the read ring's near edge: the rotation, the perspective's divide, then the turn from square,
+      // the same sum the transforms make, so it is worked out, never measured.
+      const yd = (dotR.x * D.S) / 800, th = tilt * RAD, yy = (yd * Math.cos(th) * D.P) / (D.P - yd * Math.sin(th)), a = spin * RAD
+      move(dotEl, `translate(${(D.cx + dx - yy * Math.sin(a)).toFixed(2)}px, ${(D.cy + dy + yy * Math.cos(a)).toFixed(2)}px)`)
+      tone(dotEl, smooth(clamp((h - 0.85) / 0.15)).toFixed(3))
+    }
+    // The hero's zero goes with it: it moves toward where the tunnel will stand, opening toward its size, and fades as
+    // the tunnel comes up through it.
+    const handoff = () => {
+      if (!G || !D) return
+      const e = smooth(clamp((h - 0.1) / 0.75)), grow = smooth(clamp((h - 0.1) / 0.4))
+      const sc = lerp(1, Math.min(2.2, D.R / G.hero.ryo), grow)
+      move(ringSvg, e || grow ? `translate(${((D.cx - G.hero.cx) * e).toFixed(2)}px, ${((D.cy - G.hero.cy) * e).toFixed(2)}px) scale(${sc.toFixed(4)})` : "")
+      tone(ringSvg, (1 - smooth(clamp((h - 0.2) / 0.3))).toFixed(3))
+    }
+    const layoutTunnel = (g: Geometry) => {
+      const d = (D = dialGeometry(g))
+      spinEl.style.cssText = `left:${(d.cx - d.S / 2).toFixed(1)}px;top:${(d.cy - d.S / 2).toFixed(1)}px;width:${d.S.toFixed(1)}px;height:${d.S.toFixed(1)}px`
+      ringSvg.style.transformOrigin = `${g.hero.cx.toFixed(1)}px ${g.hero.cy.toFixed(1)}px`
+      const css = getComputedStyle(root), ms = (n: string, v: number) => parseFloat(css.getPropertyValue(n)) || v, ease = (n: string, v: string) => css.getPropertyValue(n).trim() || v
+      T = tempo.current = { quick: ms("--ot-allegro", 160), mid: ms("--ot-moderato", 320), slow: ms("--ot-andante", 640), step: ms("--ot-arpeggio", 36), breath: ease("--ot-breath", TEMPO.breath), exhale: ease("--ot-exhale", TEMPO.exhale) }
+      buildRings()
+      read(true)
     }
 
     /* ── the hands: Michelangelo's, set in real letters on two canvases (components/site/hands.ts) ── */
@@ -603,7 +736,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       skip.style.transform = "none"
     }
 
-    /* ── the scroll: the hands fall away, the zero moves aside and becomes the dial, then the dial turns ── */
+
+    /* ── the scroll: the hands fall away, the zero opens into the tunnel, then the tunnel turns ── */
     const relayout = () => {
       const r = sec.getBoundingClientRect()
       y = scrollY
@@ -617,12 +751,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       placeSkip(G)
       put(bandEl, "--plate", `${G.plate.toFixed(0)}px`)
       void setHands(G)
+      layoutRing(G, G.hero)
+      if (SEL < 0) SEL = clamp(Math.round(target().raw), 0, N - 1)
+      layoutTunnel(G)
       key = ""
       render(true)
-    }
-    const detent = (x: number) => {
-      const k = Math.floor(x)
-      return k + smooth(smooth(x - k))
     }
     const target = () => {
       const s = clamp(y - top, 0, range)
@@ -635,43 +768,58 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     let key = ""
     const render = (force = false) => {
-      if (!G) return
-      const k = `${h.toFixed(4)}:${o.toFixed(4)}:${hover}`
-      if (!force && k === key) return
-      key = k
-      layoutRing(G, geomAt(G, h), o, h)
-      const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
-      const scripted = !driven || reduce
-      put(handsEl, "--h", scripted ? h.toFixed(4) : "")
-      put(bandEl, "--out", scripted ? out.toFixed(3) : "")
-      put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
-      st.toggleAttribute("data-dial", h >= 0.6)
-      st.toggleAttribute("data-hero", h < 0.5)
+      if (!G || !D) return
+      const k = h.toFixed(4)
+      if (force || k !== key) {
+        key = k
+        handoff()
+        const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
+        const scripted = !driven || reduce
+        put(handsEl, "--h", scripted ? h.toFixed(4) : "")
+        put(bandEl, "--out", scripted ? out.toFixed(3) : "")
+        put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
+        st.toggleAttribute("data-dial", h >= 0.6)
+        st.toggleAttribute("data-hero", h < 0.5)
+      }
+      turn()
     }
 
-    // The dial follows the scroll through a critically damped spring: it settles on each notch, never jumps.
-    let v = 0, raf = 0, last = 0
+    // The scroll sets which piece is read; the rings follow it on springs and settle, never jump. The handing over from
+    // the zero is as far along as the scroll is.
+    const step = (s: Spring, dt: number) => {
+      if (reduce) {
+        s.x = s.to
+        s.v = 0
+        return false
+      }
+      s.v += (-K * (s.x - s.to) - C * s.v) * dt
+      s.x += s.v * dt
+      if (Math.abs(s.x - s.to) > 0.01 || Math.abs(s.v) > 0.01) return true
+      s.x = s.to
+      s.v = 0
+      return false
+    }
+    let raf = 0, last = 0
     const tick = (now: number) => {
       raf = 0
-      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60
+      const dt = last ? Math.min(0.032, (now - last) / 1000) : 1 / 60
       last = now
-      const T = target()
-      if (reduce) {
-        h = T.h >= 0.5 ? 1 : 0
-        o = Math.round(T.raw)
-        v = 0
-      } else {
-        h = T.h
-        const goal = detent(T.raw), w = 18
-        v += (w * w * (goal - o) - 2 * w * v) * dt
-        o += v * dt
-        if (Math.abs(goal - o) < 0.0005 && Math.abs(v) < 0.001) {
-          o = goal
-          v = 0
+      const T_ = target()
+      h = reduce ? (T_.h >= 0.5 ? 1 : 0) : T_.h
+      const s = clamp(Math.round(T_.raw), 0, N - 1)
+      if (SEL >= 0 && rings.length && s !== SEL) select(s)
+      let busy = false
+      for (const r of rings) {
+        busy = step(r, dt) || busy
+        // The tone eases toward its aim over andante, on the same frames.
+        if (r.tone !== r.toneTo) {
+          r.tone = reduce || Math.abs(r.tone - r.toneTo) < 0.004 ? r.toneTo : r.toneTo + (r.tone - r.toneTo) * Math.exp((-3000 * dt) / T.slow)
+          busy = true
         }
       }
+      busy = step(dotR, dt) || busy
       render()
-      if (v !== 0) raf = requestAnimationFrame(tick)
+      if (busy) raf = requestAnimationFrame(tick)
       else last = 0
       // The scroll takes the hands away, and whatever a pointer was doing to them goes with them.
       if (lean || touch.some((T) => T.s || T.lit >= 0)) sense()
@@ -686,16 +834,15 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     const first = target()
     h = reduce ? (first.h >= 0.5 ? 1 : 0) : first.h
-    o = reduce ? Math.round(first.raw) : detent(first.raw)
 
-    // Pointing reads a name; clicking (or tapping) one turns the dial to it.
+    // Pointing at a name in the hero's zero reads it there; clicking (or tapping) one turns to it in the tunnel.
     const hit = (ev: PointerEvent | MouseEvent) => {
-      if (!cur) return -1
-      const z = cur, b = ringSvg.getBoundingClientRect()
+      if (!G || h > 0.15) return -1
+      const z = G.hero, b = ringSvg.getBoundingClientRect()
       const u = (ev.clientX - b.left - z.cx) / ((z.rxo + z.rxi) / 2), w = (ev.clientY - b.top - z.cy) / ((z.ryo + z.ryi) / 2)
       const r = Math.hypot(u, w)
       if (z.ryo < 50 || r < 0.62 || r > 1.32) return -1
-      return mod(Math.round(fAt(midTab(z), Math.atan2(w, u)) * N + o), N)
+      return mod(Math.round(fAt(midTab(z), Math.atan2(w, u)) * N), N)
     }
     const point = () => {
       const i = onRing >= 0 ? onRing : onHand
@@ -703,7 +850,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       hover = i
       ringSvg.toggleAttribute("data-pointing", i >= 0)
       if (i < 0) gCall.setAttribute("visibility", "hidden")
-      render(true)
+      if (G) layoutRing(G, G.hero)
     }
     const onMove = (ev: PointerEvent) => {
       if (ev.pointerType === "touch") return
@@ -720,17 +867,25 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       point()
       sense()
     }
-    const onClick = (ev: MouseEvent) => {
-      const at = hit(ev), i = at >= 0 ? at : onHand
-      if (i < 0) return
-      // The focus first: from the hero, focusing the list turns to the piece it last held, and the turn to this one
-      // must come after it.
+    // The focus first: from the hero, focusing the list turns to the piece it last held, and the turn to this one must
+    // come after it.
+    const turnTo = (i: number) => {
       picked.current(i)
       scrollToPiece(i)
+    }
+    const onClick = (ev: MouseEvent) => {
+      const at = hit(ev), i = at >= 0 ? at : onHand
+      if (i >= 0) turnTo(i)
+    }
+    // A name in the tunnel turns to itself.
+    const onPick = (ev: MouseEvent) => {
+      const i = Number((ev.target as Element).closest?.("textPath[data-i]")?.getAttribute("data-i") ?? NaN)
+      if (Number.isInteger(i)) turnTo(i)
     }
     ringSvg.addEventListener("pointermove", onMove)
     ringSvg.addEventListener("pointerleave", onLeave)
     ringSvg.addEventListener("click", onClick)
+    tunnelEl.addEventListener("click", onPick)
     addEventListener("scroll", onScroll, { passive: true })
     let rT = 0
     const onResize = () => {
@@ -769,6 +924,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       ringSvg.removeEventListener("pointermove", onMove)
       ringSvg.removeEventListener("pointerleave", onLeave)
       ringSvg.removeEventListener("click", onClick)
+      tunnelEl.removeEventListener("click", onPick)
       removeEventListener("scroll", onScroll)
       removeEventListener("resize", onResize)
       motion.removeEventListener("change", onMotion)
@@ -779,8 +935,24 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
   }, [movements, pieces, N])
 
+  // The install line changes over with the rest of the reading: React sets its words, and the piece's name rises in.
+  const firstCmd = React.useRef(true)
+  React.useEffect(() => {
+    const name = cmd.current?.querySelector<HTMLElement>(".copy-cmd-text i")
+    if (firstCmd.current || !name || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      firstCmd.current = false
+      return
+    }
+    const T = tempo.current, fast = quick.current
+    for (const a of name.getAnimations()) a.cancel()
+    name.animate([{ transform: "translateY(55%)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: fast ? T.quick + T.step : T.mid + T.quick, delay: fast ? 2 * T.step : 8 * T.step, easing: T.exhale, fill: "backwards" })
+  }, [sel])
+
   // The list is the keyboard's dial: one stop in the tab order, the arrows turn it, Enter opens the piece.
   const links = React.useRef<(HTMLAnchorElement | null)[]>([])
+  const at = React.useCallback((i: number, el: HTMLAnchorElement | null) => {
+    links.current[i] = el
+  }, [])
   React.useEffect(() => {
     picked.current = (i) => links.current[i]?.focus({ preventScroll: true })
   }, [])
@@ -804,7 +976,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     if (api.current.h() < 1) api.current.turnTo(keys ? active : sel)
   }
   const p = pieces[sel] ?? pieces[0]
-  const num = pad3(sel + 1), lead = num.match(/^0*/)?.[0] ?? ""
   const tabStop = keys ? active : sel
 
   return (
@@ -817,6 +988,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
           <canvas className="hand-g" />
         </div>
         <svg ref={ring} className="zero-ring" aria-hidden="true" />
+        <div ref={tunnel} className="zero-tunnel" aria-hidden="true">
+          <div className="tunnel-spin">
+            <div className="tunnel-disc" />
+          </div>
+          <span className="tunnel-dot" />
+        </div>
 
         <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollTo({ top: 0, behavior: "auto" })}>
           <span className="hero-plate" aria-hidden="true" />
@@ -840,9 +1017,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
             <p className="pieces-meta">
               <span>(01)</span>
               <span>The pieces</span>
-              <span className="pieces-meta-r">
-                {p.mv.num} {p.mv.name}
-              </span>
+              <span className="pieces-meta-r ro-swap" data-swap="kg" />
             </p>
             <h2 className="pieces-title" id="pieces">
               {count} pieces.
@@ -851,40 +1026,50 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
             </h2>
           </div>
           <div className="readout">
-            <p className="ro-num" aria-hidden="true">
-              <span className="ro-lead">{lead}</span>
-              {num.slice(lead.length)}
-            </p>
-            <div className="ro-body">
-              <p className="ro-of">
-                <span>
-                  {p.mv.num} {p.mv.name}
-                </span>
-                <span>
-                  {sel + 1}/{N}
-                </span>
+            <p className="ro-of ro-swap" data-swap="meta" />
+            <div className="ro-row">
+              <p className="ro-num" aria-hidden="true">
+                {[0, 1, 2].map((j) => (
+                  <span key={j} className="ro-dg">
+                    <i>
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
+                        <b key={d}>{d}</b>
+                      ))}
+                    </i>
+                  </span>
+                ))}
               </p>
-              <p className="ro-name">{p.title}</p>
-              <p className="ro-desc">{p.summary}</p>
+              <div className="ro-body">
+                <p className="ro-name ro-swap" data-swap="name" />
+                <p className="ro-desc ro-swap" data-swap="desc" />
+              </div>
             </div>
-            <div className="ro-cmd">
+            <div ref={cmd} className="ro-cmd">
               <CopyCommand command={install(p.name)} emphasis={p.name} />
             </div>
           </div>
           <p className="pieces-keys" aria-hidden="true">
             Arrow keys turn it. Enter opens the piece.
           </p>
-          <p className="pieces-skip">
-            <a className="ot-link" href="#leaves">
-              Skip the index
-            </a>
-            <NextLink className="ot-link" href="/docs/">
-              Every piece as a list
-            </NextLink>
-          </p>
+          <div className="pieces-foot">
+            <nav className="pieces-groups" aria-label="Movements">
+              {movements.map((m, k) => (
+                <button key={m.num} type="button" className="pieces-group" aria-current={m === p.mv ? "true" : undefined} onClick={() => api.current.turnTo(starts[k])}>
+                  <span className="pieces-group-num">{m.num}</span> <span className="pieces-group-name">{m.name}</span>
+                </button>
+              ))}
+            </nav>
+            <p className="pieces-skip">
+              <a className="ot-link" href="#leaves">
+                Skip the index
+              </a>
+              <NextLink className="ot-link" href="/docs/">
+                Every piece as a list
+              </NextLink>
+            </p>
+          </div>
           <nav className="pieces-nav" aria-label="Every piece">
             <ol
-              ref={list}
               className="pieces-list"
               onKeyDown={onKeyDown}
               onFocus={(e) => {
@@ -897,20 +1082,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
               }}
             >
               {pieces.map((q) => (
-                <li key={q.name}>
-                  <NextLink
-                    ref={(el) => {
-                      links.current[q.i] = el
-                    }}
-                    href={`/docs/${q.name}/`}
-                    prefetch={false}
-                    data-i={q.i}
-                    tabIndex={q.i === tabStop ? 0 : -1}
-                    aria-current={q.i === sel ? "true" : undefined}
-                  >
-                    {pad3(q.i + 1)}. {q.title}, {q.mv.name}. {q.summary}
-                  </NextLink>
-                </li>
+                <PieceLink key={q.name} q={q} stop={q.i === tabStop} current={q.i === sel} at={at} />
               ))}
             </ol>
           </nav>
