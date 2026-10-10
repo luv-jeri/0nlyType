@@ -63,8 +63,7 @@
   .ot-report-foot p { max-inline-size: var(--ot-measure); }
   .ot-report-entry { font-size: var(--ot-pp); white-space: nowrap; }
   .ot-report-item-link { display: inline-block; margin-block-start: var(--ot-space-5); font-size: var(--ot-pp); }
-  /* The chosen kind yields the accent while your field has focus. The site's mark stays in ink on these pages. */
-  html:has(.ot-report-page) .bar-mark { --ot-accent: var(--ot-ink); }
+  /* The chosen kind yields the accent while your field has focus. */
   .ot-report-layout:has(.ot-report-body :focus) .ot-picks { --ot-accent: var(--ot-ink); }
   .ot-report-toaster[data-variant="footnote"]:has(> .ot-toast) { box-shadow: none; padding: var(--ot-space-4) var(--ot-space-5) var(--ot-space-4) var(--ot-space-6); }
   .ot-report-toaster .ot-toast:last-child .ot-toast-n { color: var(--ot-ink); }
