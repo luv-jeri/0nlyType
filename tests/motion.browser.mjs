@@ -423,7 +423,8 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
 })
 
 // ── 01, the tunnel: the scroll turns it, the list reads it, and it is settled under reduced motion ──
-const seen = `localStorage.setItem(${JSON.stringify(OVERTURE_KEY)}, "1")`
+// Seeded only on the site's own pages: Chromium also runs it on the blank page it opens first, where storage throws.
+const seen = `if (location.protocol.startsWith("http")) localStorage.setItem(${JSON.stringify(OVERTURE_KEY)}, "1")`
 // Down to the tunnel, a few pieces in, and wait for it to read.
 async function toTunnel(page, pieces = 30) {
   await page.goto(site.url("/"))
@@ -466,7 +467,7 @@ await check("01: a fast scroll turns the tunnel, and the reading never holds mor
   assert.deepEqual(after.copies, [1, 1, 1, 1], "the reading should settle to one copy of each part")
   assert.equal(after.on, after.current, "the ring and the list should read the same piece")
   assert.ok(after.title?.includes(after.name ?? "\0"), `the reading says "${after.name}", the list "${after.title}"`)
-  assert.deepEqual(errors, [])
+  assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
   await context.close()
 })
 
@@ -487,7 +488,7 @@ await check("01: the pieces are a list of links the keyboard turns; the drawing 
   const after = await reading(page)
   assert.equal(after.on, String(from + 2), "the arrows should turn the tunnel to the focused piece")
   assert.equal(after.current, after.on)
-  assert.deepEqual(errors, [])
+  assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
   await context.close()
 })
 
@@ -499,7 +500,7 @@ await check("01 under reduced motion: settled at once, and it still reads", asyn
   const a = await turns()
   await page.waitForTimeout(300)
   assert.deepEqual(await turns(), a, "nothing in the tunnel should move once the scroll stops")
-  assert.equal(await page.locator(".tunnel-dot").evaluate((el) => el.style.opacity), "1.000", "the tunnel should stand fully arrived")
+  assert.equal(await page.locator(".tunnel-dot").evaluate((el) => Number(el.style.opacity)), 1, "the tunnel should stand fully arrived")
   await page.locator(".pieces-list a[tabindex='0']").focus()
   await page.keyboard.press("ArrowDown")
   await page.waitForTimeout(300)
@@ -507,7 +508,7 @@ await check("01 under reduced motion: settled at once, and it still reads", asyn
   assert.deepEqual(r.copies, [1, 1, 1, 1], "the reading should change over at once, one copy each")
   assert.equal(r.on, r.current)
   assert.equal(await page.evaluate(() => document.querySelector(".readout").getAnimations({ subtree: true }).filter((x) => x.playState === "running").length), 0, "nothing in the reading should animate")
-  assert.deepEqual(errors, [])
+  assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
   await context.close()
 })
 
