@@ -87,7 +87,7 @@ export default function Home() {
         </p>
       </Sec>
 
-      <Sec id="ask" num="06" name="Ask" title="Or ask for it." note="The AI kit puts 0nlyType's rules and every contract in your project, so your assistant builds in type too.">
+      <Sec id="ask" num="06" name="Ask" title="Or ask for it." note="The AI kit puts 0nlyType’s rules and every contract in your project, so your assistant builds in type too.">
         <ol className="ask-steps">
           <li>
             <p className="ask-step">Add the kit.</p>
@@ -110,7 +110,7 @@ export default function Home() {
         num="07"
         name="Help"
         title="Help build it."
-        note="0nlyType is made by a small team, in the open. You don't need to write code to shape what it becomes."
+        note="0nlyType is made by a small team, in the open. You don’t need to write code to shape what it becomes."
       >
         <ul className="help-list">
           <li>
@@ -126,7 +126,7 @@ export default function Home() {
             <p className="help-note">We need your support to keep working on this. A star is how we know it&rsquo;s wanted.</p>
           </li>
           <li>
-            <ShareCall url="/" text="0nlyType: React components, set in type" note="Send it to someone who builds interfaces. It's how a small library gets found.">
+            <ShareCall url="/" text="0nlyType: React components, set in type" note="Send it to someone who builds interfaces. It’s how a small library gets found.">
               Share it
             </ShareCall>
           </li>

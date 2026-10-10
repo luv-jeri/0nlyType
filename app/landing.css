@@ -3,6 +3,8 @@
    numbered sections, one pattern each (".sec"); then the coda. */
 
 .landing { overflow-x: clip; } /* the hands run off the edges; the page never scrolls sideways */
+/* No paragraph on the page ends on a word alone; headings balance where they are set (.sec-title, .coda-title). */
+:where(.landing) p { text-wrap: pretty; }
 
 /* ── the large lockup (G1, after A): "Type" set over the end of "0nly", its hairlines crossing the voice's weight ── */
 .wm-set { --H: 1em; position: relative; display: block; width: 2.02em; height: 1.16em; margin: 0; font-size: var(--H); line-height: 1; color: var(--ot-ink); direction: ltr; }
