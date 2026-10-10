@@ -68,8 +68,9 @@ async function tabToSkip(page) {
   }
   return false
 }
-// At rest: no letter of the hands, and not the dot, is animating, and every letter is fully drawn.
-const rest = (page) => page.evaluate(() => [...document.querySelectorAll(".zero-hands text, .zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); return s.animationName === "none" && Number(s.opacity) === 1 }))
+// At rest: no letter of the hands, and not the dot, is animating on a clock, and every letter is fully drawn. A letter's
+// fall is tied to the scroll (a scroll timeline, never a clock), so at the top of the page it stands where it was set.
+const rest = (page) => page.evaluate(() => [...document.querySelectorAll(".zero-hands text, .zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); const clock = s.animationName !== "none" && !/^--/.test(s.animationTimeline ?? ""); return !clock && Number(s.opacity) === 1 }))
 
 async function check(name, fn) {
   ran++

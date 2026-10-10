@@ -7,7 +7,7 @@ import * as React from "react"
 
 import { CopyCommand } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
-import { Overture, OvertureScript, overtureActive, overtureLeft } from "@/components/site/landing-overture"
+import { Overture, OvertureScript, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
 import { Wordmark } from "@/components/site/wordmark"
 import { ADAM, GOD, type Figure } from "@/lib/site/figures"
 
@@ -19,7 +19,8 @@ import { ADAM, GOD, type Figure } from "@/lib/site/figures"
 // it, or use the arrow keys in the list, to turn to it.
 //
 // Everything the scroll moves is written, never read: positions are measured once per layout (on resize, when the
-// fonts arrive, when the pair changes), and the scroll handler reads only scrollY. Screen readers and keyboards get
+// fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. Each
+// value is written only where it is read, and only when it changes. Screen readers and keyboards get
 // the index as a real list of links; the drawing is aria-hidden and captioned by the notes beside it.
 
 export type Piece = { name: string; title: string; summary: string }
@@ -104,6 +105,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const hands = React.useRef<SVGSVGElement>(null)
   const band = React.useRef<HTMLDivElement>(null)
   const notes = React.useRef<HTMLDivElement>(null)
+  const part = React.useRef<HTMLDivElement>(null)
   const list = React.useRef<HTMLOListElement>(null)
   // The engine's two doors for React: turn to a piece, and say where the scroll stands.
   const api = React.useRef<{ turnTo: (i: number) => void; h: () => number }>({ turnTo: () => {}, h: () => 0 })
@@ -111,8 +113,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const picked = React.useRef<(i: number) => void>(() => {})
 
   React.useEffect(() => {
-    const sec = section.current, st = stage.current, ringSvg = ring.current, handsSvg = hands.current, bandEl = band.current, notesEl = notes.current
-    if (!sec || !st || !ringSvg || !handsSvg || !bandEl || !notesEl) return
+    const sec = section.current, st = stage.current, ringSvg = ring.current, handsSvg = hands.current, bandEl = band.current, notesEl = notes.current, partEl = part.current
+    if (!sec || !st || !ringSvg || !handsSvg || !bandEl || !notesEl || !partEl) return
     const root = document.documentElement
     const motion = matchMedia("(prefers-reduced-motion: reduce)")
     let reduce = motion.matches
@@ -163,18 +165,22 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return { ...a, path, t1, t2, label, rest }
     })
     let natural: number[] = []
+    // What each name and dot was last set to, so a frame writes only what changed.
+    const drawn = names.map(() => ({ at: "", size: "", fit: "", stretch: "", dx: "", dy: "" }))
     const measureNames = () => {
-      for (const t of names) {
+      for (const [i, t] of names.entries()) {
         t.setAttribute("font-size", "20")
         t.removeAttribute("textLength")
+        t.setAttribute("lengthAdjust", "spacing")
         t.style.fontVariationSettings = "'wdth' 100"
+        drawn[i] = { ...drawn[i], size: "", fit: "", stretch: "" }
       }
       natural = names.map((t) => t.getComputedTextLength() / 20)
     }
 
     /* ── geometry, measured once per layout ── */
     let G: Geometry | null = null
-    let top = 0, intro = 1, pitch = 24, range = 1
+    let top = 0, intro = 1, pitch = 24, range = 1, y = scrollY
     const stageGeometry = (): Geometry => {
       const W = st.clientWidth, H = st.clientHeight, phone = W <= 760
       const m = bandEl.offsetLeft
@@ -218,6 +224,20 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     /* ── drawing the ring for one moment of the scroll ── */
     let shown = -1, hover = -1, cur: Shape | null = null, o = 0, h = 0
+    // A custom property restyles everything under the element it is set on, so each goes only to what reads it, and
+    // only when it changes.
+    const written = new Map<string, string>()
+    const put = (el: HTMLElement | SVGElement, name: string, value: string) => {
+      const k = `${el.getAttribute("class")}${name}`
+      if (written.get(k) === value) return
+      written.set(k, value)
+      el.style.setProperty(name, value)
+    }
+    // Where scroll timelines run, the turn from hero to dial is drawn by the scroll itself (app/landing.css); the
+    // script writes its numbers only without them, or under reduced motion, where it snaps from one to the other.
+    const driven = CSS.supports("animation-timeline: view()")
+    // The column beside the dial hangs from the reading line: only these four read it.
+    const hung = [...partEl.querySelectorAll<HTMLElement>(":scope > :is(.pieces-head, .readout, .pieces-skip, .pieces-keys)")]
     const layoutRing = (g: Geometry, z: Shape, o: number, h: number) => {
       const tab = midTab(z), { cx, cy, rxo, ryo, rxi, ryi } = z
       const fs = Math.max(g.phone ? 5.5 : 7, ryo / 38)
@@ -235,19 +255,22 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const wdth = clamp((100 * L) / w100, 62, 125)
         const wAt = (w100 * wdth) / 100
         const f = wAt > L ? Math.max(4, (fs * L) / wAt) : fs
-        const el = names[i]
-        el.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`)
-        el.setAttribute("font-size", f.toFixed(2))
-        el.setAttribute("textLength", L.toFixed(2))
-        el.setAttribute("lengthAdjust", "spacing")
-        el.style.fontVariationSettings = `'wdth' ${wdth.toFixed(1)}`
+        const el = names[i], was = drawn[i]
+        // The size, fit and width are set to the tenth and the width axis to the unit, so a turning name is set again
+        // only when the change would show: a frame re-shapes only the names whose fit moved.
+        const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
+        const size = f.toFixed(1), fit = L.toFixed(1), stretch = `'wdth' ${Math.round(wdth)}`
+        if (was.at !== at) el.setAttribute("transform", (was.at = at))
+        if (was.size !== size) el.setAttribute("font-size", (was.size = size))
+        if (was.fit !== fit) el.setAttribute("textLength", (was.fit = fit))
+        if (was.stretch !== stretch) el.style.fontVariationSettings = was.stretch = stretch
         const d = mod(i - s + N / 2, N) - N / 2
         el.toggleAttribute("data-sel", d === 0)
         el.toggleAttribute("data-near", Math.abs(d) === 1)
         el.toggleAttribute("data-hover", i === hover)
-        const dot = dots[i]
-        dot.setAttribute("cx", (cx + (rxo + 10) * c).toFixed(2))
-        dot.setAttribute("cy", (cy + (ryo + 10) * sn).toFixed(2))
+        const dot = dots[i], dx2 = (cx + (rxo + 10) * c).toFixed(1), dy2 = (cy + (ryo + 10) * sn).toFixed(1)
+        if (was.dx !== dx2) dot.setAttribute("cx", (was.dx = dx2))
+        if (was.dy !== dy2) dot.setAttribute("cy", (was.dy = dy2))
         dot.toggleAttribute("data-sel", d === 0)
       }
       const named = clamp((ryo - 50) / 70)
@@ -272,8 +295,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       lead.setAttribute("x2", String(g.phone ? cx + rxo + 26 : colx - 18))
       lead.setAttribute("y2", String(cy))
       lead.style.opacity = String(smooth(clamp((h - 0.55) / 0.45)))
-      st.style.setProperty("--cy", `${cy.toFixed(1)}px`)
-      st.style.setProperty("--colx", `${colx.toFixed(1)}px`)
+      for (const e of hung) {
+        put(e, "--cy", `${cy.toFixed(1)}px`)
+        put(e, "--colx", `${colx.toFixed(1)}px`)
+      }
 
       // Movement sectors on an outer arc, each labelled along its own curve.
       const arcOpacity = smooth(clamp((h - 0.4) / 0.6))
@@ -362,7 +387,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       ours: pieces.map((p) => install(p.name).toUpperCase()).join("   ") + "   ",
     }
     let noteLines: SVGGElement | null = null
+    // Each letter with the two seeds of its fall.
+    let fallers: { t: SVGTextElement; r: number; r2: number }[] = []
     const buildHands = (g: Geometry) => {
+      unfall()
+      fallers = []
       handsSvg.replaceChildren()
       if (!ctx) return
       const { W, hero, phone } = g
@@ -463,11 +492,40 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
             t.textContent = s
             // --k orders the settle from the shoulder to the fingertip; --r and --r2 seed the fall.
             const along = P.tip === "right" ? (r.a + w / 2) / reach : (W - r.a - w / 2) / reach
-            t.style.cssText = `--k:${clamp(along).toFixed(3)};--r:${rand().toFixed(3)};--r2:${rand().toFixed(3)}`
+            const r1 = Number(rand().toFixed(3)), r2 = Number(rand().toFixed(3))
+            t.style.cssText = `--k:${clamp(along).toFixed(3)};--r:${r1};--r2:${r2}`
+            fallers.push({ t, r: r1, r2 })
           }
         }
       }
       placeNotes(g)
+    }
+
+    // Where the browser has view timelines, each letter's fall is its own animation on the zero's scroll, with its
+    // numbers already in the keyframes, so a frame resolves no custom property for any letter. The ranges are the
+    // script's: begun at --r of the first 15svh, over 60svh, a quarter-curve so it accelerates as it drops. They wait for
+    // the overture to end, since an animation from script would sit over its settle.
+    type Ranged = KeyframeAnimationOptions & { rangeStart: unknown; rangeEnd: unknown }
+    const Timeline = (window as unknown as { ViewTimeline?: new (o: { subject: Element; axis: string }) => AnimationTimeline }).ViewTimeline
+    let falling: Animation[] = []
+    function unfall() {
+      for (const a of falling) a.cancel()
+      falling = []
+    }
+    const fall = () => {
+      unfall()
+      if (!Timeline || !driven || !G || reduce || overtureActive()) return
+      const timeline = new Timeline({ subject: sec, axis: "block" })
+      const vh = st.clientHeight / 100, drop = G.H
+      const at = (v: number) => ({ rangeName: "contain", offset: CSS.px(Math.round(v)) })
+      falling = fallers.map(({ t, r, r2 }) => {
+        const frame = (e: number) => ({
+          transform: `translate(${((r2 - 0.5) * 120 * e).toFixed(1)}px, ${(e * e * (0.35 + r) * drop).toFixed(1)}px) rotate(${((r2 - 0.5) * 70 * e).toFixed(1)}deg)`,
+          opacity: 1 - e,
+        })
+        const options: Ranged = { timeline, fill: "both", rangeStart: at(r * 15 * vh), rangeEnd: at((60 + r * 15) * vh) }
+        return t.animate([0, 0.25, 0.5, 0.75, 1].map(frame), options)
+      })
     }
 
     // The museum labels: (a) and (b) hang from their hands on a hairline; (c) sits in the counter.
@@ -513,7 +571,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     /* ── the scroll: the hands fall away, the zero moves aside and becomes the dial, then the dial turns ── */
     const relayout = () => {
       const r = sec.getBoundingClientRect()
-      top = r.top + scrollY
+      y = scrollY
+      top = r.top + y
       const Hh = st.clientHeight
       intro = Math.round(Hh * 0.75)
       pitch = st.clientWidth <= 760 ? 20 : 24
@@ -521,6 +580,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       measureNames()
       G = stageGeometry()
       buildHands(G)
+      fall()
       key = ""
       render(true)
     }
@@ -529,7 +589,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return k + smooth(smooth(x - k))
     }
     const target = () => {
-      const s = clamp(scrollY - top, 0, range)
+      const s = clamp(y - top, 0, range)
       const raw = clamp((s - intro - 20) / (N * pitch)) * (N - 1)
       return { s, h: clamp(s / intro), raw }
     }
@@ -545,10 +605,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       key = k
       layoutRing(G, geomAt(G, h), o, h)
       const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
-      st.style.setProperty("--h", h.toFixed(4))
-      st.style.setProperty("--out", out.toFixed(3))
-      st.style.setProperty("--inn", inn.toFixed(3))
-      st.style.setProperty("--notes", (1 - clamp(h * 3)).toFixed(3))
+      const scripted = !driven || reduce, quiet = (1 - clamp(h * 3)).toFixed(3)
+      put(handsSvg, "--h", falling.length ? "" : h.toFixed(4))
+      put(handsSvg, "--notes", scripted ? quiet : "")
+      put(notesEl, "--notes", scripted ? quiet : "")
+      put(bandEl, "--out", scripted ? out.toFixed(3) : "")
+      put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
       st.toggleAttribute("data-dial", h >= 0.6)
       st.toggleAttribute("data-hero", h < 0.5)
     }
@@ -580,6 +642,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     const wake = () => {
       if (!raf) raf = requestAnimationFrame(tick)
+    }
+    // The scroll is read as it happens, while the page is still laid out, so no frame has to lay it out again to ask.
+    const onScroll = () => {
+      y = scrollY
+      wake()
     }
     const first = target()
     h = reduce ? (first.h >= 0.5 ? 1 : 0) : first.h
@@ -618,7 +685,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     ringSvg.addEventListener("pointermove", onMove)
     ringSvg.addEventListener("pointerleave", onLeave)
     ringSvg.addEventListener("click", onClick)
-    addEventListener("scroll", wake, { passive: true })
+    addEventListener("scroll", onScroll, { passive: true })
     let rT = 0
     const onResize = () => {
       clearTimeout(rT)
@@ -627,9 +694,16 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     addEventListener("resize", onResize)
     const onMotion = () => {
       reduce = motion.matches
+      fall()
+      key = ""
       wake()
     }
     motion.addEventListener("change", onMotion)
+    const offOverture = onOvertureEnd(() => {
+      fall()
+      key = ""
+      wake()
+    })
     // A new pair is a new set of letters: the hands and the names are set again once its fonts arrive.
     const pair = new MutationObserver(() => {
       requestAnimationFrame(() => void document.fonts.ready.then(relayout))
@@ -648,9 +722,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       ringSvg.removeEventListener("pointermove", onMove)
       ringSvg.removeEventListener("pointerleave", onLeave)
       ringSvg.removeEventListener("click", onClick)
-      removeEventListener("scroll", wake)
+      removeEventListener("scroll", onScroll)
       removeEventListener("resize", onResize)
       motion.removeEventListener("change", onMotion)
+      offOverture()
+      unfall()
       pair.disconnect()
     }
   }, [movements, pieces, N])
@@ -722,7 +798,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         </div>
         <Overture />
 
-        <div className="pieces-part" onFocus={into}>
+        <div ref={part} className="pieces-part" onFocus={into}>
           <div className="pieces-head">
             <p className="pieces-meta">
               <span>(01)</span>

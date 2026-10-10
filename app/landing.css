@@ -12,9 +12,10 @@
 .wm-set .wm-zero::after { --zd: 0.1em; }
 .wm-set .wm-type { position: absolute; left: 0.86em; top: 0.27em; font-size: 0.72em; line-height: 1.525; white-space: nowrap; -webkit-text-stroke: 0.06em var(--ot-paper); paint-order: stroke fill; }
 
-/* ── hero and 01 (landing-zero): one sticky stage the scroll turns. The script writes --h (0 hero, 1 dial), --out, --inn
-   and --notes on the stage, and --cy (the reading line) and --colx (the column beside the dial); nothing here reads
-   layout. The section's height is the intro plus one notch per piece. ── */
+/* ── hero and 01 (landing-zero): one sticky stage the scroll turns. The script writes --h (0 hero, 1 dial) and --notes
+   on the hands, --notes on the notes, --out on the band and --inn on the pieces (each only where it is read, so a frame
+   restyles only them), and --cy (the reading line) and --colx (the column beside the dial) on the pieces; nothing
+   here reads layout. The section's height is the intro plus one notch per piece. ── */
 .zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
 .zero-at { position: absolute; inset-inline: 0; top: calc(75svh + 20px); height: 1px; scroll-margin-top: 0; pointer-events: none; }
 .zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline-start: calc(50% - 50vw); overflow: hidden; direction: ltr; }
@@ -104,6 +105,24 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .zero-stage[data-keys] .pieces-keys { opacity: 1; }
 /* On a short screen the description keeps to four lines, so the install line never meets the links under it. */
 @media (max-height: 780px) and (min-width: 761px) { .ro-desc { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; } }
+/* Where scroll timelines run, the scroll itself draws the turn from hero to dial, so a frame restyles only what moves
+   and no script writes a number per frame: the band lifts away over the first 42svh, the notes fade over the first
+   25svh and the pieces arrive between 45svh and 75svh. Each letter's fall runs on the same timeline as an animation
+   the script makes once per layout (components/site/landing-zero.tsx), its seeds written into the keyframes. The
+   numbers match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or
+   with reduced motion. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .zero { view-timeline: --zero block; }
+    :is(.zero-notes, .zero-hands .note-line, .zero-hands .note-dot) { animation: zero-quiet linear both; animation-timeline: --zero; animation-range: contain 0px contain 25svh; }
+    .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 41.667svh; }
+    .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 45svh contain 75svh; }
+  }
+}
+@keyframes zero-quiet { to { opacity: 0; } }
+@keyframes zero-lift { to { opacity: 0; transform: translateY(-30px); } }
+@keyframes zero-arrive { from { opacity: 0; } to { opacity: 1; } }
+
 /* The list is for keyboards and screen readers: hidden from sight, never from them. The focused name is the readout. */
 .pieces-list { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; list-style: none; }
 .zero-stage[data-keys] .ro-name { text-decoration: underline var(--ot-stroke) var(--ot-ink); text-underline-offset: 0.16em; }
