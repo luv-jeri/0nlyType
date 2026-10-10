@@ -1188,7 +1188,7 @@ Each contract lists anatomy, states and keyboard behaviour. "Yours" marks where 
 - It is three things on one clock, and nothing else. The letters of the two hands settle into place in a stagger (16 arpeggio steps across the drawing, each `--ot-adagio`); the hands close the gap between them to its final width over `--ot-adagio`; and when they have closed, the accent dot of the zero lights over `--ot-moderato`. All of it ends by one deadline, 2s after it began. That clock is the same inline script that began it, not React, so it ends on time however late the framework's JavaScript arrives. The hands and the zero are drawn when it does arrive; they start their animations as far along as the time already spent, so the deadline never stretches.
 - It is skippable by anything the person does: any key but Tab and the modifiers (Enter and Space on Skip intro itself are its click, so one press cannot also activate the action that focus moves to), a press, a touch, the wheel or a scroll. A real "Skip intro" bracket button, in the HTML and shown only while it plays, reaches the same end for keyboards and screen readers, before the page's JavaScript has loaded as well as after; if it had focus, focus moves on to the first action. Asking for reduced motion, before or during, ends it.
 - Later visits, a link to a part of the page, reduced motion and unavailable storage arrive settled: the hands at rest at their final gap, the dot lit. A reduced-motion visit counts as seen.
-- A shared sea link (`?sea=`) arrives with its line already set as the wave: nothing sweeps until the person types. Docs page titles are still: no motion on an information page.
+- Docs page titles are still: no motion on an information page.
 
 ### The specimen
 
