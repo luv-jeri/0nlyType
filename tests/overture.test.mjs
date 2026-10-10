@@ -116,7 +116,7 @@ test("reduced motion counts as seen and never plays", () => {
 })
 
 test("arriving at a hash, or part-way down, counts as seen and never plays", () => {
-  for (const options of [{ hash: "#sea" }, { scroll: 800 }]) {
+  for (const options of [{ hash: "#tune" }, { scroll: 800 }]) {
     const b = browser(options)
     b.run()
     assert.equal(b.attrs[OVERTURE_ATTR], undefined)

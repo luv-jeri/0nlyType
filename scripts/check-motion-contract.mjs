@@ -1,9 +1,9 @@
 // Holds the motion rules to the source, before the build. Motion that starts by itself is a failure here, not a note.
 //   scripted demos: every one waits for the person (one explicit start, nothing synthesised by discovery)
-//   the home overture: one key, one deadline under three seconds, every move of the hands and the dot gated by the
-//   same attribute and inside the deadline
+//   the home overture: one key, one deadline under three seconds; the dot gated by the attribute, the hands' letters
+//   on the same clock in the script, both inside the deadline
 //   the landing's scroll motion: driven by the scroll itself, settled without scroll timelines or with reduced motion
-//   docs titles and shared sea links: nothing moves on its own
+//   docs titles: nothing moves on its own
 // The browser half (tests/motion.browser.mjs, tests/demo-player.browser.mjs) proves it on the packaged site.
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
@@ -50,7 +50,7 @@ const block = landing.match(/@media \(prefers-reduced-motion: no-preference\) \{
 if (!block) fail("the home overture", "landing.css must keep the overture's rules together, each gated by html[data-overture-at], under prefers-reduced-motion: no-preference")
 else {
   const rules = block[1].trim().split("\n")
-  const parts = { "zero-settle": "the hands' letters", "zero-reach-r": "your hand", "zero-reach-l": "our hand", "zero-light": "the dot" }
+  const parts = { "zero-light": "the dot" }
   for (const [name, what] of Object.entries(parts)) if (!rules.some((r) => r.includes(`animation: ${name} `))) fail("the home overture", `${what} (${name}) no longer play inside the overture`)
   const token = (expr) => expr.replace(/var\((--ot-[a-z]+)\)/g, (_, t) => String(ms(t))).replace(/var\(--k\)/g, "1").replace(/ - var\(--late, 0ms\)/g, "").replace(/ms/g, "")
   for (const rule of rules) {
@@ -65,6 +65,10 @@ if (OVERTURE_ATTR !== "data-overture-at") fail("the home overture", "css and lif
 if (/^\.zero-hands[^{]*\{[^}]*animation/m.test(landing)) fail("the home overture", "the hands must not animate outside the overture: later visits arrive settled")
 const zero = read("components/site/landing-zero.tsx")
 if (!/overtureActive\(\)/.test(zero) || !/overtureLeft\(\)/.test(zero)) fail("the home overture", "the zero must read how much of the overture is left, so a late start skips what has passed")
+// The hands are drawn on canvases: their rise is a clock in the script, inside the deadline, and settled without it.
+const run = zero.match(/const RUN = (\d+) \+ (\d+)/)
+if (!run || Number(run[1]) + Number(run[2]) > OVERTURE_DEADLINE) fail("the home overture", `the hands' rise (RUN) must end inside the ${OVERTURE_DEADLINE}ms deadline`)
+if (!/if \(reduce \|\| !overtureActive\(\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion and once the overture has ended")
 // Storage: one key, written by the script in the page, nowhere else.
 const keyUses = ["components", "app", "lib", "registry"].flatMap((dir) => sources(dir)).filter((file) => read(file).includes(OVERTURE_KEY) || read(file).includes("overture-seen"))
 if (keyUses.length !== 1 || keyUses[0] !== "lib/site/overture.mjs") fail("the home overture", `the overture key belongs only in lib/site/overture.mjs (found ${keyUses.join(", ") || "nowhere"})`)
@@ -84,11 +88,6 @@ for (let at = outside.indexOf("@supports (animation-timeline: view())"); at >= 0
   outside = outside.slice(0, at) + outside.slice(end + 1)
 }
 if (/animation-timeline|view-timeline/.test(outside)) fail("the landing's scroll motion", "a scroll timeline sits outside @supports (animation-timeline: view()), where the settled page would not be the fallback")
-const sea = read("components/site/landing-sea.tsx")
-if (!/setTimeout\(\(\) => draw\.current\(true\), \d+\)/.test(sea)) fail("shared sea links", "typing must re-set the sea only after a pause (a debounced draw)")
-if (!/if \(!typed\.current\) \{\n\s*draw\.current\(false\)/.test(sea)) fail("shared sea links", "a line that was not typed (a shared link) must be drawn settled")
-const seaShared = sea.slice(sea.indexOf("Opened from a shared link"), sea.indexOf("The drawing:"))
-if (!seaShared || /typed\.current = true|draw\.current\(true\)/.test(seaShared)) fail("shared sea links", "a shared link must arrive settled, never as if it were typed")
 
 // ── docs titles ──
 const site = read("app/site.css")
@@ -109,4 +108,4 @@ if (!/playwright install[^\n]*chromium[^\n]*firefox[^\n]*webkit/.test(ci)) fail(
 for (const file of ["tests/motion.browser.mjs", "tests/demo-player.browser.mjs"]) if (/\.skip\(|test\.skip|if \(!installed/.test(read(file))) fail("browser engines", `${file} must not skip an engine`)
 
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Motion contract holds: ${scripted.length} scripted demos wait for Demonstrate, the overture plays once under ${OVERTURE_DEADLINE}ms, the landing's scroll motion settles without the scroll, docs titles and shared sea links are still.`)
+console.log(`Motion contract holds: ${scripted.length} scripted demos wait for Demonstrate, the overture plays once under ${OVERTURE_DEADLINE}ms, the landing's scroll motion settles without the scroll, and docs titles are still.`)

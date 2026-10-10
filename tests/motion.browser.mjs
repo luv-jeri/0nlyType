@@ -1,7 +1,7 @@
 // Motion, proved in a browser on the packaged site (needs `npm run build`; the check starts and stops its own server).
 //   the home overture: plays once per browser, ends by one deadline under three seconds, skips by key, press and
 //   control, survives late fonts and unavailable storage, and is static under reduced motion
-//   shared sea links arrive settled, docs titles stay still, nothing logs an error
+//   docs titles stay still, nothing logs an error
 // One run is one engine in one colour scheme: MOTION_ENGINE (chromium, firefox or webkit) and MOTION_SCHEME (light is
 // day, dark is nocturne). tests/run-motion.mjs runs all six. An engine that is not installed or cannot launch fails
 // the run; nothing here skips an engine.
@@ -311,7 +311,7 @@ await never("storage that refuses to be read: arrives settled", {}, () => {
 await never("storage that refuses to be written: arrives settled", {}, () => {
   Storage.prototype.setItem = function () { throw new DOMException("full", "QuotaExceededError") }
 })
-await never("a link to a part of the page: arrives settled", {}, null, { route: "/#sea", stored: "1" })
+await never("a link to a part of the page: arrives settled", {}, null, { route: "/#tune", stored: "1" })
 
 await check("reduced motion asked for mid-way ends it", async () => {
   const { context } = await fresh()
@@ -324,31 +324,7 @@ await check("reduced motion asked for mid-way ends it", async () => {
   await context.close()
 })
 
-// ── shared sea links, docs titles ──
-await check("a shared sea link arrives settled and stays so", async () => {
-  const { context, errors } = await fresh({ reducedMotion: "no-preference" })
-  const page = await context.newPage()
-  await page.goto(site.url("/?sea=hello%20there#sea"))
-  await page.waitForFunction(() => document.querySelector(".sea-input")?.value === "hello there")
-  await page.waitForFunction(() => document.querySelector(".sea-wave")?.dataset.line === "hello there" && document.querySelector(".sea-wave text"))
-  const samples = []
-  for (let i = 0; i < 16; i++) {
-    samples.push(await page.evaluate(() => {
-      const wave = document.querySelector(".sea-wave"), first = wave.querySelector("text")
-      return { live: wave.hasAttribute("data-live"), running: wave.getAnimations({ subtree: true }).length, opacity: Number(getComputedStyle(first).opacity), words: first.textContent }
-    }))
-    await page.waitForTimeout(100)
-  }
-  assert.ok(samples.every((s) => !s.live && s.running === 0), "the sea moved without a gesture")
-  assert.ok(samples.every((s) => s.opacity === 1), "the shared sea was not fully drawn")
-  assert.ok(samples.every((s) => /hello|there/.test(s.words)), "the sea was not set in the shared line")
-  // Typing is a gesture: it re-sets the sea, once the person pauses.
-  await page.locator(".sea-input").fill("waves")
-  await page.waitForFunction(() => document.querySelector(".sea-wave").hasAttribute("data-live"), null, { timeout: 2000 })
-  assert.deepEqual(errors, [])
-  await context.close()
-})
-
+// ── docs titles ──
 await check("docs titles stay still", async () => {
   const { context, errors } = await fresh()
   const page = await context.newPage()
@@ -442,4 +418,4 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
 await browser.close()
 await site.close()
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, shared sea links, docs titles) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)
+console.log(`Motion browser check passed: ${ran} cases (the home overture lifecycle, docs titles) in ${engine}, ${scheme === "dark" ? "nocturne" : "day"}.`)

@@ -6,7 +6,6 @@ import "./landing.css"
 import { AskFor, Share, TuneSentence } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
 import { Sec } from "@/components/site/landing-section"
-import { Sea } from "@/components/site/landing-sea"
 import { REPO, ShareCall } from "@/components/site/landing-share"
 import { LandingZero, type Movement } from "@/components/site/landing-zero"
 import { catalog } from "@/lib/site/catalog"
@@ -15,7 +14,7 @@ import { CommandLine } from "@/registry/0nlytype/ui/command-line"
 import { Link } from "@/registry/0nlytype/ui/link"
 
 // The home page, in order: two hands set in letters reach toward a zero made of every piece's name; the zero turns
-// into the index; what the library leaves out; your own line set as the sea; one sentence that retunes the page;
+// into the index; what the library leaves out; one sentence that retunes the page;
 // the line that installs it; the kit that teaches your AI; how to help build it; and a last call.
 
 const movements: Movement[] = catalog.map((m) => ({
@@ -57,23 +56,13 @@ export default function Home() {
         <p className="leaves-sign">An icon stays only as a sign made of its own word.</p>
       </Sec>
 
-      <Sec
-        id="sea"
-        num="03"
-        name="The sea"
-        className="sec-sea"
-        title="Your words, drawn as the sea."
-        note="Type a line. We set it in your italic, over and over, until it draws the wave. Change one word and the whole sea is set again."
-        wide={<Sea />}
-      />
-
-      <Sec id="tune" num="04" name="Tune" title="One sentence retunes the page." note="Every italic word is a choice. Change one, and everything follows.">
+      <Sec id="tune" num="03" name="Tune" title="One sentence retunes the page." note="Every italic word is a choice. Change one, and everything follows.">
         <TuneSentence />
       </Sec>
 
       <Sec
         id="install"
-        num="05"
+        num="04"
         name="Install"
         title="One line."
         note="0nlyType is a shadcn registry. Each piece arrives as source in your project, with its styles and the tokens it stands on."
@@ -87,7 +76,7 @@ export default function Home() {
         </p>
       </Sec>
 
-      <Sec id="ask" num="06" name="Ask" title="Or ask for it." note="The AI kit puts 0nlyType’s rules and every contract in your project, so your assistant builds in type too.">
+      <Sec id="ask" num="05" name="Ask" title="Or ask for it." note="The AI kit puts 0nlyType’s rules and every contract in your project, so your assistant builds in type too.">
         <ol className="ask-steps">
           <li>
             <p className="ask-step">Add the kit.</p>
@@ -107,7 +96,7 @@ export default function Home() {
 
       <Sec
         id="help"
-        num="07"
+        num="06"
         name="Help"
         title="Help build it."
         note="0nlyType is made by a small team, in the open. You don’t need to write code to shape what it becomes."
