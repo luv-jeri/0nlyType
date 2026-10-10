@@ -18,7 +18,9 @@
    here reads layout. The section's height is the intro plus one notch per piece. ── */
 .zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
 .zero-at { position: absolute; inset-inline: 0; top: calc(75svh + 20px); height: 1px; scroll-margin-top: 0; pointer-events: none; }
-.zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline-start: calc(50% - 50vw); overflow: hidden; direction: ltr; }
+/* The stage bleeds to the window's edges by a negative margin on both sides: with one only, a right to left page
+   ignores it (an over-full box gives way on its left there) and the whole stage slides off the axis by the page's margin. */
+.zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: hidden; direction: ltr; }
 .zero-hands, .zero-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .zero-hands { pointer-events: none; }
 .zero-ring { cursor: default; }
