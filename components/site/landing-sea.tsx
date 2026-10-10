@@ -3,36 +3,25 @@
 import * as React from "react"
 
 import { SharePlaces, useShare } from "@/components/site/landing-share"
-import { WAVE, type Figure } from "@/lib/site/figures"
+import { WAVE_CREST as CREST, type Figure } from "@/lib/site/figures"
 import { Button } from "@/registry/0nlytype/ui/button"
 import { Field, Input } from "@/registry/0nlytype/ui/field"
 
 // 03, the sea: your line, set in your italic over and over until it draws Hokusai's wave. Each row of the print's
-// tone grid (lib/site/figures.ts, precomputed) is filled with your words, at 400 where the sea is foam, 600 in the
+// tone grid (lib/site/wave.ts, precomputed) is filled with your words, at 400 where the sea is foam, 600 in the
 // body of the water and 900 where it is darkest; the sky is left empty. Typing re-sets the sea once you pause, as
 // a short sweep from left to right. The link it shares carries the line, so whoever opens it finds their sea
-// already set, with nothing moving.
+// already set, with nothing moving. The grid is loaded and drawn only as the sea nears the screen, so the first
+// screen never waits for it.
 
 const START = "only what matters."
 const MAX = 60
 const WEIGHTS = [400, 600, 900]
 
 const decode = (f: Figure) => f.rows.map((r) => r.replace(/([a-d])(\d+)/g, (_, t: string, n: string) => String("abcd".indexOf(t)).repeat(Number(n))))
-const ROWS = decode(WAVE)
-
-// The crest: the inked cell that reaches furthest right in the top tenth of the print, where the claw of foam
-// hangs. The note points at it, so it stays true at every width.
-const CREST = (() => {
-  let col = 0, row = 0
-  ROWS.slice(0, Math.ceil(WAVE.h * 0.1)).forEach((r, i) => {
-    const c = r.replace(/0+$/, "").length - 1
-    if (c > col) {
-      col = c
-      row = i
-    }
-  })
-  return { x: (col + 1) / WAVE.w, y: (row + 0.5) / WAVE.h }
-})()
+/** The wave's grid, decoded once, from its own chunk. */
+let sea: Promise<{ w: number; h: number; rows: string[] }> | null = null
+const loadWave = () => (sea ??= import("@/lib/site/wave").then(({ WAVE }) => ({ w: WAVE.w, h: WAVE.h, rows: decode(WAVE) })))
 
 /** The first family in a font stack, unquoted: what the credit names. */
 const family = (stack: string) => stack.split(",")[0]?.trim().replace(/^["']|["']$/g, "") || "your italic"
@@ -62,7 +51,11 @@ export function Sea() {
     const ctx = document.createElement("canvas").getContext("2d")
     const widths = new Map<string, number>()
     let drawnFor = ""
+    let WAVE: Awaited<ReturnType<typeof loadWave>> | null = null
+    let near = false
     draw.current = (animate) => {
+      if (!WAVE || !near) return
+      const ROWS = WAVE.rows
       const W = Math.round(svg.parentElement?.clientWidth ?? 0)
       if (!W || !ctx) return
       const H = Math.round((W * WAVE.h) / WAVE.w)
@@ -149,6 +142,22 @@ export function Sea() {
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(() => draw.current(false))
     }
+    // A screen before the sea comes into view, its grid loads and the sea is set.
+    let gone = false
+    const ahead = new IntersectionObserver(
+      ([e]) => {
+        if (!e?.isIntersecting) return
+        ahead.disconnect()
+        loadWave().then((w) => {
+          if (gone) return
+          WAVE = w
+          near = true
+          again()
+        })
+      },
+      { rootMargin: "100% 0px" },
+    )
+    if (svg.parentElement) ahead.observe(svg.parentElement)
     const size = new ResizeObserver(again)
     if (svg.parentElement) size.observe(svg.parentElement)
     // The pair changes the italic, and the fonts arriving change every width.
@@ -156,7 +165,9 @@ export function Sea() {
     pair.observe(document.documentElement, { attributes: true, attributeFilter: ["data-pair"] })
     document.fonts?.ready.then(again)
     return () => {
+      gone = true
       cancelAnimationFrame(raf)
+      ahead.disconnect()
       size.disconnect()
       pair.disconnect()
     }
@@ -192,7 +203,9 @@ export function Sea() {
       </Field>
       <figure className="sea-figure" aria-labelledby="sea-cap">
         <div className="sea-plate">
-          <svg ref={wave} className="sea-wave" aria-hidden="true" preserveAspectRatio="xMinYMin meet" />
+          <div className="sea-art">
+            <svg ref={wave} className="sea-wave" aria-hidden="true" preserveAspectRatio="xMinYMin meet" />
+          </div>
           <p className="sea-crest" style={{ "--cx": CREST.x, "--cy": CREST.y } as React.CSSProperties}>
             <span className="sea-crest-name">The crest</span>
             <span className="sea-crest-count">

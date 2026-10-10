@@ -206,6 +206,8 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .sea-field .ot-input::placeholder { font-family: var(--ot-expression); font-style: italic; font-size: 1em; }
 .sea-figure { grid-column: 4 / -1; margin: var(--ot-space-5) 0 0; }
 .sea-plate { position: relative; aspect-ratio: 320 / 205; }
+/* The print holds hundreds of measured lines: it is laid out and painted only near the screen (P6). */
+.sea-art { position: absolute; inset: 0; content-visibility: auto; overflow-clip-margin: var(--ot-space-2); }
 .sea-wave { display: block; width: 100%; height: 100%; overflow: visible; font-family: var(--ot-expression); font-style: italic; }
 .sea-wave text { font-size: var(--fs, 8.6px); dominant-baseline: central; fill: var(--ot-ink); }
 /* The foam is light in weight and in ink, the body of the water full, its darkest heavy: the wave reads at a glance. */
