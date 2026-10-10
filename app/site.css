@@ -58,6 +58,7 @@ body { overflow-x: clip; }
 .bar-mark .wm-mark { font-size: var(--ot-mf); }
 .bar-mark .wm-word { font-size: var(--ot-mp); }
 .bar-mark .wm-type { transition: translate var(--ot-moderato) var(--ot-exhale); }
+.bar-mark .wm-word { transition: opacity var(--ot-allegro) var(--ot-breath); }
 .bar-mark:hover .wm-type { translate: 0.06em 0; }
 .bar-mark:focus-visible { outline: var(--ot-hairline) solid var(--ot-ink); outline-offset: 6px; }
 .bar-mark:active .wm-word { opacity: 0.7; }
@@ -74,7 +75,9 @@ body { overflow-x: clip; }
 .wm-mark .wm-zero { position: absolute; left: 0; top: -0.14em; margin: 0; font-size: 1.36em; line-height: 1.088; }
 .bar-now { display: flex; gap: var(--ot-space-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bar-num { color: var(--ot-pencil); }
-.bar-end { justify-self: end; display: flex; align-items: center; gap: var(--ot-space-5); }
+.bar-end { justify-self: end; display: flex; align-items: baseline; gap: var(--ot-space-5); }
+/* One size and one baseline across the row: the buttons take the bar's size, as its links do. */
+.bar .ot-btn { font-size: inherit; }
 
 /* ── principles ── */
 .principles { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding-block: var(--ot-space-9); }
@@ -99,7 +102,8 @@ body { overflow-x: clip; }
 .docs:has(> .docs-index[data-folded]) .docs-main { grid-column: 2 / -1; }
 .docs-main { grid-column: 4 / -1; min-width: 0; padding-bottom: var(--ot-space-10); }
 /* In the bar the key sits inside the search button's underline: a shorter cap keeps its corners clear of it. */
-.bar-search .ot-kbd { height: 1.7em; margin-inline-start: 0.15em; }
+/* Negative block margins keep the cap from deepening the line, so "Search" stands on the same baseline as its neighbours. */
+.bar-search .ot-kbd { height: 1.7em; margin-block: -0.35em; margin-inline-start: 0.15em; }
 
 .doc-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ot-space-5); margin-bottom: var(--ot-space-8); }
 .doc-title { overflow-wrap: anywhere; margin-inline-start: -0.04em; font-size: var(--ot-fff); line-height: var(--ot-fff-lh); letter-spacing: var(--ot-fff-tr); font-weight: 300; color: var(--ot-ink); }
@@ -229,7 +233,7 @@ body { overflow-x: clip; }
 }
 
 /* The tuning popover in the bar. */
-.bar-controls { display: flex; align-items: center; gap: var(--ot-space-5); }
+.bar-controls { display: flex; align-items: baseline; gap: var(--ot-space-5); }
 .tune { width: min(26rem, calc(100vw - 2 * var(--ot-margin))); padding: var(--ot-space-5); }
 
 /* Code outside prose (tables, notes) reads like prose's: the voice, condensed. No monospace anywhere. */
@@ -257,5 +261,5 @@ body { overflow-x: clip; }
   .bar { column-gap: var(--ot-space-4); }
   .bar-mark { gap: var(--ot-space-2); }
   .bar-end, .bar-controls { gap: var(--ot-space-3); }
-  .bar .ot-btn { font-size: inherit; min-block-size: 44px; }
+  .bar .ot-btn { min-block-size: 44px; }
 }
