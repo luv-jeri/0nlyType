@@ -18,9 +18,11 @@ import { Wordmark } from "@/components/site/wordmark"
 // it is read out in full ink, and the hands lean in as you near the zero; a line of God's hand names its piece in the
 // zero, and clicking it turns there.
 //
-// Scroll, and the hands step back while the zero moves aside and opens into the tunnel (01, owner's choice 2026-10-11):
-// one ring of names per movement, the outer nearest, each further one smaller and a step fainter, the disc lying flat
-// as the zero did and tipping back as the rings wind into place, all of it as far along as the scroll is. Then the
+// Scroll, and the zero becomes the tunnel (01, owner's choice 2026-10-11): one ring of names per movement, the outer
+// nearest, each further one smaller and a step fainter. The hands step out and the band lifts away first; then the
+// same letters that stand in the zero leave it, a movement at a time, turning from their spokes to lie along their
+// ring, while the disc moves aside and tips back from flat, so there is only ever one drawing, as far along as the
+// scroll is. Then the
 // scroll turns it, one piece per notch: the read ring brings its name round to the near edge on a settled spring, the
 // other rings drift the same way, the inner ones faster, and the reading beside it changes over, the old copy leaving
 // as the new one rises. Click a name, or use the arrow keys in the list, to turn to it.
@@ -39,11 +41,20 @@ type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rx
 type Geometry = { W: number; H: number; m: number; bar: number; phone: boolean; hero: Shape; room: [number, number]; skip: { y: number; beside: boolean }; plate: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
 // The tunnel, laid out once per layout: the box the disc is drawn in (S, its viewBox 800 units), where its middle
-// stands, its outer radius on screen, how far it tips back, and the perspective it is seen in.
-type Dial = { S: number; R: number; cx: number; cy: number; tilt: number; P: number }
-// A ring: its radius and size in viewBox units, its layer, where along it each name sits (the middle of the name), and
-// its turn and tone, each a value easing toward its aim.
-type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; tp: Map<number, SVGTextPathElement>; at: Map<number, number>; x: number; v: number; to: number; tone: number; toneTo: number; was: string; op: string }
+// stands, its outer radius on screen, how far it tips back, and the perspective it is seen in; and the scale it is
+// drawn at while it lies flat, where the zero stands (near) and once it has moved aside (flat), so it keeps to the stage.
+type Dial = { S: number; R: number; cx: number; cy: number; tilt: number; P: number; near: number; flat: number }
+// A letter of a name in the tunnel: where it stands from the name's middle, in the zero (A) and on its ring (B), and
+// how far it is turned from the name, on the ring.
+type Letter = { el: SVGTextElement; xA: number; yA: number; xB: number; yB: number; f: number }
+// A name in the tunnel, the same letters in both places: its middle (radius and angle from the disc's middle), its turn
+// and its size, in the zero (A, measured from the hero's own names) and on its ring (B); `ob` is B's turn counted from A.
+type Name = { g: SVGGElement; i: number; ls: Letter[]; rA: number; tA: number; oA: number; sA: number; rB: number; tB: number; oB: number; ob: number }
+// A ring: its radius and size in viewBox units, its layer, its names and where along it each sits (the middle of the
+// name), its dashed rule, and its turn and tone, each a value easing toward its aim. `slot` is when its names leave the
+// zero; `shift` is the whole turns they travel by, so a movement's names unroll side by side and never cross (`set`
+// once it is counted for this layout); `fin` holds once they have all arrived.
+type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; nm: Map<number, SVGGElement>; at: Map<number, number>; names: Name[]; ref: Name; rule: SVGUseElement; slot: number; shift: number; set: boolean; fin: boolean; x: number; v: number; to: number; tone: number; toneTo: number }
 type Spring = { x: number; v: number; to: number }
 type Tempo = { quick: number; mid: number; slow: number; step: number; breath: string; exhale: string }
 
@@ -97,6 +108,12 @@ function fAt(tab: Tab, t: number) {
 // ring further in is set, how far it is turned from square, and each ring's tone by depth, the outer nearest.
 const R0 = 360, F0 = 30, SHR = 0.84, FSH = 0.87, SPIN = -14
 const DEPTH = [1, 0.84, 0.7, 0.58, 0.48, 0.4, 0.33, 0.27]
+// The turn from hero to tunnel, in parts of the intro scroll (h): the hands and the band leave first, by a fifth; the
+// zero's names begin to travel just after, a movement at a time, the outer first; the disc moves aside as they go and
+// tips back over the last of it; the rules and the reading come in only once the rings have formed.
+const MORPH = { lit: [0.01, 0.05], from: 0.1, each: 0.09, span: 0.4, aside: [0.08, 0.62], tip: [0.55, 0.37], rule: [0.8, 0.14], part: [0.86, 0.14], band: 0.16, hands: 0.2 }
+// The zero's names are set in pencil, the tunnel's in graphite: as a layer's opacity, about the same grey.
+const HERO_TONE = 0.8
 // One stiffness for every turn, damped just short of critical, so it settles with no bounce you can count.
 const K = 140, C = 2 * 0.9 * Math.sqrt(K)
 // The motion tokens (registry/0nlytype/styles/tokens.css), read again at each layout; these are their values.
@@ -200,6 +217,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const setW = names.map(() => 0)
     // What each name and dot was last set to, so a draw writes only what changed.
     const drawn = names.map(() => ({ at: "", size: "", fit: "", stretch: "", end: "", dx: "", dy: "" }))
+    // Where each name stands as set (its anchor, turn and size), so the tunnel's letters can start from it.
+    const pose = names.map(() => ({ x: 0, y: 0, rot: 0, f: 0 }))
     const measureNames = () => {
       for (const [i, t] of names.entries()) {
         t.setAttribute("font-size", "20")
@@ -248,10 +267,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     // the near side, drawn nearer, takes more of it than the far side. A phone held sideways gives it the left half,
     // the heading and the reading the right.
     const dialGeometry = (g: Geometry): Dial => {
-      const { W, H, bar, phone } = g
+      const { W, H, bar, phone, hero } = g
+      const fits = (R: number) => ({ near: Math.min(1, (Math.min(hero.cy - bar, H - hero.cy, hero.cx, W - hero.cx) - 12) / (R * 1.1)), flat: Math.min(1, (H - bar - 32) / (R * 2.2)) })
       if (!phone) {
         const S = Math.min(W * 0.6, (H - bar) * 1.16)
-        return { S, R: 0.45 * S, cx: W * 0.3, cy: bar + (H - bar) * 0.47, tilt: 56, P: 1.33 * S }
+        return { S, R: 0.45 * S, cx: W * 0.3, cy: bar + (H - bar) * 0.47, tilt: 56, P: 1.33 * S, ...fits(0.45 * S) }
       }
       const tilt = 40, c = Math.cos(tilt * RAD), s = Math.sin(tilt * RAD), q = 1.33 / 0.45
       const up = (c * q) / (q + s), down = (c * q) / (q - s)
@@ -262,7 +282,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       // The outer names stand a twelfth beyond their ring; the rail keeps 24px of the right edge.
       const across = wide ? W / 2 - 16 : W - 24 - 2 * 12, cx = wide ? W / 4 : (W - 24) / 2
       const R = Math.max(60, Math.min(across / 2 / 1.08, (b - a) / (up + down)))
-      return { S: R / 0.45, R, cx, cy: a + R * up + Math.max(0, b - a - R * (up + down)) / 2, tilt, P: (1.33 * R) / 0.45 }
+      return { S: R / 0.45, R, cx, cy: a + R * up + Math.max(0, b - a - R * (up + down)) / 2, tilt, P: (1.33 * R) / 0.45, ...fits(R) }
     }
     let tabKey = "", tabCache: Tab | null = null
     const midTab = (g: Shape) => {
@@ -306,10 +326,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       // One size for every name, so the ring reads as one column of type turned round. A name keeps its own spacing:
       // it is condensed (the width axis, then the size) only when it would not fit between the ellipses, and it is
       // never spread to fill, so a short name reads as a word, not as letters. Each hangs from the outer rim, by its
-      // dot; the counter keeps its ragged edge, as a set column does.
+      // dot; the counter keeps its ragged edge, as a set column does. The pieces run counterclockwise from the right, as
+      // each ring of the tunnel does, so a movement's names can open into their ring without crossing.
       const fs = clamp(ryo / 30, g.phone ? 5.5 : 7, 11.5)
       for (let i = 0; i < N; i++) {
-        const t = tAt(tab, i / N), c = Math.cos(t), sn = Math.sin(t)
+        const t = tAt(tab, -i / N), c = Math.cos(t), sn = Math.sin(t)
         const xi = cx + rxi * c, yi = cy + ryi * sn, xo = cx + rxo * c, yo = cy + ryo * sn
         const dx = xo - xi, dy = yo - yi, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len
         // A long name may reach a little into the counter, whose edge is ragged anyway, before it is condensed.
@@ -326,7 +347,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         // at the rim, a name set heavier (chosen, or read) grows inward, never over its dot.
         const x = xo - ux * pad, y = yo - uy * pad
         const el = names[i], was = drawn[i]
-        const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(right ? ang : ang + 180).toFixed(2)})`
+        const rot = right ? ang : ang + 180
+        pose[i] = { x, y, rot, f }
+        const at = `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${rot.toFixed(2)})`
         // Only a name that had to be condensed is held to its length; the rest keep their own spacing.
         const size = f.toFixed(1), fit = wAt > L ? L.toFixed(1) : "", stretch = `'wdth' ${Math.round(wdth)}`, end = right ? "end" : "start"
         if (was.at !== at) el.setAttribute("transform", (was.at = at))
@@ -367,7 +390,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     const placeCallout = (i: number) => {
       if (!G) return
-      const z = G.hero, t = tAt(midTab(z), i / N), c = Math.cos(t), s = Math.sin(t)
+      const z = G.hero, t = tAt(midTab(z), -i / N), c = Math.cos(t), s = Math.sin(t)
       const xi = z.cx + z.rxi * c, yi = z.cy + z.ryi * s, xo = z.cx + z.rxo * c, yo = z.cy + z.ryo * s
       const len = Math.hypot(xo - xi, yo - yi), ux = (xo - xi) / len, uy = (yo - yi) / len
       // The line leaves from where the name ends, a few points clear of its last letter.
@@ -389,6 +412,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
 
     /* ── 01, the tunnel: one ring of names per movement, built once per layout ── */
+    // The tunnel is set from the zero's own letters: every name letter by letter, each letter its own piece of type, so
+    // the letters that stand on a spoke of the zero are the ones that travel to the ring and stay there. Nothing is
+    // drawn twice and nothing is handed over.
     const spinEl = tunnelEl.querySelector<HTMLElement>(".tunnel-spin")!, discEl = tunnelEl.querySelector<HTMLElement>(".tunnel-disc")!, dotEl = tunnelEl.querySelector<HTMLElement>(".tunnel-dot")!
     const groups = movements.map((m) => pieces.filter((q) => q.mv === m).map((q) => q.i))
     const ringOf = pieces.map((q) => movements.indexOf(q.mv))
@@ -397,16 +423,29 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const digits = [...partEl.querySelectorAll<HTMLElement>(".ro-dg")]
     let rings: Ring[] = [], SEL = -1, T: Tempo = TEMPO
     const dotR: Spring = { x: 0, v: 0, to: 0 }
+    // The index dot in the zero, from its middle (px), and how large it is there.
+    let dotA = { r: 0, t: 0, d: 7 }
+    // A letter set on its middle: where its middle is (mid) and its baseline (base) below that point, per unit of size.
+    let mid = 0, base = 0
     // The angle that brings a point along a ring to the front: the bottom of the disc, nearest the reader.
-    const front = (r: Ring, s: number) => 180 + (s / r.r) * (180 / Math.PI)
+    const front = (r: Ring, s: number) => 180 + s / r.r * (180 / Math.PI)
     const near = (cur: number, to: number) => cur + ((((to - cur) % 360) + 540) % 360) - 180
     const buildRings = () => {
-      // Each name is measured once, at a hundred units, in the face the rings are set in.
+      // Each name is measured once, at a hundred units, in the face the rings are set in: its length, and where the
+      // middle of each letter falls along it.
       const probe = svg("svg", { class: "tunnel-ring" }, discEl), mt = svg("text", { "font-size": 100 }, probe)
-      const width = pieces.map((q) => {
+      const width: number[] = [], mids: number[][] = []
+      for (const q of pieces) {
         mt.textContent = q.name
-        return mt.getComputedTextLength() / 100
-      })
+        width.push(mt.getComputedTextLength() / 100)
+        const o = mt.getStartPositionOfChar(0).x
+        mids.push([...q.name].map((_, j) => ((mt.getStartPositionOfChar(j).x + mt.getEndPositionOfChar(j).x) / 2 - o) / 100))
+      }
+      mt.textContent = "x"
+      const c = mt.getExtentOfChar(0)
+      mt.style.dominantBaseline = "alphabetic"
+      mid = (c.y + c.height / 2) / 100
+      base = (c.y - mt.getExtentOfChar(0).y) / 100
       probe.remove()
       const kept = rings
       discEl.replaceChildren()
@@ -419,23 +458,34 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const gap = 0.95, need = (f: number) => items.reduce((a, i) => a + width[i] * f, 0) + f * gap * items.length
         let fs = F0 * FSH ** k
         if (need(fs) > len * 0.96) fs *= (len * 0.96) / need(fs)
-        const text = svg("text", { "font-size": fs.toFixed(2) }, el)
-        const tp = new Map<number, SVGTextPathElement>(), at = new Map<number, number>()
+        const set = svg("g", { "font-size": fs.toFixed(2) }, el)
+        const nm = new Map<number, SVGGElement>(), at = new Map<number, number>(), list: Name[] = []
+        // Each letter stands upright to the circle at the middle of its own advance, its baseline on the circle, as a
+        // name set on the path would; its place is kept from the name's middle, in the name's own direction.
+        const rB = r - base * fs, deg = 180 / Math.PI
         let s = 0
         for (const i of items) {
-          const w = width[i] * fs, p = svg("textPath", { href: `#${id}`, startOffset: s.toFixed(1), "data-i": i }, text)
-          p.textContent = pieces[i].name
-          tp.set(i, p)
-          at.set(i, s + w / 2)
+          const w = width[i] * fs, g = svg("g", { class: "nm", "data-i": i }, set), sc = s + w / 2
+          const tB = -90 - (sc / r) * deg, oB = tB - 90, ca = Math.cos(oB * RAD), sa = Math.sin(oB * RAD)
+          const cx = rB * Math.cos(tB * RAD), cy = rB * Math.sin(tB * RAD)
+          const ls = [...pieces[i].name].map((ch, j): Letter => {
+            const t = svg("text", null, g), tj = -90 - ((s + mids[i][j] * fs) / r) * deg
+            t.textContent = ch
+            const px = rB * Math.cos(tj * RAD) - cx, py = rB * Math.sin(tj * RAD) - cy
+            return { el: t, xA: 0, yA: 0, xB: px * ca + py * sa, yB: py * ca - px * sa, f: tj - tB }
+          })
+          nm.set(i, g)
+          at.set(i, sc)
+          list.push({ g, i, ls, rA: 0, tA: 0, oA: 0, sA: 1, rB, tB, oB, ob: oB })
           s += w + fs * gap
         }
         // What the names leave of the ring is a dashed hairline.
         const used = s - fs * gap, dash = [0, used + fs * 0.6], seg = fs * 1.1, sp = fs * 0.8
         for (let left = len - used - fs * 1.2; left > seg; left -= seg + sp) dash.push(seg, sp)
         dash.push(0, len * 2)
-        svg("use", { href: `#${id}`, class: "rule", "stroke-width": Math.max(0.6, fs / 16).toFixed(2), "stroke-dasharray": dash.map((v) => v.toFixed(1)).join(" ") }, el)
+        const rule = svg("use", { href: `#${id}`, class: "rule", "stroke-width": Math.max(0.6, fs / 16).toFixed(2), "stroke-dasharray": dash.map((v) => v.toFixed(1)).join(" ") }, el)
         const old = kept[k]
-        return { k, r, fs, el, tp, at, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0, was: "", op: "" }
+        return { k, r, fs, el, nm, at, names: list, ref: list[list.length >> 1], rule, slot: 0, shift: 0, set: false, fin: false, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0 }
       })
       for (const r of rings) {
         if (r.k === ringOf[SEL]) r.to = near(r.to, front(r, r.at.get(SEL)!))
@@ -443,7 +493,37 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       }
       shown.clear()
       toned.clear()
-      onTp = null
+      onNm = null
+    }
+    // Where every letter stands in the zero, taken from the zero's own names as set (each letter's middle, less where a
+    // letter set on its middle has it), as seen from the zero's middle, in the disc's units. Once per layout.
+    const capture = () => {
+      if (!G || !D) return
+      const z = G.hero, u = 800 / (D.S * D.near)
+      for (const r of rings)
+        for (const n of r.names) {
+          const p = pose[n.i], a = p.rot * RAD, ca = Math.cos(a), sa = Math.sin(a), el = names[n.i]
+          const pts = n.ls.map((_, j) => {
+            const e = el.getExtentOfChar(j), lx = e.x + e.width / 2, ly = e.y + e.height / 2 - mid * p.f
+            return [p.x + lx * ca - ly * sa - z.cx, p.y + lx * sa + ly * ca - z.cy]
+          })
+          const a0 = pts[0], a1 = pts[pts.length - 1], cx = (a0[0] + a1[0]) / 2, cy = (a0[1] + a1[1]) / 2
+          Object.assign(n, { rA: Math.hypot(cx, cy) * u, tA: Math.atan2(cy, cx) / RAD, oA: p.rot, sA: (p.f * u) / r.fs })
+          n.ls.forEach((l, j) => {
+            const dx = (pts[j][0] - cx) * u, dy = (pts[j][1] - cy) * u
+            l.xA = dx * ca + dy * sa
+            l.yA = dy * ca - dx * sa
+          })
+          r.fin = r.set = false
+        }
+      // The rings furthest from the zero's own size leave first, outward and inward at once: the outer ones out past
+      // the zero, the inner ones into its empty counter, each clear of the next before it comes, so none passes another.
+      const all = rings.flatMap((r) => r.names), mean = all.reduce((a, n) => a + n.rA, 0) / all.length
+      for (const side of [rings.filter((r) => r.r >= mean), rings.filter((r) => r.r < mean)])
+        side.sort((a, b) => Math.abs(b.r - mean) - Math.abs(a.r - mean)).forEach((r, j) => (r.slot = j))
+      // The accent: beside the read name on a wide screen, in the mark's counter on a phone.
+      const px = clamp((z.ryo - 50) / 70) >= 0.5 ? z.rxo + 10 : 0
+      dotA = { r: px / D.near, t: 0, d: px ? 7 : 0.28 * z.ryo }
     }
     // A turn: the read ring brings the name round to the front by the shorter way; the rest drift the same way, the
     // inner ones faster, a vortex, never a jump.
@@ -456,7 +536,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     // The reading: the movement, the number on its own wheels, the name, what it is for; the install line follows in
     // React. Tone lives in each ring's opacity: the read ring comes forward, the rest keep their depth a step back.
-    let lastRead = 0, onTp: SVGTextPathElement | null = null
+    let lastRead = 0, onNm: SVGGElement | null = null
     const read = (still: boolean) => {
       const q = pieces[SEL], k = ringOf[SEL], now = performance.now(), fast = now - lastRead < 240, calm = still || reduce
       lastRead = now
@@ -476,9 +556,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       swap(metaBox, [mv, `${SEL + 1}/${N}`], 0, fast, calm, T)
       swap(nameBox, [q.title], T.step, fast, calm, T)
       swap(descBox, [q.summary], 2.5 * T.step, fast, calm, T)
-      onTp?.classList.remove("on")
-      onTp = rings[k]?.tp.get(SEL) ?? null
-      onTp?.classList.add("on")
+      onNm?.classList.remove("on")
+      onNm = rings[k]?.nm.get(SEL) ?? null
+      onNm?.classList.add("on")
       for (const r of rings) {
         r.toneTo = r.k === k ? 1 : DEPTH[Math.min(DEPTH.length - 1, r.k + 1)]
         if (calm) r.tone = r.toneTo
@@ -493,43 +573,75 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       aim(prev)
       read(false)
     }
-    // One frame of the tunnel. Its place is shared with the zero's as the one hands over to the other: it starts where
-    // the zero stands and arrives at its own, lying flat as the zero did and tipping back while the rings wind into
-    // place, outer first, each a little behind the one outside it.
+    // How far a movement's names have travelled from the zero to their ring, in its turn.
+    const travelled = (r: Ring) => clamp((h - MORPH.from - MORPH.each * r.slot) / MORPH.span)
+    // Each name goes out (or in) to its ring's radius, growing or shrinking to its size there, while still on its spoke;
+    // then it swings round to its place and, a little behind, turns from lying along its spoke to lying along the circle.
+    // They shrink as they go, to half at the middle of the way, so names crossing the zero's band slip past each other.
+    const stages = (u: number) => {
+      const pa = smooth(clamp((u - 0.2) / 0.6))
+      return { pr: smooth(clamp(u / 0.45)), pa, ro: smooth(clamp((pa - 0.15) / 0.85)), dip: 1 - 0.5 * Math.sin(Math.PI * clamp(u)) }
+    }
+    // One ring's names on their way, u from 0 (the zero) to 1 (the ring). Angles are counted on from where each name
+    // starts, the same whole turns for a whole movement, so its names unroll side by side and never cross.
+    const unroll = (r: Ring, u: number) => {
+      if (u >= 1 && r.fin) return
+      const { pr: ps, pa, ro, dip } = stages(u)
+      // Counted afresh only while the names stand still, at either end, so a turn of the ring never moves them mid-way.
+      if (!r.set || u <= 0 || u >= 1 || r.fin) {
+        r.set = true
+        r.shift = 360 * Math.round((r.ref.tA - r.x - r.ref.tB) / 360)
+        for (const n of r.names) {
+          const travel = n.tB + r.shift - (n.tA - r.x)
+          n.ob = n.oB + 360 * Math.round((n.oA - r.x + travel - n.oB) / 360)
+        }
+      }
+      r.fin = u >= 1
+      for (const n of r.names) {
+        const t = lerp(n.tA - r.x, n.tB + r.shift, pa) * RAD, rho = lerp(n.rA, n.rB, ps), o = lerp(n.oA - r.x, n.ob, ro)
+        const cx = rho * Math.cos(t), cy = rho * Math.sin(t), ca = Math.cos(o * RAD), sa = Math.sin(o * RAD), sc = (lerp(n.sA, 1, ps) * dip).toFixed(3)
+        for (const l of n.ls) {
+          const lx = lerp(l.xA, l.xB, ps), ly = lerp(l.yA, l.yB, ro)
+          move(l.el, `translate(${(cx + lx * ca - ly * sa).toFixed(2)}px, ${(cy + lx * sa + ly * ca).toFixed(2)}px) rotate(${(o + l.f * ro).toFixed(2)}deg) scale(${sc})`)
+        }
+      }
+    }
+    // One frame of the turn from hero to tunnel, and of the tunnel's own turning. The disc starts where the zero stands
+    // and moves aside to its own place, lying flat as the zero did and tipping back as the last rings form; the zero's
+    // drawing gives way to its own letters where they stand, in the first notch of the scroll.
     const turn = () => {
       if (!G || !D) return
-      const e = smooth(clamp((h - 0.1) / 0.75)), tip = smooth(clamp((h - 0.4) / 0.55))
+      const lit = smooth(clamp((h - MORPH.lit[0]) / MORPH.lit[1]))
+      const e = smooth(clamp((h - MORPH.aside[0]) / MORPH.aside[1])), tip = smooth(clamp((h - MORPH.tip[0]) / MORPH.tip[1]))
       const dx = (G.hero.cx - D.cx) * (1 - e), dy = (G.hero.cy - D.cy) * (1 - e)
-      const spin = SPIN * tip, tilt = D.tilt * tip
-      move(spinEl, `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${spin.toFixed(3)}deg)`)
+      // Lying flat it would stand taller than the stage, so it keeps to the stage's height until it tips back.
+      const spin = SPIN * tip, tilt = D.tilt * tip, fit = lerp(lerp(D.near, D.flat, e), 1, tip), ruled = smooth(clamp((h - MORPH.rule[0]) / MORPH.rule[1]))
+      tone(ringSvg, (1 - lit).toFixed(3))
+      move(spinEl, `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) rotate(${spin.toFixed(3)}deg) scale(${fit.toFixed(4)})`)
       move(discEl, `perspective(${D.P.toFixed(0)}px) rotateX(${tilt.toFixed(3)}deg)`)
       for (const r of rings) {
-        const lag = 0.02 * r.k, wind = (1 - smooth(clamp((h - 0.35 - lag) / 0.55))) * (-140 - r.k * 26)
-        move(r.el, `rotate(${(r.x + wind).toFixed(3)}deg)`)
-        tone(r.el, (r.tone * smooth(clamp((h - 0.3 - lag) / 0.3))).toFixed(3))
+        const u = travelled(r)
+        move(r.el, `rotate(${r.x.toFixed(3)}deg)`)
+        tone(r.el, (lit * lerp(HERO_TONE, r.tone, smooth(u))).toFixed(3))
+        tone(r.rule, (0.5 * ruled).toFixed(3))
+        if (lit > 0) unroll(r, u)
       }
-      // The index dot, on the read ring's near edge: the rotation, the perspective's divide, then the turn from square,
-      // the same sum the transforms make, so it is worked out, never measured.
-      const yd = (dotR.x * D.S) / 800, th = tilt * RAD, yy = (yd * Math.cos(th) * D.P) / (D.P - yd * Math.sin(th)), a = spin * RAD
-      move(dotEl, `translate(${(D.cx + dx - yy * Math.sin(a)).toFixed(2)}px, ${(D.cy + dy + yy * Math.cos(a)).toFixed(2)}px)`)
-      tone(dotEl, smooth(clamp((h - 0.85) / 0.15)).toFixed(3))
-    }
-    // The hero's zero goes with it: it moves toward where the tunnel will stand, opening toward its size, and fades as
-    // the tunnel comes up through it.
-    const handoff = () => {
-      if (!G || !D) return
-      const e = smooth(clamp((h - 0.1) / 0.75)), grow = smooth(clamp((h - 0.1) / 0.4))
-      const sc = lerp(1, Math.min(2.2, D.R / G.hero.ryo), grow)
-      move(ringSvg, e || grow ? `translate(${((D.cx - G.hero.cx) * e).toFixed(2)}px, ${((D.cy - G.hero.cy) * e).toFixed(2)}px) scale(${sc.toFixed(4)})` : "")
-      tone(ringSvg, (1 - smooth(clamp((h - 0.2) / 0.3))).toFixed(3))
+      // The index dot travels with the read name, the same way round, from beside it in the zero to the read ring's near
+      // edge: the turn, the perspective's divide, then the turn from square, the same sum the transforms make, worked
+      // out, never measured.
+      const rr = rings[ringOf[SEL]], n = rr?.names.find((m) => m.i === SEL), u = rr ? travelled(rr) : 1, { pr, pa } = stages(u)
+      const tB = rr && n ? n.tB + rr.shift + rr.x : 90, t = lerp(dotA.t, tB, pa) * RAD, rho = lerp(dotA.r, (dotR.x * D.S) / 800, pr)
+      const lx = rho * Math.cos(t), ly = rho * Math.sin(t), th = tilt * RAD, kz = (fit * D.P) / (D.P - ly * Math.sin(th)), X = lx * kz, Y = ly * Math.cos(th) * kz, a = spin * RAD
+      move(dotEl, `translate(${(D.cx + dx + X * Math.cos(a) - Y * Math.sin(a)).toFixed(2)}px, ${(D.cy + dy + X * Math.sin(a) + Y * Math.cos(a)).toFixed(2)}px) scale(${lerp(dotA.d / 9, 1, pr).toFixed(3)})`)
+      tone(dotEl, lit.toFixed(3))
     }
     const layoutTunnel = (g: Geometry) => {
       const d = (D = dialGeometry(g))
       spinEl.style.cssText = `left:${(d.cx - d.S / 2).toFixed(1)}px;top:${(d.cy - d.S / 2).toFixed(1)}px;width:${d.S.toFixed(1)}px;height:${d.S.toFixed(1)}px`
-      ringSvg.style.transformOrigin = `${g.hero.cx.toFixed(1)}px ${g.hero.cy.toFixed(1)}px`
       const css = getComputedStyle(root), ms = (n: string, v: number) => parseFloat(css.getPropertyValue(n)) || v, ease = (n: string, v: string) => css.getPropertyValue(n).trim() || v
       T = tempo.current = { quick: ms("--ot-allegro", 160), mid: ms("--ot-moderato", 320), slow: ms("--ot-andante", 640), step: ms("--ot-arpeggio", 36), breath: ease("--ot-breath", TEMPO.breath), exhale: ease("--ot-exhale", TEMPO.exhale) }
       buildRings()
+      capture()
       read(true)
     }
 
@@ -772,14 +884,13 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const k = h.toFixed(4)
       if (force || k !== key) {
         key = k
-        handoff()
-        const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
+        const out = clamp(h / MORPH.band), inn = smooth(clamp((h - MORPH.part[0]) / MORPH.part[1]))
         const scripted = !driven || reduce
         put(handsEl, "--h", scripted ? h.toFixed(4) : "")
         put(bandEl, "--out", scripted ? out.toFixed(3) : "")
         put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
-        st.toggleAttribute("data-dial", h >= 0.6)
-        st.toggleAttribute("data-hero", h < 0.5)
+        st.toggleAttribute("data-dial", h >= 0.9)
+        st.toggleAttribute("data-hero", h < MORPH.from)
       }
       turn()
     }
@@ -837,12 +948,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     // Pointing at a name in the hero's zero reads it there; clicking (or tapping) one turns to it in the tunnel.
     const hit = (ev: PointerEvent | MouseEvent) => {
-      if (!G || h > 0.15) return -1
+      if (!G || h > MORPH.lit[0]) return -1
       const z = G.hero, b = ringSvg.getBoundingClientRect()
       const u = (ev.clientX - b.left - z.cx) / ((z.rxo + z.rxi) / 2), w = (ev.clientY - b.top - z.cy) / ((z.ryo + z.ryi) / 2)
       const r = Math.hypot(u, w)
       if (z.ryo < 50 || r < 0.62 || r > 1.32) return -1
-      return mod(Math.round(fAt(midTab(z), Math.atan2(w, u)) * N), N)
+      return mod(Math.round(-fAt(midTab(z), Math.atan2(w, u)) * N), N)
     }
     const point = () => {
       const i = onRing >= 0 ? onRing : onHand
@@ -879,7 +990,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     // A name in the tunnel turns to itself.
     const onPick = (ev: MouseEvent) => {
-      const i = Number((ev.target as Element).closest?.("textPath[data-i]")?.getAttribute("data-i") ?? NaN)
+      const i = Number((ev.target as Element).closest?.(".nm[data-i]")?.getAttribute("data-i") ?? NaN)
       if (Number.isInteger(i)) turnTo(i)
     }
     ringSvg.addEventListener("pointermove", onMove)

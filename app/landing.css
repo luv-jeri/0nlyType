@@ -23,7 +23,7 @@
 .zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: hidden; direction: ltr; }
 .zero-hands, .zero-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .zero-hands { pointer-events: none; }
-.zero-ring { cursor: default; will-change: transform, opacity; }
+.zero-ring { cursor: default; will-change: opacity; }
 .zero-ring[data-pointing] { cursor: pointer; }
 
 /* The ring: names between the two ellipses, the chosen one in ink and heavy, its neighbours in graphite. */
@@ -42,18 +42,20 @@
 .zero-ring .call-meta { font-family: var(--ot-voice); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ot-pencil); }
 
 /* The tunnel (01): one ring of names per movement, each its own layer, so a turn moves painted type and never
-   repaints it. The script sizes and places the disc once per layout and writes only each layer's turn and tone. The
-   names are set in graphite; the read one in ink and heavier; what a ring's names leave is a dashed hairline. */
+   repaints it. Every name is set letter by letter, the same letters that stand in the zero as the scroll opens it
+   (each set on its middle, so a letter turns about itself). The script sizes and places the disc once per layout and
+   writes only transforms and tone. The names are set in graphite; the read one in ink and heavier; what a ring's
+   names leave is a dashed hairline. */
 .zero-tunnel { position: absolute; inset: 0; pointer-events: none; }
 .tunnel-spin { position: absolute; will-change: transform; }
 .tunnel-disc { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
 .tunnel-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 50%; will-change: transform, opacity; opacity: 0; }
-.tunnel-ring text { font-family: var(--ot-voice); font-stretch: 88%; font-weight: 420; fill: var(--ot-graphite); }
-.tunnel-ring textPath { transition: fill var(--ot-allegro) var(--ot-exhale); }
-.tunnel-ring textPath.on { fill: var(--ot-ink); font-weight: 560; }
+.tunnel-ring text { font-family: var(--ot-voice); font-stretch: 88%; font-weight: 420; dominant-baseline: central; text-anchor: middle; }
+.tunnel-ring .nm { fill: var(--ot-graphite); transition: fill var(--ot-allegro) var(--ot-exhale); }
+.tunnel-ring .nm.on { fill: var(--ot-ink); font-weight: 560; }
 .zero-stage[data-dial] .tunnel-ring text { pointer-events: auto; cursor: pointer; }
-.tunnel-ring textPath:hover { fill: var(--ot-ink); }
-.tunnel-ring .rule { fill: none; stroke: var(--ot-graphite); opacity: 0.5; }
+.tunnel-ring .nm:hover { fill: var(--ot-ink); }
+.tunnel-ring .rule { fill: none; stroke: var(--ot-graphite); opacity: 0; }
 /* The one accent in view: the index, on the read ring's near edge. */
 .tunnel-dot { position: absolute; left: 0; top: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--ot-accent); opacity: 0; will-change: transform, opacity; }
 
@@ -61,11 +63,11 @@
    the two darker in ink, where the weight is the shading. As the scroll leaves the hero, each letter falls on its own
    seeded path, the fingertips last. */
 /* The hands are two canvases the script sizes and places once per layout (components/site/hands.ts draws them). As
-   the scroll turns the hero into the dial they step back outward and fade with the band; without scroll timelines, or
-   with reduced motion, they follow --h, which the script writes. */
-.zero-hands canvas { position: absolute; display: block; --away: calc(min(1, var(--h, 0) * 1.8)); opacity: calc(1 - var(--away)); }
-.zero-hands .hand-a { translate: calc(var(--away) * -14vw) 0; }
-.zero-hands .hand-g { translate: calc(var(--away) * 14vw) 0; }
+   the scroll opens the zero they step out to the sides and off, whole, fading only on their way out, before the names
+   reach them; without scroll timelines, or with reduced motion, they follow --h, which the script writes. */
+.zero-hands canvas { position: absolute; display: block; --away: calc(min(1, var(--h, 0) * 5)); opacity: calc(1 - max(0, var(--away) * 2 - 1)); }
+.zero-hands .hand-a { translate: calc(var(--away) * -42vw) 0; }
+.zero-hands .hand-g { translate: calc(var(--away) * 42vw) 0; }
 
 /* The band: the lockup, and beside it one column on the lockup's baseline: what it is, the way into the docs, and one
    line to install. It lifts away as the dial arrives. */
@@ -144,20 +146,22 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 @media (max-width: 1200px) { .pieces-group-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
 /* On a short screen the description keeps to four lines, so the install line never meets the floor. */
 @media (max-height: 780px) and (min-width: 761px) { .ro-desc { height: 6em; } .ro-desc > span { -webkit-line-clamp: 4; } .pieces-keys { display: none; } }
-/* Where scroll timelines run, the scroll itself draws the turn from hero to dial, so a frame restyles only what moves
-   and no script writes a number per frame: the band lifts away and the hands step back over the first 42svh, and the
-   pieces arrive between 45svh and 75svh. The numbers match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or with reduced motion. */
+/* Where scroll timelines run, the scroll itself draws the stage around the zero's opening, so a frame restyles only
+   what moves: the band lifts away over the first 12svh and the hands step off over the first 15svh, both gone before
+   the names reach them, and the reading arrives once the rings have formed, between 64.5svh and 75svh. The numbers
+   match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or with
+   reduced motion. The names themselves the script moves either way, by transforms alone. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .zero { view-timeline: --zero block; view-timeline-inset: 0px; }
-    .zero-hands .hand-a { animation: zero-away-a var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 0px contain 41.667svh; }
-    .zero-hands .hand-g { animation: zero-away-g var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 0px contain 41.667svh; }
-    .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 41.667svh; }
-    .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 45svh contain 75svh; }
+    .zero-hands .hand-a { animation: zero-away-a linear both; animation-timeline: --zero; animation-range: contain 0px contain 15svh; }
+    .zero-hands .hand-g { animation: zero-away-g linear both; animation-timeline: --zero; animation-range: contain 0px contain 15svh; }
+    .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 12svh; }
+    .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 64.5svh contain 75svh; }
   }
 }
-@keyframes zero-away-a { to { translate: -14vw 0; opacity: 0; } }
-@keyframes zero-away-g { to { translate: 14vw 0; opacity: 0; } }
+@keyframes zero-away-a { 50% { opacity: 1; } to { translate: -42vw 0; opacity: 0; } }
+@keyframes zero-away-g { 50% { opacity: 1; } to { translate: 42vw 0; opacity: 0; } }
 @keyframes zero-lift { to { opacity: 0; transform: translateY(-30px); } }
 @keyframes zero-arrive { from { opacity: 0; } to { opacity: 1; } }
 
