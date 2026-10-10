@@ -408,7 +408,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
     // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
     let pieceOf: number[] = [], phraseOf = new Map<number, number>()
-    const paint = (t = Infinity) => set.forEach((hand, i) => drawHand(canvases[i], hand, t, 700, 520, t === Infinity ? touch[i] : undefined))
+    const paint = (t = Infinity) => {
+      set.forEach((hand, i) => drawHand(canvases[i], hand, t, 700, 520, t === Infinity ? touch[i] : undefined))
+      // A canvas shows nothing a page can read, so the hands say what they show: drawn, and still rising or settled.
+      handsEl.setAttribute("data-drawn", "")
+      handsEl.toggleAttribute("data-rising", t !== Infinity)
+    }
     // The data and the layout engine load only when the hands are drawn, so neither holds up the first paint. A hand
     // is laid out a few milliseconds at a time, giving the frame back between slices, so no task runs long even on a
     // slow phone; a newer layout drops an older one at the next slice.

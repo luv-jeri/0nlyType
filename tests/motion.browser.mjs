@@ -24,13 +24,14 @@ let ran = 0
 /** Watches the overture attribute from before the page's own scripts: when it appeared, and when it went. */
 const spy = (attr) => {
   window.__overture = { starts: [], ends: [], moving: [] }
-  // Whether the hands' letters were seen settling, sampled from the start while the overture plays, so the answer does
-  // not depend on how soon a test looks. The hands are drawn once the page's script runs; until then there is nothing.
+  // Whether the hands' letters were seen rising, sampled from the start while the overture plays, so the answer does
+  // not depend on how soon a test looks. The hands are drawn on canvases once the page's script runs, which marks them
+  // data-drawn, and data-rising while the overture's clock draws them; until then there is nothing.
   const sample = setInterval(() => {
     const log = window.__overture
     if (log.starts.length && !log.ends.length) {
-      const letter = document.querySelector(".zero-hands text")
-      if (letter) log.moving.push(getComputedStyle(letter).animationName === "zero-settle")
+      const hands = document.querySelector(".zero-hands[data-drawn]")
+      if (hands) log.moving.push(hands.hasAttribute("data-rising"))
     }
     if (log.ends.length) clearInterval(sample)
   }, 30)
@@ -68,9 +69,11 @@ async function tabToSkip(page) {
   }
   return false
 }
-// At rest: no letter of the hands, and not the dot, is animating on a clock, and every letter is fully drawn. A letter's
-// fall is tied to the scroll (a scroll timeline, never a clock), so at the top of the page it stands where it was set.
-const rest = (page) => page.evaluate(() => [...document.querySelectorAll(".zero-hands text, .zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); const clock = s.animationName !== "none" && !/^--/.test(s.animationTimeline ?? ""); return !clock && Number(s.opacity) === 1 }))
+// At rest: the hands, if drawn, are drawn settled (every letter in place, not rising on the overture's clock), and the
+// dots are not animating on a clock and stand at the opacity the page gives them: lit, unless the zero is too small to
+// carry its names, when the index dot fades out with them. The hands' step away is tied to the scroll (a scroll
+// timeline, never a clock), so at the top of the page they stand where they were set.
+const rest = (page) => page.evaluate(() => !document.querySelector(".zero-hands")?.hasAttribute("data-rising") && [...document.querySelectorAll(".zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); const clock = s.animationName !== "none" && !/^--/.test(s.animationTimeline ?? ""); return !clock && Math.abs(Number(s.opacity) - Number(el.style.opacity || 1)) < 0.01 }))
 
 async function check(name, fn) {
   ran++
@@ -87,7 +90,7 @@ await check("first visit: plays, ends by the deadline, records itself once", asy
   await ended(page)
   const { starts, ends, moving } = await log(page)
   assert.ok(moving.length > 0, "the hands were never drawn while the overture played")
-  assert.ok(moving.some(Boolean), "the hands' letters should settle into place while it plays")
+  assert.ok(moving.some(Boolean), "the hands' letters should rise into place while it plays")
   const took = ends[0] - starts[0].at
   assert.ok(took <= OVERTURE_DEADLINE + 150, `title and field ended after ${Math.round(took)}ms, past the ${OVERTURE_DEADLINE}ms deadline`)
   assert.ok(took < 3000)
