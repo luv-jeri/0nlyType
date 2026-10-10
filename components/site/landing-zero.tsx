@@ -8,20 +8,20 @@ import * as React from "react"
 import { CopyCommand } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
 import { Overture, OvertureScript, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
+import { area, decodeHands, drawHand, extent, setHand, type Hand, type Place } from "@/components/site/hands"
 import { Wordmark } from "@/components/site/wordmark"
-import { ADAM, GOD, type Figure } from "@/lib/site/figures"
 
-// The hero and 01, the pieces, on one sticky stage turned by the scroll. Two hands set in real letters reach toward a
-// zero made of every piece's name: Adam's hand is what you ask for, in the italic; God's is what we hand back, an
-// install line for every piece, in roman. Each row of the fresco's tone grid is filled with words, three weights
-// following its light and shade, so the fingers read. Scroll, and the letters fall away, the zero moves aside and
-// becomes a dial, and the dial turns, one piece per notch, with a settled spring. Point at a name to read it; click
-// it, or use the arrow keys in the list, to turn to it.
+// The hero and 01, the pieces, on one sticky stage turned by the scroll. Michelangelo's two hands, set in real letters,
+// reach toward a zero made of every piece's name: Adam's hand is what you ask for, in the italic; God's is what we hand
+// back, a line for every piece, in roman. Every letter takes its weight and ink from the fresco's light where it sits,
+// so the fingers read (components/site/hands.ts). Scroll, and the hands step back, the zero moves aside and becomes a
+// dial, and the dial turns, one piece per notch, with a settled spring. Point at a name to read it; click it, or use the
+// arrow keys in the list, to turn to it.
 //
 // Everything the scroll moves is written, never read: positions are measured once per layout (on resize, when the
 // fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. Each
 // value is written only where it is read, and only when it changes. Screen readers and keyboards get
-// the index as a real list of links; the drawing is aria-hidden and captioned by the notes beside it.
+// the index as a real list of links; the drawing is aria-hidden and captioned under the zero.
 
 export type Piece = { name: string; title: string; summary: string }
 export type Movement = { num: string; name: string; pieces: Piece[] }
@@ -29,7 +29,7 @@ export type Movement = { num: string; name: string; pieces: Piece[] }
 type Flat = Piece & { mv: Movement; i: number }
 type Arc = { m: Movement; start: number; end: number; count: number; path: SVGPathElement; t1: SVGLineElement; t2: SVGLineElement; label: SVGTextElement; rest: SVGTSpanElement }
 type Shape = { cx: number; cy: number; ryo: number; rxo: number; ryi: number; rxi: number }
-type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number] }
+type Geometry = { W: number; H: number; m: number; phone: boolean; narrow: boolean; hero: Shape; dial: Shape; room: [number, number]; cap: number }
 type Tab = { ls: Float64Array; L: number; steps: number }
 
 const NS = "http://www.w3.org/2000/svg"
@@ -47,16 +47,6 @@ const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string,
   if (parent) parent.appendChild(e)
   return e
 }
-// The tone grids are run-length coded (lib/site/figures.ts); the drawing wants one digit per cell, 0 empty to 3 dark.
-const decode = (f: Figure) => f.rows.map((r) => r.replace(/([a-d])(\d+)/g, (_, t: string, n: string) => String("abcd".indexOf(t)).repeat(Number(n))))
-// A seeded scatter, so the letters fall the same way every visit.
-const random = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-}
-
 // Arc length along an ellipse, so names sit evenly however stretched the zero is.
 function arcTable(rx: number, ry: number, steps = 720): Tab {
   const ls = new Float64Array(steps + 1)
@@ -102,7 +92,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const section = React.useRef<HTMLElement>(null)
   const stage = React.useRef<HTMLDivElement>(null)
   const ring = React.useRef<SVGSVGElement>(null)
-  const hands = React.useRef<SVGSVGElement>(null)
+  const hands = React.useRef<HTMLDivElement>(null)
   const band = React.useRef<HTMLDivElement>(null)
   const notes = React.useRef<HTMLDivElement>(null)
   const part = React.useRef<HTMLDivElement>(null)
@@ -113,8 +103,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   const picked = React.useRef<(i: number) => void>(() => {})
 
   React.useEffect(() => {
-    const sec = section.current, st = stage.current, ringSvg = ring.current, handsSvg = hands.current, bandEl = band.current, notesEl = notes.current, partEl = part.current
-    if (!sec || !st || !ringSvg || !handsSvg || !bandEl || !notesEl || !partEl) return
+    const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, notesEl = notes.current, partEl = part.current
+    if (!sec || !st || !ringSvg || !handsEl || !bandEl || !notesEl || !partEl) return
     const root = document.documentElement
     const motion = matchMedia("(prefers-reduced-motion: reduce)")
     let reduce = motion.matches
@@ -187,26 +177,30 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const bandTop = bandEl.offsetTop
       const bar = parseFloat(getComputedStyle(root).getPropertyValue("--bar")) * parseFloat(getComputedStyle(root).fontSize) || 64
       let hero: Shape, dial: Shape
-      // Where the hands may reach: under the notes, over the band.
-      const notes = Array.from(notesEl.children) as HTMLElement[]
-      const room: [number, number] = [bar + (phone ? 10 : 20) + Math.max(notes[0].offsetHeight, notes[1].offsetHeight) + 12, bandTop - 14]
+      // Where the hands may reach: under the bar, over the band. On a wide screen the caption hangs under the zero, in
+      // the room the hands leave between them; on a phone it sits over the band, and the hands have the room above it.
+      const capH = (notesEl.firstElementChild as HTMLElement).offsetHeight
+      const room: [number, number] = phone ? [bar + 12, bandTop - 40 - capH] : [bar + 24, bandTop - 14]
+      const caption = capH + 18
       // A full dial wants a reading column of at least 520px beside it (the install line and Copy on one row) and a
       // ring tall enough to keep its names legible; short of either, it sits off the left edge, as on a phone.
       const fit = (W - 2 * m - 140 - 520) / 2 / 0.76
       const narrow = !phone && fit < 260
       if (phone) {
-        const t = bar + 8, b = bandTop - 18
+        const t = room[0], b = room[1]
         hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(clamp((b - t) / 2 - 22, 14, 30)) }
         const s1 = shape(Math.min(0.3 * H, 250))
         dial = { cx: -0.4 * s1.rxo, cy: 0.56 * H, ...s1 }
       } else {
-        const t = bar + 24, b = bandTop - 26
-        hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300)) }
+        // The zero is as tall as the hands are, so neither outweighs the other.
+        const t = bar + 24, b = bandTop - 26 - caption
+        hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300, Math.max(150, W * 0.125))) }
         // The dial sits in the room under the bar, with space above and below for its movement labels.
         const s1 = shape(Math.min(0.41 * H, (H - bar) / 2 - 56, 380, narrow ? 380 : fit))
         dial = narrow ? { cx: -0.4 * s1.rxo, cy: bar + (H - bar) / 2, ...s1 } : { cx: m + s1.rxo + 40, cy: bar + (H - bar) / 2, ...s1 }
       }
-      return { W, H, m, phone, narrow, hero, dial, room }
+      const cap = phone ? bandTop - 24 - capH : hero.cy + hero.ryo + 18
+      return { W, H, m, phone, narrow, hero, dial, room, cap }
     }
     const geomAt = (g: Geometry, h: number): Shape => {
       const a = g.hero, b = g.dial, e = smooth(h)
@@ -379,205 +373,102 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       gCall.setAttribute("visibility", "visible")
     }
 
-    /* ── the hands: each row of the fresco's tone grid, filled with real words in three weights ── */
-    const ADAM_ROWS = decode(ADAM), GOD_ROWS = decode(GOD)
-    const ctx = document.createElement("canvas").getContext("2d")
-    const streams = {
-      yours: ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ",
-      // The short form of each piece's install line: whole URLs in capitals were noise, not a hand.
-      ours: pieces.map((p) => `add ${p.name}`).join(" · ") + " · ",
+    /* ── the hands: Michelangelo's, set in real letters on two canvases (components/site/hands.ts) ── */
+    const canvases = Array.from(handsEl.children) as HTMLCanvasElement[]
+    // Adam's hand is what you ask for, in the italic; God's is what we hand back, in roman.
+    const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
+    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0
+    const paint = (t = Infinity) => set.forEach((hand, i) => drawHand(canvases[i], hand, t))
+    // The data and the layout engine load only when the hands are drawn, so neither holds up the first paint. A hand
+    // is laid out a few milliseconds at a time, giving the frame back between slices, so no task runs long even on a
+    // slow phone; a newer layout drops an older one at the next slice.
+    const slice = async (steps: Generator<void, Hand>, v: number) => {
+      for (;;) {
+        const end = performance.now() + 8
+        let r = steps.next()
+        while (!r.done && performance.now() < end) r = steps.next()
+        if (r.done) return r.value
+        await new Promise((go) => setTimeout(go))
+        if (v !== version || !alive) return null
+      }
     }
-    let noteLines: SVGGElement | null = null
-    // Each letter with the two seeds of its fall.
-    let fallers: { t: SVGTextElement; r: number; r2: number }[] = []
-    const buildHands = (g: Geometry) => {
-      unfall()
-      fallers = []
-      handsSvg.replaceChildren()
-      if (!ctx) return
+    const setHands = async (g: Geometry) => {
+      const v = ++version
+      const [lib, { HANDS }] = await Promise.all([import("@chenglou/pretext"), import("@/lib/site/hands")])
+      if (v !== version || !alive) return
+      const grid_ = (grid ??= decodeHands(HANDS))
       const { W, hero, phone } = g
-      const fs = phone ? 5.4 : 7.4, rowPitch = fs * 0.86
-      const css = getComputedStyle(root)
-      const voice = css.getPropertyValue("--ot-voice").trim(), expr = css.getPropertyValue("--ot-expression").trim()
-      const sideW = hero.cx - hero.rxo - 16
-      const k = phone ? clamp(sideW / 40, 1.6, 3.8) : clamp(sideW / 56, 3, 8.4)
-      handsSvg.style.setProperty("--hfs", `${fs}px`)
-      handsSvg.style.setProperty("--gap", `${(hero.rxo * 0.5 + 24).toFixed(1)}px`)
-      handsSvg.style.setProperty("--fall", `${g.H}px`)
-      const rand = random(105)
-      const plan = [
-        { rows: ADAM_ROWS, cell: ADAM.cell ?? 1, kind: "yours" as const, tip: "right", ax: hero.cx - hero.rxo - 14, font: (w: number) => `italic ${w} ${fs}px ${expr}`, weights: [400, 600, 900] },
-        { rows: GOD_ROWS, cell: GOD.cell ?? 1, kind: "ours" as const, tip: "left", ax: hero.cx + hero.rxo + 16, font: (w: number) => `${w} extra-condensed ${fs}px ${voice}`, weights: [400, 700, 900] },
+      // The fingertips reach for the zero from either side, as painted: God's a little higher than Adam's.
+      const gap = hero.rxo + (phone ? 10 : 24), mid = (HANDS.adam[1] + HANDS.god[1]) / 2
+      // As large as the room above the band allows; on a wide screen no larger than the arms reaching its edges, on a
+      // phone the fresco's own crop, the two hands' fingers nearly touching, large enough to read. Only the ink on
+      // screen takes room, and what is on screen depends on the scale, so it is settled in a few rounds.
+      const across = phone ? (W / 2 - gap) / 80 : (W * 1.04 - 2 * gap) / (HANDS.adam[0] + HANDS.w - HANDS.god[0])
+      let k = across
+      for (let round = 0; round < 4; round++) {
+        const a = extent(HANDS, grid_, 0, HANDS.adam[0] - (hero.cx - gap) / k), b = extent(HANDS, grid_, 1, 0, HANDS.god[0] + (W - hero.cx - gap) / k)
+        const top = Math.min(a.top, b.top), bottom = Math.max(a.bottom, b.bottom)
+        k = Math.min(across, (hero.cy - g.room[0]) / (mid - top), (g.room[1] - hero.cy) / (bottom - mid))
+      }
+      const places: Place[] = [
+        { k, tip: { x: hero.cx - gap, y: hero.cy + (HANDS.adam[1] - mid) * k } },
+        { k, tip: { x: hero.cx + gap, y: hero.cy + (HANDS.god[1] - mid) * k } },
       ]
-      const widths = new Map<string, number>()
-      for (const P of plan) {
-        const { rows, cell } = P
-        // The fingertip: the run that reaches furthest toward the zero.
-        let tipCol = P.tip === "right" ? -1 : 1e9, tipRow = 0
-        rows.forEach((r, ri) => {
-          if (P.tip === "right") {
-            const c = r.replace(/0+$/, "").length - 1
-            if (c > tipCol) {
-              tipCol = c
-              tipRow = ri
-            }
-          } else if (/[1-3]/.test(r)) {
-            const c = r.length - r.replace(/^0+/, "").length
-            if (c < tipCol) {
-              tipCol = c
-              tipRow = ri
-            }
-          }
-        })
-        // The hand is as large as the room between the notes and the band allows, and sits where it fills that room,
-        // as long as its fingertip still points into the zero's counter; then it keeps clear of both. Only the rows
-        // with ink on screen count: the arm runs off the edge, and what is off it takes no room. Seen columns depend on
-        // the scale, so it is settled in a few rounds.
-        const reach0 = Math.max(1, P.tip === "right" ? P.ax : W - P.ax)
-        let kk = k, ay = hero.cy
-        for (let round = 0; round < 4; round++) {
-          const span = reach0 / kk / cell, lo = P.tip === "right" ? tipCol - span : tipCol, hi = P.tip === "right" ? tipCol : tipCol + span
-          const inked = (r: string) => /[1-3]/.test(r.slice(Math.max(0, Math.floor(lo)), Math.ceil(hi) + 1))
-          const first = rows.findIndex(inked), last = rows.length - 1 - [...rows].reverse().findIndex(inked)
-          const fill = Math.min(k, (g.room[1] - g.room[0]) / ((last + 1 - first) * cell))
-          ay = clamp(g.room[0] + (tipRow - first) * cell * fill, hero.cy - hero.ryi * 0.4, hero.cy + hero.ryi * 0.4)
-          kk = Math.min(fill, tipRow > first ? (ay - g.room[0]) / ((tipRow - first) * cell) : fill, (g.room[1] - ay) / ((last + 1 - tipRow) * cell))
-        }
-        const toCol = (x: number) => Math.floor((x - P.ax) / kk / cell + tipCol)
-        const yTop = ay - tipRow * cell * kk, yBottom = ay + (rows.length - tipRow) * cell * kk
-        const x0 = P.tip === "right" ? 0 : P.ax - 2, x1 = P.tip === "right" ? P.ax + 2 : W
-        const reach = Math.max(1, P.tip === "right" ? P.ax : W - P.ax)
-        const stream = { text: streams[P.kind], i: 0 }
-        const width = (ch: string, w: number) => {
-          const key = `${P.kind}${w}${ch}`
-          let v = widths.get(key)
-          if (v === undefined) {
-            ctx.font = P.font(w)
-            v = ctx.measureText(ch).width
-            widths.set(key, v)
-          }
-          return v
-        }
-        const grp = svg("g", { class: P.kind }, handsSvg)
-        const step = 1.5, min = fs * 0.9
-        for (let y = yTop + rowPitch / 2; y < yBottom; y += rowPitch) {
-          const row = rows[Math.floor((y - ay) / kk / cell + tipRow)]
-          if (!row) continue
-          // Runs of one tone along the row; a run shorter than a letter joins its neighbour, so edges stay letter-sized.
-          const runs: { t: number; a: number; b: number }[] = []
-          let run: { t: number; a: number; b: number } | null = null
-          for (let x = x0; x <= x1; x += step) {
-            const c = toCol(x), t = c >= 0 && c < row.length ? Number(row[c]) : 0
-            if (run && run.t === t) run.b = x + step
-            else {
-              if (run) runs.push(run)
-              run = { t, a: x, b: x + step }
-            }
-          }
-          if (run) runs.push(run)
-          for (let i = 0; i < runs.length; i++) {
-            const r = runs[i]
-            if (!r.t || r.b - r.a >= min) continue
-            const n = runs[i - 1]?.t ? runs[i - 1] : runs[i + 1]?.t ? runs[i + 1] : null
-            if (n) {
-              n.a = Math.min(n.a, r.a)
-              n.b = Math.max(n.b, r.b)
-            }
-            r.t = 0
-          }
-          for (const r of runs) {
-            const w = r.b - r.a
-            if (!r.t || w < min) continue
-            const weight = P.weights[r.t - 1]
-            while (stream.text[stream.i % stream.text.length] === " ") stream.i++
-            let used = 0, s = ""
-            while (used < w - 0.5) {
-              const ch = stream.text[stream.i % stream.text.length]
-              stream.i++
-              s += ch
-              used += width(ch, weight)
-            }
-            s = s.replace(/\s+$/, "")
-            if (!s) continue
-            const t = svg("text", { x: r.a.toFixed(1), y: y.toFixed(1), textLength: w.toFixed(1), lengthAdjust: "spacing", class: `w${r.t}` }, grp)
-            t.textContent = s
-            // --k orders the settle from the shoulder to the fingertip; --r and --r2 seed the fall.
-            const along = P.tip === "right" ? (r.a + w / 2) / reach : (W - r.a - w / 2) / reach
-            const r1 = Number(rand().toFixed(3)), r2 = Number(rand().toFixed(3))
-            t.style.cssText = `--k:${clamp(along).toFixed(3)};--r:${r1};--r2:${r2}`
-            fallers.push({ t, r: r1, r2 })
-          }
-        }
+      // The film's measure: a budget of letters shared over the ink on screen sets their size.
+      const ink = area(HANDS, grid_, 0, places[0], W) + area(HANDS, grid_, 1, places[1], W)
+      // A phone's hands are a few fingers tall, so they take finer letters to keep their shape; its screen is dense
+      // enough to hold them.
+      const fs = clamp(Math.sqrt(ink / ((phone ? 6000 : 9000) * 0.55)), phone ? 4.2 : 5.5, 11), fy = fs * 1.12
+      const css = getComputedStyle(root), v_ = (n: string) => css.getPropertyValue(n).trim()
+      const voice = v_("--ot-voice"), expr = v_("--ot-expression")
+      const fonts = [[700, 600, 500, 500].map((w) => `italic ${w} ${fy}px ${expr}`), [700, 500, 350, 350].map((w) => `${w} ${fs}px ${voice}`)]
+      const inks = [v_("--ot-ink"), v_("--ot-ink"), v_("--ot-graphite"), v_("--ot-pencil")]
+      const res = Math.min(2, devicePixelRatio || 1)
+      const next: Hand[] = []
+      for (const side of [0, 1] as const) {
+        const hand = await slice(setHand(lib, HANDS, grid_, side, places[side], streams[side], fonts[side], inks, side ? fs : fy, W, res), v)
+        if (!hand) return
+        next.push(hand)
       }
-      placeNotes(g)
-    }
-
-    // Where the browser has view timelines, each letter's fall is its own animation on the zero's scroll, with its
-    // numbers already in the keyframes, so a frame resolves no custom property for any letter. The ranges are the
-    // script's: begun at --r of the first 15svh, over 60svh, a quarter-curve so it accelerates as it drops. They wait for
-    // the overture to end, since an animation from script would sit over its settle.
-    type Ranged = KeyframeAnimationOptions & { rangeStart: unknown; rangeEnd: unknown }
-    const Timeline = (window as unknown as { ViewTimeline?: new (o: { subject: Element; axis: string; inset: string }) => AnimationTimeline }).ViewTimeline
-    let falling: Animation[] = []
-    function unfall() {
-      for (const a of falling) a.cancel()
-      falling = []
-    }
-    const fall = () => {
-      unfall()
-      if (!Timeline || !driven || !G || reduce || overtureActive()) return
-      // No inset: the page's scroll padding (room for the bar) would start the fall before the scroll does.
-      const timeline = new Timeline({ subject: sec, axis: "block", inset: "0px" })
-      const vh = st.clientHeight / 100, drop = G.H
-      const at = (v: number) => ({ rangeName: "contain", offset: CSS.px(Math.round(v)) })
-      falling = fallers.map(({ t, r, r2 }) => {
-        const frame = (e: number) => ({
-          transform: `translate(${((r2 - 0.5) * 120 * e).toFixed(1)}px, ${(e * e * (0.35 + r) * drop).toFixed(1)}px) rotate(${((r2 - 0.5) * 70 * e).toFixed(1)}deg)`,
-          opacity: 1 - e,
-        })
-        const options: Ranged = { timeline, fill: "both", rangeStart: at(r * 15 * vh), rangeEnd: at((60 + r * 15) * vh) }
-        return t.animate([0, 0.25, 0.5, 0.75, 1].map(frame), options)
+      set = next
+      next.forEach((hand, i) => {
+        const c = canvases[i], b = hand.box
+        c.width = Math.ceil(b.w * res)
+        c.height = Math.ceil(b.h * res)
+        c.style.cssText = `left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px`
       })
+      play(gap * 0.5)
     }
 
-    // The museum labels: (a) and (b) hang from their hands on a hairline; (c) sits in the counter.
+    // The overture (P4): the letters come up out of the paper from the fingertips back, and the hands close the gap
+    // to the zero. It is a clock on the frames, so a late start skips what has passed and it still ends in time.
+    const RUN = 700 + 520
+    const play = (shift = 0) => {
+      cancelAnimationFrame(rise)
+      const settle = () => {
+        for (const c of canvases) c.style.transform = ""
+        paint()
+      }
+      if (reduce || !overtureActive()) return settle()
+      const start = performance.now() - Math.max(0, RUN - overtureLeft())
+      const frame = (now: number) => {
+        const t = now - start
+        if (t >= RUN || !overtureActive()) return settle()
+        const e = (1 - Math.min(1, t / RUN)) ** 3
+        canvases[0].style.transform = `translateX(${(-e * shift).toFixed(1)}px)`
+        canvases[1].style.transform = `translateX(${(e * shift).toFixed(1)}px)`
+        paint(t)
+        rise = requestAnimationFrame(frame)
+      }
+      rise = requestAnimationFrame(frame)
+    }
+
+    // The plate's caption sits under the zero; Skip intro, while the overture plays, waits under it.
     const placeNotes = (g: Geometry) => {
-      const { hero, W, m, phone } = g
-      const [a, b, c] = Array.from(notesEl.children) as HTMLElement[]
-      const topY = (parseFloat(getComputedStyle(root).getPropertyValue("--bar")) || 4) * 16 + (phone ? 10 : 20)
-      a.style.transform = `translate(${m}px, ${topY}px)`
-      b.style.transform = `translate(${W - m - b.offsetWidth}px, ${topY}px)`
-      if (phone) {
-        const ny = g.hero.cy + g.hero.ryo + 14
-        c.style.transform = `translate(${hero.cx - c.offsetWidth / 2}px, ${ny}px)`
-      } else {
-        c.style.maxWidth = `${hero.rxi * 1.5}px`
-        c.style.transform = `translate(${hero.cx - c.offsetWidth / 2}px, ${hero.cy - c.offsetHeight / 2}px)`
-      }
-      // Skip intro, while the overture plays, waits under the zero's caption, in the one place nothing else is.
+      const c = notesEl.firstElementChild as HTMLElement, ny = g.cap
+      c.style.transform = `translate(${g.hero.cx - c.offsetWidth / 2}px, ${ny}px)`
       const skip = st.querySelector<HTMLElement>(".hero-skip")
-      if (skip) {
-        const cy = phone ? g.hero.cy + g.hero.ryo + 14 : hero.cy - c.offsetHeight / 2
-        skip.style.transform = `translate(${hero.cx - skip.offsetWidth / 2}px, ${cy + c.offsetHeight + 8}px)`
-      }
-      noteLines = svg("g", { class: "note-lines" }, handsSvg)
-      const rowsTop = (kind: string, x: number) => {
-        let best = Infinity
-        for (const t of handsSvg.querySelectorAll<SVGTextElement>(`.${kind} text`)) {
-          const ax = Number(t.getAttribute("x")), w = Number(t.getAttribute("textLength")), y = Number(t.getAttribute("y"))
-          if (x >= ax && x <= ax + w && y < best) best = y
-        }
-        return best
-      }
-      const hang = (note: HTMLElement, x: number, kind: string) => {
-        const yTop = topY + note.offsetHeight + 6, yEnd = rowsTop(kind, x) - 8
-        if (Number.isFinite(yEnd) && yEnd > yTop + 8 && noteLines) {
-          svg("line", { class: "note-line", x1: x, y1: yTop, x2: x, y2: yEnd }, noteLines)
-          svg("circle", { class: "note-dot", cx: x, cy: yEnd + 3, r: 1.6 }, noteLines)
-        }
-      }
-      hang(a, m + (phone ? 24 : 60), "yours")
-      hang(b, W - m - (phone ? 24 : 60), "ours")
+      if (skip) skip.style.transform = `translate(${g.hero.cx - skip.offsetWidth / 2}px, ${ny + c.offsetHeight + 8}px)`
     }
 
     /* ── the scroll: the hands fall away, the zero moves aside and becomes the dial, then the dial turns ── */
@@ -591,8 +482,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       range = Math.max(1, sec.offsetHeight - Hh)
       measureNames()
       G = stageGeometry()
-      buildHands(G)
-      fall()
+      placeNotes(G)
+      void setHands(G)
       key = ""
       render(true)
     }
@@ -618,8 +509,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       layoutRing(G, geomAt(G, h), o, h)
       const out = clamp(h * 1.8), inn = smooth(clamp((h - 0.6) / 0.4))
       const scripted = !driven || reduce, quiet = (1 - clamp(h * 3)).toFixed(3)
-      put(handsSvg, "--h", falling.length ? "" : h.toFixed(4))
-      put(handsSvg, "--notes", scripted ? quiet : "")
+      put(handsEl, "--h", scripted ? h.toFixed(4) : "")
       put(notesEl, "--notes", scripted ? quiet : "")
       put(bandEl, "--out", scripted ? out.toFixed(3) : "")
       put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
@@ -706,21 +596,22 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     addEventListener("resize", onResize)
     const onMotion = () => {
       reduce = motion.matches
-      fall()
+      play()
       key = ""
       wake()
     }
     motion.addEventListener("change", onMotion)
     const offOverture = onOvertureEnd(() => {
-      fall()
+      play()
       key = ""
       wake()
     })
-    // A new pair is a new set of letters: the hands and the names are set again once its fonts arrive.
+    // A new pair is a new set of letters, and a new mode new inks: the hands and the names are set again once the fonts
+    // arrive.
     const pair = new MutationObserver(() => {
       requestAnimationFrame(() => void document.fonts.ready.then(relayout))
     })
-    pair.observe(root, { attributes: true, attributeFilter: ["data-pair"] })
+    pair.observe(root, { attributes: true, attributeFilter: ["data-pair", "data-mode"] })
     let alive = true
     void document.fonts.ready.then(() => {
       if (alive) relayout()
@@ -738,7 +629,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       removeEventListener("resize", onResize)
       motion.removeEventListener("change", onMotion)
       offOverture()
-      unfall()
+      cancelAnimationFrame(rise)
       pair.disconnect()
     }
   }, [movements, pieces, N])
@@ -776,18 +667,16 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       <OvertureScript />
       <span className="zero-at" id="the-pieces" data-rail="The pieces" data-rail-num="01" />
       <div ref={stage} className="zero-stage" data-hero="" data-keys={keys || undefined}>
-        <svg ref={hands} className="zero-hands" aria-hidden="true" />
+        <div ref={hands} className="zero-hands" aria-hidden="true">
+          <canvas className="hand-a" />
+          <canvas className="hand-g" />
+        </div>
         <svg ref={ring} className="zero-ring" aria-hidden="true" />
 
         <div ref={notes} className="zero-notes">
-          <p className="note">
-            <span className="note-k">(a)</span> What you ask for, set in <i>italic</i>.
-          </p>
-          <p className="note note-b">
-            <span className="note-k">(b)</span> What we hand back: an install line for every piece, in roman.
-          </p>
           <p className="note note-c">
-            <span className="note-k">(c)</span> The zero: all <b>{count}</b> components, by name. <span className="note-turn">Scroll, and it turns.</span>
+            Michelangelo&rsquo;s hands, set in <i>what you ask for</i> and what we hand back, reach for a zero of all <b>{count}</b> components, by name.{" "}
+            <span className="note-turn">Scroll, and it turns.</span>
           </p>
         </div>
 
