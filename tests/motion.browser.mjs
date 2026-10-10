@@ -479,7 +479,7 @@ await check("01: the zero turns into the tunnel, one drawing at every step, with
   for (const h of [0.3, 0.5, 0.7]) {
     await page.evaluate((h) => scrollTo(0, document.querySelector(".zero").getBoundingClientRect().top + scrollY + h * Math.round(document.querySelector(".zero-stage").clientHeight * 0.75)), h)
     await page.waitForTimeout(400)
-    const seen = await page.evaluate(() => Object.fromEntries([".zero-ring", ".zero-hands", ".hero-band", ".pieces-part"].map((s) => [s, Number(getComputedStyle(document.querySelector(s)).opacity)])))
+    const seen = await page.evaluate(() => Object.fromEntries([".zero-ring", ".zero-hands .hand-a", ".zero-hands .hand-g", ".hero-band", ".pieces-part"].map((s) => [s, Number(getComputedStyle(document.querySelector(s)).opacity)])))
     for (const [what, o] of Object.entries(seen)) assert.ok(o < 0.02, `at h ${h}, ${what} still shows (${o.toFixed(2)}) while the names travel`)
     assert.ok(await page.evaluate(() => [...document.querySelectorAll(".tunnel-ring")].some((r) => Number(r.style.opacity) > 0.5)), `at h ${h}, the names should be on their way`)
   }
