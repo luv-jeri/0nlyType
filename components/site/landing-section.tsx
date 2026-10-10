@@ -1,6 +1,7 @@
 // One pattern for every numbered section after the dial, after C's programme: a hairline, the number and name as
 // corner labels in the margin with one note under them, then the title and the body on the stave. Every section
-// keeps the same space above and below and the same gap from title to body (app/landing.css, ".sec").
+// keeps the same space above and below and the same gap from title to body (app/landing.css, ".sec"). A section whose
+// picture wants the whole width (the sea) puts it in `wide`, a row under the title on the page's full grid.
 
 type SecProps = {
   id: string
@@ -10,10 +11,12 @@ type SecProps = {
   title: React.ReactNode
   note?: React.ReactNode
   className?: string
-  children: React.ReactNode
+  children?: React.ReactNode
+  /** A row under the title that spans the page's twelve columns, at the same gap as the body. */
+  wide?: React.ReactNode
 }
 
-export function Sec({ id, num, name, title, note, className, children }: SecProps) {
+export function Sec({ id, num, name, title, note, className, children, wide }: SecProps) {
   return (
     <section className={className ? `sec ${className}` : "sec"} aria-labelledby={id}>
       <div className="sec-margin margin">
@@ -27,8 +30,9 @@ export function Sec({ id, num, name, title, note, className, children }: SecProp
         <h2 className="sec-title" id={id} data-rail={name} data-rail-num={num}>
           {title}
         </h2>
-        <div className="sec-body">{children}</div>
+        {children ? <div className="sec-body">{children}</div> : null}
       </div>
+      {wide ? <div className="sec-wide">{wide}</div> : null}
     </section>
   )
 }

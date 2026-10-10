@@ -6,6 +6,7 @@ import "./landing.css"
 import { AskFor, Share, TuneSentence } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
 import { Sec } from "@/components/site/landing-section"
+import { Sea } from "@/components/site/landing-sea"
 import { REPO, ShareCall } from "@/components/site/landing-share"
 import { LandingZero, type Movement } from "@/components/site/landing-zero"
 import { catalog } from "@/lib/site/catalog"
@@ -63,9 +64,8 @@ export default function Home() {
         className="sec-sea"
         title="Your words, drawn as the sea."
         note="Type a line. We set it in your italic, over and over, until it draws the wave. Change one word and the whole sea is set again."
-      >
-        <p className="sea-later">After Hokusai, about 1831 · set in Bodoni Moda italic at 3 weights · no image file</p>
-      </Sec>
+        wide={<Sea />}
+      />
 
       <Sec id="tune" num="04" name="Tune" title="One sentence retunes the page." note="Every italic word is a choice. Change one, and everything follows.">
         <TuneSentence />
