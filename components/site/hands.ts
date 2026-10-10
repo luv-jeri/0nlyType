@@ -5,24 +5,40 @@ import type { Hands } from "@/lib/site/hands"
 // letter takes its tone from the fresco's light where it sits: shadow is set heavy in full ink, light is set thin
 // and faint, and letters on the outline keep their ink so the silhouette holds. The letters are stamped from a sheet
 // set once per layout, so a frame is image copies, not text layout. Laying a hand out is sliced: it pauses between rows,
-// so a slow phone gives each frame back instead of holding the page for the whole hand.
+// so a slow phone gives each frame back instead of holding the page for the whole hand. Each letter also knows the
+// phrase it was set from and has a bold cut on the sheet, so a pointer can read one phrase out of the hand.
 
 type Lib = typeof import("@chenglou/pretext")
 type Cursor = { segmentIndex: number; graphemeIndex: number }
 
-/** One hand, laid out: each letter's place in its box, its ink, its sheet cell, and how far it is from the fingertip. */
+/**
+ * One hand, laid out: each letter's place in its box, its ink, its sheet cell and its bold cell, how far it is from
+ * the fingertip, and its phrase (an index into `phrases`, the hand's distinct phrases, each set as one line of text).
+ */
 export type Hand = {
   n: number
+  fs: number
   x: Float32Array
   y: Float32Array
   alpha: Float32Array
   cell: Uint16Array
+  bold: Uint16Array
   reach: Float32Array
+  phrase: Uint16Array
+  phrases: string[]
   box: { x: number; y: number; w: number; h: number }
   sheet: HTMLCanvasElement
   cells: { x: number; y: number; w: number; h: number }[]
   res: number
 }
+
+/**
+ * What a pointer is doing to a hand, in the hand's box: a loupe at `x`, `y` of radius `r` and strength `s` (0 to 1)
+ * that lifts the ink under it, swells the letters by up to `grow` and spreads them as a lens does; the phrase `lit`
+ * read in full ink at `litA`, the one before it, `was`, letting go at `wasA`; and `dim`, how far the rest of the
+ * hand steps back while a phrase is read.
+ */
+export type Touch = { x: number; y: number; r: number; s: number; grow: number; lit: number; litA: number; was: number; wasA: number; dim: number }
 
 /** Where a hand lands: stage pixels per cell of the grid, and the stage point its fingertip touches. */
 export type Place = { k: number; tip: { x: number; y: number } }
@@ -117,6 +133,18 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
   let cursor: Cursor = { segmentIndex: 0, graphemeIndex: 0 }
 
   const ch: string[] = [], xs: number[] = [], ys: number[] = [], alpha: number[] = [], tones: number[] = []
+  // The phrases: a sentence of Adam's ends at its full stop, a line of God's at its middot. Each letter takes the
+  // running count of phrases, and the count is turned into the phrase's text once it closes, so the letters of
+  // "add calendar" share one phrase however many rows it spans and however often it comes round.
+  const said: number[] = [], phrases: string[] = [], known = new Map<string, number>(), named: number[] = []
+  let words = ""
+  const close = () => {
+    const t = words.replace(/\s+/g, " ").trim()
+    words = ""
+    let k = known.get(t)
+    if (k === undefined) known.set(t, (k = phrases.push(t) - 1))
+    named.push(k)
+  }
   const top = p.tip.y - tip[1] * p.k, bottom = top + h.h * p.k
   for (let y = top + lh / 2; y < bottom; y += lh) {
     const r = Math.floor(toR(y))
@@ -145,6 +173,7 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
       let gx = x0
       for (const s of chars) {
         const w = cw(s)
+        if (s !== "." && s !== "·") words += s
         if (s !== " ") {
           const cx = gx + w / 2
           const v = at(cx, y) || at(cx - w / 2, y) || at(cx + w / 2, y)
@@ -155,14 +184,20 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
             xs.push(cx)
             ys.push(y)
             tones.push(v < cut[0] ? 0 : v < cut[1] ? 1 : v < cut[2] ? 2 : 3)
+            // A full stop ends its sentence and is read with it; a middot only stands between two lines.
+            said.push(s === "·" ? -1 : named.length)
             // Light in the fresco is faint ink, shadow is full ink; the outline keeps enough to hold its line.
             alpha.push(edge ? Math.max(0.62, 1 - 0.8 * shade ** 1.3) : 1 - 0.8 * shade ** 1.3)
           }
         }
+        if (s === "." || s === "·") close()
         gx += w + (s === " " ? extra : 0)
       }
+      // A line's end is a space between words, unless it broke at a hyphen.
+      if (!words.endsWith("-")) words += " "
     }
   }
+  close()
 
   const n = ch.length
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, far = 1
@@ -179,15 +214,15 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
   // The sheet: every letter each tone uses, set once in its font and ink at the screen's resolution.
   const cells: { x: number; y: number; w: number; h: number }[] = []
   const index = new Map<string, number>()
-  const cell = new Uint16Array(n)
+  const cell = new Uint16Array(n), bold = new Uint16Array(n)
   let cx = 0, cy = 0, rowH = 0, maxW = 0
   const ch2 = Math.ceil(fs * 2 * res)
-  for (let i = 0; i < n; i++) {
-    const key = tones[i] + ch[i]
+  const cellOf = (tone: number, c: string) => {
+    const key = tone + c
     let s = index.get(key)
     if (s === undefined) {
-      measure.font = fonts[tones[i]]
-      const w = Math.ceil((measure.measureText(ch[i]).width + fs * 0.5) * res)
+      measure.font = fonts[tone]
+      const w = Math.ceil((measure.measureText(c).width + fs * 0.5) * res)
       if (cx + w > 2048) {
         cx = 0
         cy += rowH
@@ -200,7 +235,12 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
       rowH = Math.max(rowH, ch2)
       maxW = Math.max(maxW, cx)
     }
-    cell[i] = s
+    return s
+  }
+  for (let i = 0; i < n; i++) {
+    cell[i] = cellOf(tones[i], ch[i])
+    // The deepest tone is the bold cut a phrase is read in.
+    bold[i] = cellOf(0, ch[i])
   }
   yield
   const sheet = document.createElement("canvas")
@@ -221,11 +261,15 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
 
   const hand: Hand = {
     n,
+    fs,
     x: Float32Array.from(xs, (v) => v - box.x),
     y: Float32Array.from(ys, (v) => v - box.y),
     alpha: Float32Array.from(alpha),
     cell,
+    bold,
     reach: Float32Array.from(xs, (v, i) => Math.min(1, Math.hypot(v - p.tip.x, ys[i] - p.tip.y) / far)),
+    phrase: Uint16Array.from(said, (k) => (k < 0 ? 65535 : named[k])),
+    phrases,
     box,
     sheet,
     cells,
@@ -234,28 +278,128 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
   return hand
 }
 
+// A settled hand is drawn once into a bitmap; a pointer's frame copies it and sets again only what the pointer changes:
+// the letters under the loupe and the phrase being read. The letters of each phrase are listed once per layout.
+const rested = new WeakMap<Hand, HTMLCanvasElement>()
+const members = new WeakMap<Hand, Map<number, number[]>>()
+
+function letter(ctx: CanvasRenderingContext2D, hand: Hand, i: number, x: number, y: number, k: number, a: number, lit: number) {
+  const r = hand.res
+  if (a * (1 - lit) > 0.004) {
+    const c = hand.cells[hand.cell[i]], w = (c.w / r) * k, h = (c.h / r) * k
+    ctx.globalAlpha = a * (1 - lit)
+    ctx.drawImage(hand.sheet, c.x, c.y, c.w, c.h, x - w / 2, y - h / 2, w, h)
+  }
+  if (lit > 0) {
+    const b = hand.cells[hand.bold[i]], w = (b.w / r) * k, h = (b.h / r) * k
+    ctx.globalAlpha = lit
+    ctx.drawImage(hand.sheet, b.x, b.y, b.w, b.h, x - w / 2, y - h / 2, w, h)
+  }
+}
+
 /**
  * Draws a hand into its canvas. `t` is the overture's clock in ms (Infinity when settled): the letters come up out
- * of the paper from the fingertip back, each over `rise` ms, the last starting at `spread` ms.
+ * of the paper from the fingertip back, each over `rise` ms, the last starting at `spread` ms. `touch` is what a
+ * pointer is doing to it, once it has settled.
  */
-export function drawHand(canvas: HTMLCanvasElement, hand: Hand, t = Infinity, spread = 700, rise = 520) {
+export function drawHand(canvas: HTMLCanvasElement, hand: Hand, t = Infinity, spread = 700, rise = 520, touch?: Touch) {
   const ctx = canvas.getContext("2d")!
   const r = hand.res
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.setTransform(r, 0, 0, r, 0, 0)
-  for (let i = 0; i < hand.n; i++) {
-    let a = hand.alpha[i], dy = 0
-    if (t !== Infinity) {
+  if (t !== Infinity) {
+    ctx.setTransform(r, 0, 0, r, 0, 0)
+    for (let i = 0; i < hand.n; i++) {
       const u = Math.min(1, Math.max(0, (t - hand.reach[i] * spread) / rise))
       if (u <= 0) continue
       const o = 1 - (1 - u) ** 3
-      a *= o
-      dy = (1 - o) * 4
+      letter(ctx, hand, i, hand.x[i], hand.y[i] + (1 - o) * 4, 1, hand.alpha[i] * o, 0)
     }
-    const c = hand.cells[hand.cell[i]], w = c.w / r, h = c.h / r
-    ctx.globalAlpha = a
-    ctx.drawImage(hand.sheet, c.x, c.y, c.w, c.h, hand.x[i] - w / 2, hand.y[i] - h / 2 + dy, w, h)
+    ctx.globalAlpha = 1
+    return
+  }
+
+  let rest = rested.get(hand)
+  if (!rest) {
+    rest = document.createElement("canvas")
+    rest.width = canvas.width
+    rest.height = canvas.height
+    const g = rest.getContext("2d")!
+    g.setTransform(r, 0, 0, r, 0, 0)
+    for (let i = 0; i < hand.n; i++) letter(g, hand, i, hand.x[i], hand.y[i], 1, hand.alpha[i], 0)
+    rested.set(hand, rest)
+  }
+  const T = touch, lens = !!T && T.s > 0, R = T?.r ?? 0
+  // The rest of the hand, stepped back while a phrase is read, with a hole where the loupe is.
+  ctx.globalAlpha = T ? 1 - 0.4 * T.dim : 1
+  if (lens) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, 0, canvas.width, canvas.height)
+    ctx.arc(T.x * r, T.y * r, R * r, 0, Math.PI * 2)
+    ctx.clip("evenodd")
+  }
+  ctx.drawImage(rest, 0, 0)
+  if (lens) ctx.restore()
+  if (!T || (!lens && !T.litA && !T.wasA)) {
+    ctx.globalAlpha = 1
+    return
+  }
+  ctx.setTransform(r, 0, 0, r, 0, 0)
+  const litOf = (i: number) => {
+    const g = hand.phrase[i]
+    return g === T.lit ? T.litA : g === T.was ? T.wasA : 0
+  }
+
+  if (lens) {
+    // The loupe: a letter at distance u (0 at the centre, 1 at the rim) is carried out to u(1 + m(1 - u)^2), so the
+    // centre is magnified by 1 + m and the rim meets the page unmoved. Each letter is set at the smaller of the
+    // lens's two stretches there, round and outward, so swollen letters never run into their neighbours. Letters
+    // just outside the rim are set too, unmoved, for the part of them the hole cut away.
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(T.x, T.y, R, 0, Math.PI * 2)
+    ctx.clip()
+    const out = R + hand.fs * 2, m = T.grow * T.s
+    for (let i = 0; i < hand.n; i++) {
+      const ox = hand.x[i] - T.x, oy = hand.y[i] - T.y
+      if (ox > out || ox < -out || oy > out || oy < -out) continue
+      const d2 = ox * ox + oy * oy
+      if (d2 > out * out) continue
+      const lit = litOf(i)
+      let a = hand.alpha[i] * (1 - 0.4 * T.dim * (1 - lit)), x = hand.x[i], y = hand.y[i], k = 1
+      if (d2 < R * R) {
+        const u = Math.sqrt(d2) / R, f = 1 - u, e = f * f * (3 - 2 * f) * T.s
+        const round = 1 + m * f * f, outward = 1 + m * f * (1 - 3 * u)
+        x = T.x + ox * round
+        y = T.y + oy * round
+        k = Math.min(round, outward)
+        a += (1 - a) * 0.7 * e
+      }
+      letter(ctx, hand, i, x, y, k, a, lit)
+    }
+    ctx.restore()
+  }
+
+  // The phrase being read, and the one letting go, in the bold cut over the rest; under the loupe it is set above.
+  let lists = members.get(hand)
+  if (!lists) {
+    lists = new Map()
+    for (let i = 0; i < hand.n; i++) {
+      const g = hand.phrase[i]
+      const list = lists.get(g)
+      if (list) list.push(i)
+      else lists.set(g, [i])
+    }
+    members.set(hand, lists)
+  }
+  for (const [g, A] of [[T.lit, T.litA], [T.was, T.wasA]]) {
+    if (g < 0 || A <= 0) continue
+    for (const i of lists.get(g) ?? []) {
+      const ox = hand.x[i] - T.x, oy = hand.y[i] - T.y
+      if (lens && ox * ox + oy * oy < R * R) continue
+      letter(ctx, hand, i, hand.x[i], hand.y[i], 1, 0, A)
+    }
   }
   ctx.globalAlpha = 1
 }

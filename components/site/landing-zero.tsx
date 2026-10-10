@@ -8,7 +8,7 @@ import * as React from "react"
 import { CopyCommand } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
 import { Overture, OvertureScript, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
-import { area, decodeHands, drawHand, extent, setHand, type Hand, type Place } from "@/components/site/hands"
+import { area, decodeHands, drawHand, extent, setHand, type Hand, type Place, type Touch } from "@/components/site/hands"
 import { Wordmark } from "@/components/site/wordmark"
 
 // The hero and 01, the pieces, on one sticky stage turned by the scroll. Michelangelo's two hands, set in real letters,
@@ -16,7 +16,9 @@ import { Wordmark } from "@/components/site/wordmark"
 // back, a line for every piece, in roman. Every letter takes its weight and ink from the fresco's light where it sits,
 // so the fingers read (components/site/hands.ts). Scroll, and the hands step back, the zero moves aside and becomes a
 // dial, and the dial turns, one piece per notch, with a settled spring. Point at a name to read it; click it, or use the
-// arrow keys in the list, to turn to it.
+// arrow keys in the list, to turn to it. Point at a hand and a loupe follows over its letters, the phrase under it is
+// read out in full ink, and the hands lean in as you near the zero; a line of God's hand names its piece in the zero,
+// and clicking it turns there.
 //
 // Everything the scroll moves is written, never read: positions are measured once per layout (on resize, when the
 // fonts arrive, when the pair changes), and the scroll handler reads only scrollY, before any frame writes. Each
@@ -217,7 +219,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
 
     /* ── drawing the ring for one moment of the scroll ── */
-    let shown = -1, hover = -1, cur: Shape | null = null, o = 0, h = 0
+    // `hover` is the piece being read in the zero: the name pointed at on the ring, else the line pointed at in God's hand.
+    let shown = -1, hover = -1, onRing = -1, onHand = -1, cur: Shape | null = null, o = 0, h = 0
     // A custom property restyles everything under the element it is set on, so each goes only to what reads it, and
     // only when it changes.
     const written = new Map<string, string>()
@@ -377,8 +380,11 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const canvases = Array.from(handsEl.children) as HTMLCanvasElement[]
     // Adam's hand is what you ask for, in the italic; God's is what we hand back, in roman.
     const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
-    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0
-    const paint = (t = Infinity) => set.forEach((hand, i) => drawHand(canvases[i], hand, t))
+    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false
+    const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
+    // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
+    let pieceOf: number[] = [], phraseOf = new Map<number, number>()
+    const paint = (t = Infinity) => set.forEach((hand, i) => drawHand(canvases[i], hand, t, 700, 520, t === Infinity ? touch[i] : undefined))
     // The data and the layout engine load only when the hands are drawn, so neither holds up the first paint. A hand
     // is laid out a few milliseconds at a time, giving the frame back between slices, so no task runs long even on a
     // slow phone; a newer layout drops an older one at the next slice.
@@ -431,6 +437,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         next.push(hand)
       }
       set = next
+      const byName = new Map(pieces.map((q) => [q.name, q.i]))
+      pieceOf = next[1].phrases.map((t) => (t.startsWith("add ") ? (byName.get(t.slice(4)) ?? -1) : -1))
+      phraseOf = new Map(pieceOf.flatMap((i, k) => (i >= 0 ? [[i, k] as [number, number]] : [])))
+      for (const T of touch) Object.assign(T, { s: 0, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0, r: Math.max(48, next[0].fs * 8) })
       next.forEach((hand, i) => {
         const c = canvases[i], b = hand.box
         c.width = Math.ceil(b.w * res)
@@ -446,10 +456,14 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const play = (shift = 0) => {
       cancelAnimationFrame(rise)
       const settle = () => {
+        rising = false
+        lean = 0
         for (const c of canvases) c.style.transform = ""
         paint()
+        sense()
       }
       if (reduce || !overtureActive()) return settle()
+      rising = true
       const start = performance.now() - Math.max(0, RUN - overtureLeft())
       const frame = (now: number) => {
         const t = now - start
@@ -461,6 +475,92 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         rise = requestAnimationFrame(frame)
       }
       rise = requestAnimationFrame(frame)
+    }
+
+    // Pointing at the hands, once they have settled and while they are the hero, on a screen with a fine pointer. Each
+    // frame finds the letter nearest the pointer in each hand; the loupe follows it a little behind, the phrase it
+    // belongs to is read in the bold cut as the rest of that hand steps back, and the hands lean in by a few pixels as
+    // the pointer nears the zero. Every value eases toward its aim on the tempo tokens (hover at allegro, 160ms; the
+    // lean and the stepping back at moderato, 320ms), and the frames stop once all of them have arrived. Under reduced
+    // motion the ink still answers, at once, and nothing moves or swells.
+    const fine = matchMedia("(hover: hover) and (pointer: fine)")
+    let px = 0, py = 0, inside = false, lean = 0, felt = 0, feltAt = 0
+    const toward = (v: number, aim: number, ms: number, dt: number) => {
+      const next = reduce ? aim : aim + (v - aim) * Math.exp((-3 * dt) / ms)
+      return Math.abs(next - aim) < 0.002 ? aim : next
+    }
+    const feel = (now: number) => {
+      felt = 0
+      const dt = feltAt ? Math.min(50, now - feltAt) : 16
+      feltAt = now
+      const live = inside && fine.matches && !rising && set.length === 2 && h < 0.2 && !!G
+      let moving = false, pick = -1
+      set.forEach((hand, i) => {
+        const T = touch[i], was = `${T.x}${T.y}${T.s}${T.lit}${T.litA}${T.wasA}${T.dim}`
+        let near = -1, lx = 0, ly = 0
+        if (live) {
+          const b = canvases[i].getBoundingClientRect()
+          lx = px - b.left
+          ly = py - b.top
+          let best = (hand.fs * 2.4) ** 2
+          if (lx > -40 && ly > -40 && lx < b.width + 40 && ly < b.height + 40)
+            for (let j = 0; j < hand.n; j++) {
+              const dx = hand.x[j] - lx, dy = hand.y[j] - ly, d = dx * dx + dy * dy
+              if (d < best) {
+                best = d
+                near = hand.phrase[j]
+              }
+            }
+        }
+        const over = near >= 0
+        if (i === 1 && over) pick = pieceOf[near] ?? -1
+        // A name pointed at on the ring is read in God's hand too, wherever its line comes round.
+        const aim = over ? near : live && i === 1 && onRing >= 0 ? (phraseOf.get(onRing) ?? -1) : -1
+        if (aim !== T.lit) {
+          if (aim === T.was) [T.lit, T.litA, T.was, T.wasA] = [T.was, T.wasA, T.lit, T.litA]
+          else [T.was, T.wasA, T.lit, T.litA] = [T.lit, T.litA, aim, 0]
+        }
+        if (over && T.s === 0) {
+          T.x = lx
+          T.y = ly
+        }
+        if (over) {
+          T.x = toward(T.x, lx, 70, dt)
+          T.y = toward(T.y, ly, 70, dt)
+        }
+        T.grow = reduce ? 0 : 0.6
+        T.s = toward(T.s, over ? 1 : 0, 160, dt)
+        T.litA = toward(T.litA, T.lit >= 0 ? 1 : 0, 160, dt)
+        T.wasA = toward(T.wasA, 0, 160, dt)
+        T.dim = toward(T.dim, T.lit >= 0 ? 1 : 0, 320, dt)
+        if (`${T.x}${T.y}${T.s}${T.lit}${T.litA}${T.wasA}${T.dim}` !== was) {
+          moving = true
+          drawHand(canvases[i], hand, Infinity, 700, 520, T)
+        }
+      })
+      // The reach: as the pointer comes to the zero, each hand leans toward it.
+      let aim = 0
+      if (live && !reduce && G) {
+        const b = st.getBoundingClientRect(), d = Math.hypot(px - b.left - G.hero.cx, py - b.top - G.hero.cy)
+        aim = smooth(clamp(1.6 - d / G.hero.rxo))
+      }
+      const next = toward(lean, aim, 320, dt)
+      if (next !== lean && !rising) {
+        lean = next
+        moving = true
+        const by = (lean * (G?.phone ? 4 : 9)).toFixed(2)
+        canvases[0].style.transform = lean ? `translateX(${by}px)` : ""
+        canvases[1].style.transform = lean ? `translateX(-${by}px)` : ""
+      }
+      if (pick !== onHand) {
+        onHand = pick
+        point()
+      }
+      if (moving) sense()
+      else feltAt = 0
+    }
+    const sense = () => {
+      if (!felt) felt = requestAnimationFrame(feel)
     }
 
     // The plate's caption sits under the zero; Skip intro, while the overture plays, waits under it.
@@ -541,6 +641,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       render()
       if (v !== 0) raf = requestAnimationFrame(tick)
       else last = 0
+      // The scroll takes the hands away, and whatever a pointer was doing to them goes with them.
+      if (lean || touch.some((T) => T.s || T.lit >= 0)) sense()
     }
     const wake = () => {
       if (!raf) raf = requestAnimationFrame(tick)
@@ -563,26 +665,36 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (z.ryo < 50 || r < 0.62 || r > 1.32) return -1
       return mod(Math.round(fAt(midTab(z), Math.atan2(w, u)) * N + o), N)
     }
-    const onMove = (ev: PointerEvent) => {
-      if (ev.pointerType === "touch") return
-      const i = hit(ev)
+    const point = () => {
+      const i = onRing >= 0 ? onRing : onHand
       if (i === hover) return
       hover = i
       ringSvg.toggleAttribute("data-pointing", i >= 0)
       if (i < 0) gCall.setAttribute("visibility", "hidden")
       render(true)
     }
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerType === "touch") return
+      px = ev.clientX
+      py = ev.clientY
+      inside = true
+      sense()
+      onRing = hit(ev)
+      point()
+    }
     const onLeave = () => {
-      hover = -1
-      ringSvg.removeAttribute("data-pointing")
-      gCall.setAttribute("visibility", "hidden")
-      render(true)
+      inside = false
+      onRing = -1
+      point()
+      sense()
     }
     const onClick = (ev: MouseEvent) => {
-      const i = hit(ev)
+      const at = hit(ev), i = at >= 0 ? at : onHand
       if (i < 0) return
-      scrollToPiece(i)
+      // The focus first: from the hero, focusing the list turns to the piece it last held, and the turn to this one
+      // must come after it.
       picked.current(i)
+      scrollToPiece(i)
     }
     ringSvg.addEventListener("pointermove", onMove)
     ringSvg.addEventListener("pointerleave", onLeave)
@@ -630,6 +742,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       motion.removeEventListener("change", onMotion)
       offOverture()
       cancelAnimationFrame(rise)
+      cancelAnimationFrame(felt)
       pair.disconnect()
     }
   }, [movements, pieces, N])
