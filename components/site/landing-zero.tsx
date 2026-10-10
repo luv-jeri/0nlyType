@@ -683,9 +683,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollTo({ top: 0, behavior: "auto" })}>
           <Wordmark id="hero-title" className="hero-mark" />
           <div className="hero-says">
-            <p className="hero-zero">
-              <span className="hero-zero-k">0 =</span> pictures, boxes and shadows. Everything else is type, even the hands.
-            </p>
             <span className="hero-cta">
               <Cta href="/docs/">Read the docs</Cta>
             </span>

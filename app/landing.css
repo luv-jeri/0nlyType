@@ -61,15 +61,13 @@
 .zero-notes i { font-family: var(--ot-expression); font-size: calc(var(--ot-expression-text-scale) * 1em); color: var(--ot-ink); }
 .zero-notes b { font-weight: 600; color: var(--ot-ink); font-variant-numeric: tabular-nums; }
 
-/* The band: the lockup, what the zero means, and one line to install. It lifts away as the dial arrives. */
+/* The band: the lockup, the way into the docs, and one line to install. It lifts away as the dial arrives. */
 .hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: end; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
 .zero-stage:not([data-hero]) .hero-band { pointer-events: none; }
 /* The lockup is about 4em wide: it fills its five columns (40% of the band) and no more. */
 .hero-mark { grid-column: 1 / 6; --H: max(64px, min(calc(38cqi / 4), calc((100svh - 560px) / 1.1), 168px)); margin-block-end: -0.04em; }
 .hero-says { grid-column: 6 / 10; display: grid; justify-items: start; row-gap: var(--ot-space-5); padding-bottom: var(--ot-space-2); }
 .hero-install { grid-column: 10 / -1; display: grid; justify-items: start; row-gap: var(--ot-space-3); padding-bottom: var(--ot-space-2); }
-.hero-zero { max-width: 26ch; font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); text-wrap: pretty; }
-.hero-zero-k { margin-inline-end: 0.2em; font-weight: 700; }
 .hero-cta .cta { font-size: var(--ot-mf); }
 .hero-count { max-width: 30ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
 .hero-install .copy-cmd-text { font-size: var(--ot-pp); }
@@ -145,7 +143,6 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .hero-mark, .hero-says, .hero-install { grid-column: 1; }
   .hero-mark { --H: min(calc(100cqi / 4.1), 120px); }
   .hero-says { row-gap: var(--ot-space-3); }
-  .hero-zero { max-width: none; font-size: var(--ot-p); line-height: 1.4; }
   .hero-cta .cta { font-size: var(--ot-mp); }
   .hero-count { display: none; }
   .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); bottom: auto; } /* clear of the rail's label */
