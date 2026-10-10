@@ -4,7 +4,7 @@ import { catalog } from "@/lib/site/catalog"
 import type { SearchGroup } from "@/components/site/search"
 
 export const PAGES = [
-  { href: "/", title: "Overture", num: "" },
+  { href: "/", title: "Home", num: "" },
   { href: "/docs/", title: "Index", num: "" },
   { href: "/docs/install/", title: "Install", num: "I" },
   { href: "/docs/build-with-ai/", title: "Build with AI", num: "" },
@@ -21,9 +21,10 @@ export const TOKENS: string[] = (() => {
   return [...root.matchAll(/(--ot-[a-z0-9-]+)\s*:/g)].map((m) => m[1])
 })()
 
-/** Where each path is, for the top row: page names, and each item's movement. */
+/** Where each path is, for the top row: page names, and each item's movement. The home page names no place: the
+ * mark beside it already says where you are. */
 export const places: Record<string, { num: string; name: string }> = Object.fromEntries([
-  ...PAGES.map((p) => [p.href, { num: p.num, name: p.title }]),
+  ...PAGES.filter((p) => p.href !== "/").map((p) => [p.href, { num: p.num, name: p.title }]),
   ...catalog.flatMap((m) => m.items.map((e) => [`/docs/${e.meta.name}/`, { num: m.num, name: m.name }])),
 ])
 
