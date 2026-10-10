@@ -5,7 +5,7 @@
 import { usePathname } from "next/navigation"
 
 const sheets: Record<string, string> = {
-  "/": "/ui/site-styles/7e09008fdb64.css",
+  "/": "/ui/site-styles/7c172ed3ae02.css",
   "/docs": "/ui/site-styles/8fec9b9d3832.css",
   "/feedback": "/ui/site-styles/fff3c8224fad.css",
   "/requests": "/ui/site-styles/c1e84b5efc54.css",
