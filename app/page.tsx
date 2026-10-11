@@ -8,6 +8,7 @@ import "./landing-install.css"
 import "./landing-ask.css"
 import "./landing-help.css"
 import "./landing-coda.css"
+import "./landing-pin.css"
 
 import { Ask } from "@/components/site/landing-ask"
 import { Coda } from "@/components/site/landing-coda"
@@ -16,6 +17,7 @@ import { Install } from "@/components/site/landing-install"
 import { Leaves } from "@/components/site/landing-leaves"
 import { Sea } from "@/components/site/landing-sea"
 import { LandingZero, type Movement } from "@/components/site/landing-zero"
+import { SectionPin } from "@/components/site/landing-pin"
 import { JsonLd } from "@/components/site/json-ld"
 import { pageMeta, REPO, SITE_DESCRIPTION, SITE_NAME, STUDIO } from "@/lib/site/meta"
 import { catalog } from "@/lib/site/catalog"
@@ -67,6 +69,7 @@ export default function Home() {
       <Ask />
       <Help />
       <Coda />
+      <SectionPin />
 
       <footer className="landing-foot">
         <p>0nlyType is made by The Directors, in the open.</p>
