@@ -15,9 +15,9 @@ export function emailMessage(row: ReportRow, kind: string, site: string) {
   const url=(completed||alreadyAvailable) && row.component_url?row.component_url:`${site.replace(/\/$/,"")}/requests/`
   const label=(completed||alreadyAvailable)&&row.component_url?"Open your component":"View component requests"
   const reference=`Reference: ${row.id}`
-  const text=`${heading}\n\n${message}\n\n${reference}\n${label}: ${url}\n\n0dB`
-  const html=`<!doctype html><html><body style="margin:0;background:#fbf4e6;color:#111;font:16px/1.6 Arial,sans-serif"><main style="max-width:560px;margin:36px auto;padding:32px"><p style="font-size:13px;letter-spacing:2px">0dB</p><h1 style="font-size:30px;line-height:1.2">${escapeHTML(heading)}</h1><p>${escapeHTML(message)}</p><p><a href="${escapeHTML(url)}" style="display:inline-block;background:#f5b8db;color:#111;padding:12px 20px;border-radius:30px;text-decoration:none">${label}</a></p><p style="font-size:12px;color:#5f5b55">${reference}</p></main></body></html>`
-  return {subject:`${heading} · 0dB`,text,html}
+  const text=`${heading}\n\n${message}\n\n${reference}\n${label}: ${url}\n\n0nlyType`
+  const html=`<!doctype html><html><body style="margin:0;background:#fbf4e6;color:#111;font:16px/1.6 Arial,sans-serif"><main style="max-width:560px;margin:36px auto;padding:32px"><p style="font-size:13px;letter-spacing:2px">0nlyType</p><h1 style="font-size:30px;line-height:1.2">${escapeHTML(heading)}</h1><p>${escapeHTML(message)}</p><p><a href="${escapeHTML(url)}" style="color:#111;text-decoration:underline">${label}</a></p><p style="font-size:12px;color:#5f5b55">${reference}</p></main></body></html>`
+  return {subject:`${heading} · 0nlyType`,text,html}
 }
 async function github(env:Env,path:string,init:RequestInit={}, send=fetch) {
   let response:Response
@@ -69,7 +69,7 @@ export async function deliver(env:Env,job:Delivery,row:ReportRow,send=fetch):Pro
   if(!emailEnabled(env)) throw new DeliveryFailure("Email domain setup required.",false,true)
   if(job.kind==="email_resolved" && row.status!=="resolved") throw new DeliveryFailure("Report was reopened before its release email sent. Review before retrying.",false,true)
   if(!testerAllowed(env,row.email)) throw new DeliveryFailure('Beta recipient requires allowlist review.',false,true)
-  return sendResend(env,job,JSON.stringify({to:[row.email],from:`0dB <${env.EMAIL_FROM}>`,reply_to:'hello@thedirectors.agency',...emailMessage(row,job.kind,env.SITE_URL)}),send)
+  return sendResend(env,job,JSON.stringify({to:[row.email],from:`0nlyType <${env.EMAIL_FROM}>`,reply_to:"hello@thedirectors.agency",...emailMessage(row,job.kind,env.SITE_URL)}),send)
 }
 export async function drain(env:Env,reportId?:string,send=fetch) {
   // A crashed send has an unknown remote outcome. Never blindly resend it.
