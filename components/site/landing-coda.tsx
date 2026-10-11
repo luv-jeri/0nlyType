@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { glyphSheet, type Glyph, type GlyphSheet } from "@/components/site/glyph-sheet"
 import { Share } from "@/components/site/landing"
 import { Cta } from "@/components/site/landing-hero"
 import { breath, span, useStage, type Frame } from "@/components/site/stage"
@@ -41,16 +42,14 @@ const RINGS: { text: string; phone?: boolean }[] = [
 ]
 const LAST = "start from zero."
 
-/** One ring at rest: its font and inks (below and above the horizon), and its glyphs as offsets from the centre. */
+/** One ring at rest: its glyphs as offsets from the centre, each cut once in the ring's ink below the horizon and above it. */
 type Ring = {
-  font: string
-  below: string
-  above: string
+  below: Glyph[]
+  above: Glyph[]
   /** Where on the closing it is written in along its circle: [start, end], 0 to 1. */
   at: [number, number]
   /** How far, and which way, it turns as it closes. */
   turn: number
-  g: string[]
   dx: Float32Array
   dy: Float32Array
   a: Float32Array
@@ -61,7 +60,7 @@ type Ring = {
   last: boolean
 }
 type Box = { l: number; t: number; r: number; b: number }
-type Pool = { cx: number; cy: number; rings: Ring[]; boxes: Box[]; rIn: number }
+type Pool = { cx: number; cy: number; rings: Ring[]; boxes: Box[]; rIn: number; sheet: GlyphSheet }
 type Ripple = { x: number; y: number; t0: number; amp: number }
 
 const LIFE = 1400, SPEED = 0.62, WAVE = 40
@@ -137,7 +136,7 @@ export function Coda() {
       let lo = 1, hi = 2
       for (let it = 0; it < 40; it++) { const q = (lo + hi) / 2, sum = gaps ? g0 * (Math.pow(q, gaps) - 1) / (q - 1 || 1e-9) : 0; if (sum > need) hi = q; else lo = q }
       const ratio = Math.max(1, lo)
-      const rings: Ring[] = []
+      const rings: Ring[] = [], sheet = glyphSheet(f.dpr)
       for (let i = 0; i < N; i++) {
         const k = N - 1 - i, u = k / Math.max(1, N - 1) // k: 0 nearest the drop
         const r = rIn + (ratio > 1.0001 ? g0 * (Math.pow(ratio, k) - 1) / (ratio - 1) : (need * k) / Math.max(1, gaps))
@@ -145,13 +144,14 @@ export function Coda() {
         const font = `${wt} ${fs.toFixed(2)}px ${f.ink.voice}`
         const placed = ring(list[i].text, font, r * (0.8 + 0.2 * Math.pow(u, 0.6)), r, -Math.PI / 2 + k * 0.9)
         const lvl = u < 0.28 ? 0 : u < 0.66 ? 1 : 2
-        rings.push(pack(placed, font, inks[lvl], inks[Math.min(2, lvl + 1)], [0.3 * (1 - u), 0.3 * (1 - u) + 0.34], (k % 2 ? 1 : -1) * (0.35 + 0.35 * u), false))
+        rings.push(pack(placed, sheet, font, inks[lvl], inks[Math.min(2, lvl + 1)], [0.3 * (1 - u), 0.3 * (1 - u) + 0.34], (k % 2 ? 1 : -1) * (0.35 + 0.35 * u), false))
       }
       // The title itself, last, small and in ink, the ring that closes into its own full stop.
       const lf = `500 ${f.phone ? 6.6 : 6.2}px ${f.ink.voice}`
-      rings.push(pack(ring(LAST, lf, rIn * 0.42, rIn * 0.5, -Math.PI / 2), lf, f.ink.ink, f.ink.graphite, [0.38, 0.66], 0.8, true))
+      rings.push(pack(ring(LAST, lf, rIn * 0.42, rIn * 0.5, -Math.PI / 2), sheet, lf, f.ink.ink, f.ink.graphite, [0.38, 0.66], 0.8, true))
+      sheet.bake()
       last.current.scale = -1
-      return { cx, cy, rings, boxes, rIn }
+      return { cx, cy, rings, boxes, rIn, sheet }
     },
 
     draw(f, pl) {
@@ -183,7 +183,6 @@ export function Coda() {
       }
 
       const m = ctx.getTransform(), k = m.a, boxes = pl.boxes
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"
       // The whole pool closes as one, so no ring ever crosses another: wide and loose, then tighter and tighter.
       const close = breath(span(t, 0, 0.7)), field = 1 + 1.4 * (1 - close)
       for (const rg of pl.rings) {
@@ -197,9 +196,7 @@ export function Coda() {
         }
         if (show <= 0.002) continue
         const ct = Math.cos(turn), st = Math.sin(turn)
-        ctx.font = rg.font
-        let side = 0
-        const n = rg.g.length
+        const n = rg.dx.length
         for (let i = 0; i < n; i++) {
           if (rg.ord[i] > show) continue
           let x = (rg.dx[i] * ct - rg.dy[i] * st) * s, y = (rg.dx[i] * st + rg.dy[i] * ct) * s, a = rg.a[i] + turn
@@ -216,15 +213,12 @@ export function Coda() {
           let hidden = false
           for (const b of boxes) if (X > b.l && X < b.r && Y > b.t && Y < b.b) { hidden = true; break }
           if (hidden || X < -20 || X > f.w + 20 || Y < -20 || Y > f.h + 20) continue
-          const want = y < 0 ? 2 : 1
-          if (want !== side) { ctx.fillStyle = want === 2 ? rg.above : rg.below; side = want }
           const c = Math.cos(a) * gs * k, sn = Math.sin(a) * gs * k
           ctx.setTransform(c, sn, -sn, c, k * X + m.e, k * Y + m.f)
-          ctx.fillText(rg.g[i], 0, 0)
+          pl.sheet.draw(ctx, y < 0 ? rg.above[i] : rg.below[i])
         }
       }
       ctx.setTransform(m)
-      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic"
       return live.length > 0
     },
   })
@@ -276,7 +270,7 @@ export function Coda() {
 }
 
 /** Packs placed glyphs into typed arrays, as offsets from the centre with the outward normal and reading order. */
-function pack(placed: ReturnType<typeof alongPath>, font: string, below: string, above: string, at: [number, number], turn: number, lastRing: boolean): Ring {
+function pack(placed: ReturnType<typeof alongPath>, sheet: GlyphSheet, font: string, below: string, above: string, at: [number, number], turn: number, lastRing: boolean): Ring {
   const n = placed.length
   const dx = new Float32Array(n), dy = new Float32Array(n), a = new Float32Array(n), nx = new Float32Array(n), ny = new Float32Array(n), ord = new Float32Array(n)
   placed.forEach((q, i) => {
@@ -284,5 +278,5 @@ function pack(placed: ReturnType<typeof alongPath>, font: string, below: string,
     nx[i] = Math.sin(q.a); ny[i] = -Math.cos(q.a)
     ord[i] = (i + 0.5) / n
   })
-  return { font, below, above, at, turn, g: placed.map((q) => q.g), dx, dy, a, nx, ny, ord, last: lastRing }
+  return { below: placed.map((q) => sheet.glyph(font, below, q.g, "middle")), above: placed.map((q) => sheet.glyph(font, above, q.g, "middle")), at, turn, dx, dy, a, nx, ny, ord, last: lastRing }
 }
