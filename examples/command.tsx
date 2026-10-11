@@ -15,7 +15,7 @@ import {
   CommandShortcut,
 } from "@/registry/0nlytype/ui/command"
 import { Kbd } from "@/registry/0nlytype/ui/kbd"
-import { State } from "@/components/site/state"
+import { State, Still } from "@/components/site/state"
 
 const PROJECTS = [
   ["Halden", "Identity, 2026"],
@@ -55,7 +55,9 @@ function Palette({ onRun, whole }: { onRun: (said: string) => void; whole?: bool
 export default function Example() {
   const [open, setOpen] = React.useState(false)
   const [said, setSaid] = React.useState("")
+  const still = React.useContext(Still)
   React.useEffect(() => {
+    if (still) return
     const down = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
@@ -64,7 +66,7 @@ export default function Example() {
     }
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
-  }, [])
+  }, [still])
   return (
     <div className="grid w-full max-w-[40rem] justify-items-stretch" style={{ gap: "var(--ot-space-8)" }}>
       <div className="flex flex-wrap items-center" style={{ gap: "var(--ot-space-5)" }}>

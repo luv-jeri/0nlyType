@@ -25,8 +25,10 @@ html:has(main.landing) .page-rail .ot-trail-head .ot-trail-num { color: var(--ot
 .zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
 .zero-at { position: absolute; inset-inline: 0; top: calc(75svh + 20px); height: 1px; scroll-margin-top: 0; pointer-events: none; }
 /* The stage bleeds to the window's edges by a negative margin on both sides: with one only, a right to left page
-   ignores it (an over-full box gives way on its left there) and the whole stage slides off the axis by the page's margin. */
-.zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: hidden; direction: ltr; }
+   ignores it (an over-full box gives way on its left there) and the whole stage slides off the axis by the page's margin.
+   It clips rather than hides: a hidden overflow can still be scrolled, and a live piece in the preview that brings
+   itself into view would slide the whole stage up and leave it there. */
+.zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: clip; direction: ltr; }
 .zero-hands, .zero-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .zero-hands { pointer-events: none; }
 .zero-ring { cursor: default; will-change: opacity; }
@@ -92,8 +94,32 @@ html:has(main.landing) .page-rail .ot-trail-head .ot-trail-num { color: var(--ot
 .hero-mark { grid-column: 1 / 7; }
 .hero-side { grid-column: 7 / -1; display: grid; justify-items: start; align-content: end; padding-bottom: var(--ot-space-1); }
 .hero-count { max-width: 60ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
-.hero-cta { margin-block: var(--ot-space-3) var(--ot-space-5); }
-.hero-cta .cta { font-size: var(--ot-mf); }
+/* The way into the docs (landing-docs.tsx): a field of the pieces' names with "Read docs" left blank in it, whose
+   letters rearrange into the words when it is pointed at. The words stand in plain type until the field is set, and
+   stay the link's name after; the canvas draws the motion itself, and settles at once under reduced motion. */
+.hero-docs { position: relative; display: block; block-size: 100%; min-block-size: 112px; color: var(--ot-ink); text-decoration: none; }
+.hd-words { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--ot-voice); font-size: var(--ot-mf); font-weight: 800; line-height: 1; transition: opacity var(--ot-moderato) var(--ot-breath); }
+.hero-docs[data-laid] .hd-words { opacity: 0; }
+.hd-field { position: absolute; inset: 0; width: 100%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .hd-words { transition: none; } }
+/* Set as a sheet: the band is ruled into boxes, one thing to each, closed by hairlines and nothing else. The lockup,
+   larger here, has a box fitted to it, two rows tall; beside it the count, a giant thin figure with its line beside it,
+   over the way into the docs; under them all the install line runs the band's width with its ( Copy ). The column
+   beside the lockup is no longer a box of its own: its three boxes take their places in the band's grid. */
+@media (min-width: 761px) {
+  .hero-band { --H: max(56px, min(calc((100vw - 2 * var(--pad)) * 0.135), calc((100svh - 96px) / 6.5), 184px)); bottom: 32px; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: 1fr 1fr auto; column-gap: 0; align-items: stretch; padding-top: 0; border-top: 0; border-inline-end: var(--ot-hairline) solid var(--ot-rule); border-block-end: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-side { display: contents; }
+  .hero-mark, .hero-count, .hero-cta, .hero-install { min-width: 0; margin: 0; border-block-start: var(--ot-hairline) solid var(--ot-rule); border-inline-start: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-mark { grid-column: 1; grid-row: 1 / -1; display: flex; align-items: flex-end; width: auto; padding: var(--ot-space-4); overflow: clip; }
+  .hero-mark .wm-lockup { margin-block-end: 0; }
+  .hero-count, .hero-cta, .hero-install { container-type: inline-size; display: grid; padding: var(--ot-space-4); }
+  .hero-count { grid-column: 2; grid-row: 1; max-width: none; grid-template-columns: auto minmax(0, 1fr); align-items: end; column-gap: var(--ot-space-4); }
+  .hero-n { display: block; font-size: calc(var(--H) * 0.78); line-height: 0.78; font-weight: 200; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: var(--ot-ink); }
+  .hero-what { display: block; max-width: 24ch; }
+  .hero-cta { grid-column: 2; grid-row: 2; padding: 0; }
+  .hero-install { grid-column: 2; grid-row: 3; align-content: end; padding-block: var(--ot-space-3); }
+}
+/* Too narrow for the count's line beside its figure: the line goes under it. */
 .hero-install .copy-cmd { padding-block: 0; }
 .hero-install .copy-cmd-text { font-size: var(--ot-pp); }
 /* The proof's marks: the picture is a plate, trimmed at its corners and registered on the page's axis, the line the
@@ -117,20 +143,14 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .zero-stage[data-dial] :is(.pieces-head, .readout, .pieces-foot) { pointer-events: auto; }
 .pieces-head, .readout, .pieces-keys { position: absolute; left: 62vw; right: var(--pad); }
 .pieces-head { top: calc(var(--bar) + 7svh); }
-.pieces-meta { display: flex; gap: var(--ot-space-4); padding-bottom: var(--ot-space-3); border-bottom: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: 1.1; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ot-pencil); }
-.pieces-meta > span:first-child { color: var(--ot-ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-.pieces-meta-r { margin-inline-start: auto; }
-.pieces-title { margin-top: var(--ot-space-5); font-size: clamp(56px, 6.2vw, 96px); line-height: 0.86; letter-spacing: -0.035em; font-weight: 800; font-stretch: 72%; color: var(--ot-ink); }
+.pieces-title { margin: 0; font-size: clamp(56px, 6.2vw, 96px); line-height: 0.86; letter-spacing: -0.035em; font-weight: 800; font-stretch: 72%; color: var(--ot-ink); }
 /* The reading changes over a part at a time (the script animates it): each part is a box one copy tall, the leaving
    copy laid over the arriving one, so the page under it never moves. */
 .ro-swap { position: relative; display: block; overflow: hidden; }
 .ro-swap > span { display: block; }
 .ro-swap > .out { position: absolute; left: 0; top: 0; width: 100%; }
 .readout { top: 54svh; }
-.ro-of { font-size: var(--ot-pp); line-height: 1.1; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ot-pencil); }
-.ro-of > span { display: flex; gap: var(--ot-space-4); }
-.ro-of > span > span:last-child { font-variant-numeric: tabular-nums; }
-.ro-row { display: flex; align-items: flex-start; gap: var(--ot-space-5); margin-top: var(--ot-space-3); }
+.ro-row { display: flex; align-items: flex-start; gap: var(--ot-space-5); margin-top: var(--ot-space-5); }
 /* The number turns over like a counter, each digit on its own wheel, the leading zeros in pencil. */
 .ro-num { display: flex; flex: none; height: 1em; overflow: hidden; font-size: clamp(84px, 8vw, 124px); line-height: 1; letter-spacing: -0.04em; font-weight: 700; font-stretch: 80%; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
 .ro-dg { display: block; height: 1em; overflow: hidden; }
@@ -160,6 +180,45 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 @media (max-width: 1200px) { .pieces-group-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
 /* On a short screen the description keeps to four lines, so the install line never meets the floor. */
 @media (max-height: 780px) and (min-width: 761px) { .ro-desc { height: 6em; } .ro-desc > span { -webkit-line-clamp: 4; } .pieces-keys { display: none; } }
+/* Set as a sheet: the column is one box, with no rules, in parts one under another. The heading; the piece being read,
+   live, in the room left (landing-preview.tsx); the number beside the name and its description; and the install line
+   across the foot. The reading's changing parts never carry padding of their own, so the copy leaving lies exactly over the copy
+   arriving. On a phone, or a screen too short for it, the parts stand apart as before. */
+.pieces-sheet { display: contents; }
+.pt-preview { display: none; }
+@media (min-width: 761px) and (min-height: 481px) {
+  .pieces-sheet { position: absolute; left: 62vw; right: var(--pad); top: calc(var(--bar) + 4svh); bottom: 100px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .zero-stage[data-dial] .pieces-sheet { pointer-events: auto; }
+  .pieces-head, .readout { display: contents; }
+  .pieces-title { margin: 0; padding: var(--ot-space-4); font-size: min(clamp(40px, 4.4vw, 72px), 7svh); }
+  /* The preview is the docs example in the room: laid out at the room's width (an example's own max-w still holds)
+     and in one column, its demos that fit kept whole, the rest left out. The script sets its size (--pt-k) and how far
+     down the room it sits (--pt-y): drawn from its top edge, it is centred by arithmetic, since a grid does not centre
+     an item taller than its room. It is a picture of the piece, so it takes no press, and its accent is drawn in ink:
+     the ring's dot is the one accent in view. */
+  .pt-preview { display: grid; align-items: start; justify-items: center; min-height: 0; overflow: clip; margin: 0 var(--ot-space-4); --ot-accent: var(--ot-ink); }
+  .pt-preview-body.doc-example { display: grid; justify-items: center; align-content: start; width: 100%; padding: 0; transform-origin: 50% 0; scale: var(--pt-k, 1); translate: 0 var(--pt-y, 0px); }
+  .pt-preview-body > * { width: 100%; }
+  .pt-preview-body > .grid { grid-template-columns: minmax(0, 1fr); }
+  .pt-preview-body { overflow: clip; }
+  .pt-preview-body [data-pt-out] { visibility: hidden; }
+  /* As the reading moves on, the piece sinks back and fades; the next rises into its place once it has loaded. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-preview-body[data-leaving] { opacity: 0; filter: blur(2px); translate: 0 calc(var(--pt-y, 0px) - 6px); transition: opacity var(--ot-moderato) var(--ot-breath), filter var(--ot-moderato) var(--ot-breath), translate var(--ot-moderato) var(--ot-breath); }
+    .pt-preview-body > * { animation: pt-arrive var(--ot-andante) var(--ot-exhale) both; }
+  }
+  .ro-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; margin: 0; }
+  .ro-num { margin: var(--ot-space-4); font-size: min(clamp(84px, 8vw, 124px), 14svh); }
+  .ro-body { padding: var(--ot-space-4); }
+  .ro-cmd { margin: 0; padding: var(--ot-space-3) var(--ot-space-4); border-top: 0; }
+  /* The install line always sets Copy under the command, on one line sized so the longest command (navigation-menu's,
+     32.7em) fits the column: a longer name never changes the sheet's foot, and the room above stays still. */
+  .ro-cmd { container-type: inline-size; }
+  .ro-cmd .copy-cmd { flex-direction: column; align-items: flex-start; }
+  .ro-cmd .copy-cmd-text { font-size: min(var(--ot-pp), 100cqi / 33.5); white-space: nowrap; }
+}
+@media (min-width: 761px) and (max-height: 780px) { .pieces-sheet { bottom: 64px; } }
+@keyframes pt-arrive { from { opacity: 0; filter: blur(2px); translate: 0 8px; } }
 /* Where scroll timelines run, the scroll itself draws the stage around the zero's opening, so a frame restyles only
    what moves: the band lifts away over the first 12svh and the hands step off over the first 15svh, both gone before
    the names reach them, and the reading arrives once the rings have formed, between 64.5svh and 75svh. The numbers
@@ -189,17 +248,23 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   html[data-overture-at] .zero-ring :is(.index-dot, .mk-dot) { animation: zero-light var(--ot-moderato) var(--ot-exhale) both; animation-delay: calc(var(--ot-adagio) - var(--late, 0ms)); }
 }
 @keyframes zero-light { from { fill: var(--ot-ink); } }
+/* The name arrives once a load, with the hands: "0nly" rises into its place, the paper cut for "Type." already open in
+   it; "Type." is written in from the left behind an edge slanted as the italic is; the full stop lands last. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-mark :is(.wm-nly, .wm-type, .wm-stop) { transform-box: fill-box; }
+  .hero-mark .wm-nly { animation: wm-rise var(--ot-adagio) var(--ot-exhale) both; }
+  .hero-mark .wm-type { animation: wm-write 900ms var(--ot-breath) 350ms both; }
+  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-andante) var(--ot-spiccato) 1150ms both; }
+}
+@keyframes wm-rise { from { opacity: 0; transform: translateY(14%); } }
+@keyframes wm-write { from { clip-path: polygon(0 0, 0 0, -30% 100%, -30% 100%); } to { clip-path: polygon(0 0, 130% 0, 100% 100%, -30% 100%); } }
+@keyframes wm-land { from { opacity: 0; transform: scale(0.2); } }
 @media (prefers-reduced-motion: reduce) { html[data-overture-at] .zero .hero-skip { display: none; } }
 
-@media (max-width: 1100px) and (min-width: 761px) {
-  .hero-mark { grid-column: 1 / 7; }
-  .hero-side { grid-column: 7 / -1; }
-}
 /* A phone held sideways: the band would take all but a strip of the plate, and the hands would be drawn too small to
    read. The install line steps out of the band (04 sets it large, a few screens on) so the picture keeps its room. */
 @media (max-height: 480px) and (orientation: landscape) {
   .hero-install { display: none; }
-  .hero-cta { margin-block-end: 0; }
 }
 @media (max-width: 760px) {
   .zero { --pitch: 20px; }
@@ -210,19 +275,22 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .hero-mark, .hero-side { grid-column: 1; }
   .hero-band { --H: min(calc((100vw - 2 * var(--pad)) * 0.22), 96px); }
   .hero-mark .wm-lockup { margin-block-end: 0; }
-  .hero-cta { margin-block: 0 var(--ot-space-4); }
-  .hero-cta .cta { font-size: var(--ot-mp); }
+  /* The boxes stack: the lockup, then the way into the docs over the install line, ruled as on the wide page, one
+     hairline between each. The boxes close the band, so it needs no rule of its own over them. */
+  .hero-band { row-gap: 0; padding-top: 0; border-top: 0; }
+  .hero-mark { width: auto; padding: var(--ot-space-3); border: var(--ot-hairline) solid var(--ot-rule); border-bottom: 0; overflow: clip; }
+  .hero-side { justify-items: stretch; border: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-cta { padding: 0; }
+  .hero-install { padding: var(--ot-space-3); border-top: var(--ot-hairline) solid var(--ot-rule); }
   .hero-count { display: none; }
   /* The tunnel takes the room between the heading and the reading, so both are placed here and the script measures
      them: the heading under the bar, the reading over the floor. */
   .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); } /* clear of the rail's label */
-  .pieces-title { margin-top: var(--ot-space-3); font-size: 40px; }
+  .pieces-title { font-size: 40px; }
   .readout { left: var(--pad); right: var(--pad); top: auto; bottom: 92px; }
   .ro-row { gap: var(--ot-space-4); margin-top: var(--ot-space-2); }
   .ro-num { font-size: 56px; }
   .ro-body { padding-top: 2px; }
-  .ro-of { font-size: 11px; }
-  .ro-of > span { gap: 10px; }
   .ro-name { font-size: var(--ot-mp); }
   .ro-desc { height: 4.2em; max-width: none; margin-top: var(--ot-space-1); font-size: 13px; line-height: 1.4; }
   .ro-desc > span { -webkit-line-clamp: 3; }
@@ -234,13 +302,20 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .pieces-skip { justify-content: space-between; }
   .pieces-keys { display: none; }
 }
+/* A phone held sideways: stacked, the boxes would stand taller than the screen leaves under the bar, so they stand side
+   by side, the lockup and the way into the docs, one row under the hands. */
+@media (max-width: 760px) and (max-height: 480px) and (orientation: landscape) {
+  .hero-band { --H: min(calc((100vw - 2 * var(--pad)) * 0.07), 40px); grid-template-columns: max-content minmax(0, 1fr); align-items: stretch; }
+  .hero-mark { grid-column: 1; border-bottom: var(--ot-hairline) solid var(--ot-rule); border-inline-end: 0; }
+  .hero-side { grid-column: 2; align-content: stretch; }
+  .hero-docs { min-block-size: 80px; }
+}
 /* A phone held sideways: the tunnel takes the left half (the script places it), the heading and the reading the right,
    the floor one row. */
 @media (max-width: 760px) and (orientation: landscape) {
   .pieces-head, .readout { left: 50%; right: calc(var(--pad) + 24px); }
   .pieces-head { top: calc(var(--bar) + var(--ot-space-2)); }
-  .pieces-meta { padding-bottom: var(--ot-space-2); font-size: 11px; }
-  .pieces-title { margin-top: var(--ot-space-2); font-size: 24px; line-height: 1; }
+  .pieces-title { font-size: 24px; line-height: 1; }
   .pieces-title br { display: none; }
   .readout { bottom: 52px; }
   .ro-num { font-size: 44px; }

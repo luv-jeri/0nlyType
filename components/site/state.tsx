@@ -9,3 +9,9 @@ export function State({ label, children }: { label: string; children: React.Reac
     </div>
   )
 }
+
+/**
+ * True where an example is shown as a picture rather than used: the landing's preview, which takes no focus and no
+ * press. There an example plays nothing by itself, since its pause could not be reached, and claims no keys of the page.
+ */
+export const Still = React.createContext(false)

@@ -56,6 +56,9 @@ export function TuneSentence() {
   )
 }
 
+// A URL may break after any of its slashes, where a reader expects it to, rather than mid-word.
+const slashes = (s: string) => s.split("/").map((part, i, all) => (i < all.length - 1 ? <React.Fragment key={i}>{part}/<wbr /></React.Fragment> : part))
+
 /** The install line as one press: the whole command, the reader's part in italic; pressing copies it. */
 export function CopyCommand({ command, emphasis }: { command: string; emphasis?: string }) {
   const [copied, setCopied] = React.useState(false)
@@ -77,10 +80,10 @@ export function CopyCommand({ command, emphasis }: { command: string; emphasis?:
       <button type="button" className="copy-cmd" data-copied={copied || undefined} onClick={copy}>
         <code className="copy-cmd-text" dir="ltr">
           {at < 0 || !emphasis ? (
-            command
+            slashes(command)
           ) : (
             <>
-              {command.slice(0, at)}
+              {slashes(command.slice(0, at))}
               <i>{emphasis}</i>
               {command.slice(at + emphasis.length)}
             </>
