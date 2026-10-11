@@ -27,9 +27,10 @@
     .ot-appearance-picks > :last-child { grid-column: auto; }
   }
 
-  /* A change opens the new page as a circle from the control that made it (applyAppearance sets the centre). */
+  /* A change opens the new page as a circle from the control that made it (applyAppearance sets the centre). It
+     arrives (exhale): the circle is wide at once and slows as it fills, so the answer is seen as the press lands. */
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-  ::view-transition-new(root) { animation: ot-appearance-open var(--ot-andante) var(--ot-breath); }
+  ::view-transition-new(root) { animation: ot-appearance-open var(--ot-andante) var(--ot-exhale); }
   @keyframes ot-appearance-open {
     from { clip-path: circle(0 at var(--ot-appearance-x, 50%) var(--ot-appearance-y, 0)); }
     to { clip-path: circle(150vmax at var(--ot-appearance-x, 50%) var(--ot-appearance-y, 0)); }

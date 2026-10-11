@@ -3,7 +3,7 @@
 import { siteURL } from "@/lib/site/config.mjs"
 import * as React from "react"
 
-import { KEYS, PAIRS, SCHEMES, useTheme } from "@/components/site/theme-controls"
+import { KEYS, PAIRS, SCHEMES, useTheme, warmPairs } from "@/components/site/theme-controls"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"
 import { Select } from "@/registry/0nlytype/ui/select"
 import { CommandLine } from "@/registry/0nlytype/ui/command-line"
@@ -36,7 +36,7 @@ export function TuneSentence() {
       </span>{" "}
       set it in{" "}
       <span className="tune-bind">
-        <Select aria-label="Typefaces" value={theme.pair ?? "parma"} onChange={(e) => set({ pair: e.target.value }, e.currentTarget)}>
+        <Select aria-label="Typefaces" onFocus={warmPairs} onPointerEnter={warmPairs} value={theme.pair ?? "parma"} onChange={(e) => set({ pair: e.target.value }, e.currentTarget)}>
           {PAIRS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.words}
