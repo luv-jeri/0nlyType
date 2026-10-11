@@ -1,19 +1,43 @@
-/* ── 02 what it leaves out: each refused word struck by a line drawn as it scrolls in; the kept words stay roman ── */
-.leaves-list { max-width: 15em; font-size: clamp(var(--ot-f), calc(5.2 * var(--site-vw)), 120px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-wrap: balance; }
+/* ── 02 what it leaves out: the refused things hang over the list, each set in its own word; the stage holds while the
+   scroll takes them apart, and their letters fall into the list, where each word inks in and is struck
+   (components/site/landing-leaves.tsx). The run is the held stretch: the stage sticks for all of it but one screen. ── */
+.leaves-run { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; height: 270vh; height: 270svh; }
+.leaves-stage { grid-column: 1 / -1; position: sticky; top: 0; display: grid; grid-template-columns: subgrid; align-content: end; height: 100vh; height: 100svh; padding-bottom: var(--ot-space-7); }
+/* The canvas bleeds to the window's edges, over the list, and never takes a press: the words under it stay selectable. */
+.leaves-pictures { position: absolute; top: 0; left: calc(50% - 50vw); z-index: 1; width: 100vw; height: 100%; pointer-events: none; }
+.leaves-list { grid-column: 4 / -1; max-width: 15em; font-size: clamp(var(--ot-f), calc(5.2 * var(--site-vw)), 120px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-wrap: balance; }
 .leaves-strike { position: relative; text-decoration: none; }
 .leaves-strike::after { content: ""; position: absolute; left: -0.04em; right: -0.04em; top: 0.56em; height: max(var(--ot-stroke), 0.05em); background: var(--ot-ink); transform-origin: 0 50%; }
-/* The strike is drawn by the scroll itself: it starts as the word enters the lower third and is across by the time
-   the word reaches the middle, left to right, each word a beat behind the one before it. The word greys as it is
-   struck. Without scroll timelines, or with reduced motion, every word is already struck: the settled state. */
+:is([dir="rtl"], [dir="rtl"] *).leaves-strike::after { transform-origin: 100% 50%; }
+.leaves-kept { grid-column: 4 / -1; margin-top: var(--ot-space-6); }
+.leaves-sign { grid-column: 4 / -1; margin-top: var(--ot-space-5); }
+/* The one accent in the section: the full stop after "one accent". */
+.leaves-stop { color: var(--ot-accent); }
+/* The held stretch is the run's own timeline: contain 0% as the stage settles at the top, 100% as it leaves, the
+   same share the canvas reads. Each word (--a, from the script's schedule) waits as a faint slot; it inks in as its
+   picture's letters land in it, then a hairline strikes it left to right and it greys. Without scroll timelines, or
+   with reduced motion, every word is already struck: the settled state. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .leaves-strike { view-timeline: --strike block; animation: leaves-grey linear both; animation-timeline: --strike; animation-range: cover calc(22% + var(--i) * 3%) cover calc(48% + var(--i) * 1.5%); }
-    .leaves-strike::after { animation: leaves-draw var(--ot-breath) both; animation-timeline: --strike; animation-range: cover calc(22% + var(--i) * 3%) cover calc(46% + var(--i) * 1.5%); }
+    .leaves-run { view-timeline: --leaves block; }
+    .leaves-strike { animation: leaves-land linear both; animation-timeline: --leaves; animation-range: contain calc(var(--a) + 8%) contain calc(var(--a) + 34%); }
+    .leaves-strike::after { animation: leaves-draw var(--ot-breath) both; animation-timeline: --leaves; animation-range: contain calc(var(--a) + 26%) contain calc(var(--a) + 34%); }
   }
 }
-:is([dir="rtl"], [dir="rtl"] *).leaves-strike::after { transform-origin: 100% 50%; }
+@keyframes leaves-land { 0% { color: var(--ot-rule); } 69% { color: var(--ot-ink); } 100% { color: var(--ot-pencil); } }
 @keyframes leaves-draw { from { transform: scaleX(0); } }
-@keyframes leaves-grey { from { color: var(--ot-ink); } }
+/* Under reduced motion nothing is held: the pictures hang whole and small above the struck list. */
+@media (prefers-reduced-motion: reduce) {
+  .leaves-run, .leaves-stage { height: auto; }
+  .leaves-stage { position: relative; padding-bottom: 0; }
+  .leaves-pictures { position: relative; left: auto; grid-column: 1 / -1; width: 100%; height: clamp(220px, 22vw, 340px); margin-bottom: var(--ot-space-6); }
+}
+@media (max-width: 860px) {
+  .leaves-list, .leaves-kept, .leaves-sign { grid-column: 1 / -1; }
+}
 @media (max-width: 560px) {
   .leaves-list { font-size: var(--ot-mf); }
+}
+@media (max-width: 560px) and (prefers-reduced-motion: reduce) {
+  .leaves-pictures { height: 460px; }
 }

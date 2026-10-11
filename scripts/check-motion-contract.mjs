@@ -77,7 +77,8 @@ if (keyUses.length !== 1 || keyUses[0] !== "lib/site/overture.mjs") fail("the ho
 
 // ── the landing's scroll motion: the scroll drives it, and it is settled without it ──
 const scrollDriven = [...(landing + "\n" + sections).matchAll(/@supports \(animation-timeline: view\(\)\) \{\n  @media \(prefers-reduced-motion: no-preference\) \{\n([\s\S]*?)\n  \}\n\}/g)].map((m) => m[1])
-if (!scrollDriven.some((b) => /\.leaves-strike::after \{[^}]*animation-timeline/.test(b))) fail("the landing's scroll motion", "the strikes in 02 must be drawn by a scroll timeline, under @supports and no-preference")
+// 02: the pictures' letters land in each word on the held run's own timeline, and the strike follows on the same one.
+if (!scrollDriven.some((b) => /\.leaves-run \{[^}]*view-timeline: --leaves/.test(b) && /\.leaves-strike::after \{[^}]*animation-timeline: --leaves/.test(b))) fail("the landing's scroll motion", "the strikes in 02 must be drawn by the held run's --leaves scroll timeline, under @supports and no-preference")
 if (!scrollDriven.some((b) => /\.sec-title[^{]*\{[^}]*animation: sec-rise[^}]*animation-timeline: view\(\)/.test(b))) fail("the landing's scroll motion", "the sections' one reveal must be a view() timeline, under @supports and no-preference")
 // Outside those blocks no rule may name a timeline: without scroll timelines, the page as written is the fallback.
 let outside = landing + "\n" + sections
