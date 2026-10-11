@@ -4,6 +4,7 @@ import { registryURL } from "@/lib/site/config.mjs"
 import NextLink from "next/link"
 import * as React from "react"
 
+import { glyphSheet, type Glyph, type GlyphSheet } from "@/components/site/glyph-sheet"
 import { Sec } from "@/components/site/landing-section"
 import { breath, span, useStage, type Frame } from "@/components/site/stage"
 import { advances } from "@/components/site/type-shapes"
@@ -31,6 +32,8 @@ const BURDEN = "a package · a wrapper · a theme provider · a peer dependency 
 
 /** A glyph of the command as the page sets it: its centre on the line, where along the final string it sits, and how to set it. */
 type Slot = { g: string; x: number; y: number; u: number; font: string; color: string; sx: number }
+/** A slot with its letter cut onto the sheet. */
+type Cut = Slot & { sp: Glyph }
 
 type Laid = {
   /** Points of the string: in the tangle (kx, ky, kz) and laid straight on the command line (fx, fy). */
@@ -51,7 +54,10 @@ type Laid = {
   textLen: number
   fs: number
   fonts: [string, string, string]
-  slots: Slot[]
+  slots: Cut[]
+  /** Every letter of the run-on, cut once per layout in each of the three depths' faces and inks (index glyph * 3 + depth), and the command's own. */
+  sheet: GlyphSheet
+  cut: Glyph[]
   /** Scroll, in the run's top relative to the window: where the pull begins and where it is done. */
   from: number
   to: number
@@ -166,6 +172,8 @@ function readLine(sec: HTMLElement, cv: HTMLCanvasElement) {
   })
   return { path, slots }
 }
+/** Cuts the command's letters onto the sheet, in the faces and inks the page sets them in. */
+const cutSlots = (sheet: GlyphSheet, slots: Slot[]): Cut[] => slots.map((S) => ({ ...S, sp: sheet.glyph(S.font, S.color, S.g) }))
 let mctx: CanvasRenderingContext2D | null = null
 const measureCtx = () => (mctx ??= document.createElement("canvas").getContext("2d")!)
 
@@ -180,7 +188,7 @@ function at(L: Laid, u: number) {
 // One shared spatial grid for the crossings, and the letters placed this frame, reused every frame.
 const CELL = 9
 let grid = new Int32Array(0), next = new Int32Array(0)
-const placed: { x: number; y: number; a: number; z: number; g: string; i: number; k: number; o: number }[] = []
+const placed: { x: number; y: number; a: number; z: number; i: number; k: number; o: number }[] = []
 
 // The last layout of each drawing, for the line's words to update when the package manager changes.
 const lastLaid = new WeakMap<HTMLCanvasElement, Laid>()
@@ -229,10 +237,14 @@ const SCENE = {
       while (unit * (text.length / BURDEN.length) < K.L + 40) text += BURDEN
       text = text.trimEnd()
       const glyphs = advances(fonts[1], text)
+      const sheet = glyphSheet(f.dpr), inks = [f.ink.pencil, f.ink.graphite, f.ink.ink]
+      const cut = glyphs.flatMap(({ g }) => fonts.map((font, k) => sheet.glyph(font, inks[k], g, "middle")))
+      const slots = cutSlots(sheet, line.slots)
+      sheet.bake()
       const laid: Laid = {
         n, kx: K.out[0], ky: K.out[1], kz: K.out[2], fx: F.out[0], fy: F.out[1],
         x: new Float32Array(n), y: new Float32Array(n), z: new Float32Array(n), q: new Float32Array(n), len: new Float32Array(n),
-        glyphs, textLen: glyphs.reduce((s, g) => s + g.w, 0), fs, fonts, slots: line.slots,
+        glyphs, textLen: glyphs.reduce((s, g) => s + g.w, 0), fs, fonts, slots, sheet, cut,
         // The pull begins just before the section comes to hold, so the knot is seen whole first, and is done a little
         // before the hold ends.
         from: (parseFloat(cs.top) || 64) + f.vh * 0.12,
@@ -291,11 +303,11 @@ const SCENE = {
         while (seg < n - 2 && L.len[seg + 1] < mid) seg++
         if (mid > total) break
         const d = L.len[seg + 1] - L.len[seg], r = d ? (mid - L.len[seg]) / d : 0
-        const P = (placed[np++] ??= { x: 0, y: 0, a: 0, z: 0, g: "", i: 0, k: 0, o: 0 })
+        const P = (placed[np++] ??= { x: 0, y: 0, a: 0, z: 0, i: 0, k: 0, o: 0 })
         P.x = L.x[seg] + (L.x[seg + 1] - L.x[seg]) * r; P.y = L.y[seg] + (L.y[seg + 1] - L.y[seg]) * r
         P.a = Math.atan2(L.y[seg + 1] - L.y[seg], L.x[seg + 1] - L.x[seg]); P.z = L.z[seg] + (L.z[seg + 1] - L.z[seg]) * r
         // The run-on's first letters, just off the line, come in rather than appear.
-        P.g = g; P.i = gi; P.k = 0; P.o = span(mid - sLift, L.fs * 0.5, L.fs * 8)
+        P.i = gi; P.k = 0; P.o = span(mid - sLift, L.fs * 0.5, L.fs * 8)
       }
       // Crossings: a letter with a nearer strand right over it is left out, so the far strand breaks under the near.
       const cols = Math.ceil(f.w / CELL) + 1, rows = Math.ceil(f.h / CELL) + 1
@@ -325,38 +337,30 @@ const SCENE = {
         P.k = over ? -1 : P.z > 0.3 ? 2 : P.z > -0.35 ? 1 : 0
       }
       // The letters, by depth: far in pencil and light, middle in graphite, near in ink and a touch heavier.
-      const inks = [f.ink.pencil, f.ink.graphite, f.ink.ink], d = f.dpr
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"
+      const d = f.dpr, { sheet, cut } = L
       for (let k = 0; k < 3; k++) {
-        ctx.font = L.fonts[k]; ctx.fillStyle = inks[k]
         for (let p = 0; p < np; p++) {
           const P = placed[p]
           if (P.k !== k) continue
           const c = Math.cos(P.a), sn = Math.sin(P.a)
           ctx.globalAlpha = P.o
           ctx.setTransform(d * c, d * sn, -d * sn, d * c, d * P.x, d * P.y)
-          ctx.fillText(P.g, 0, 0)
+          sheet.draw(ctx, cut[P.i * 3 + k])
         }
       }
       // The command's own letters, where the string has reached the line, each in its own face and ink, turning in
       // with the string and landing on its place; at the very end they hand over to the real line.
-      ctx.textBaseline = "alphabetic"
-      let font = "", color = ""
       for (const S of L.slots) {
         const p = at(L, S.u)
         const alpha = span(p.q, LIFT, 1) * (1 - land)
         if (alpha <= 0.01) continue
         ctx.globalAlpha = alpha
-        // Setting a font is costly; the command's letters come in a few runs of the same face, so set it per run.
-        if (S.font !== font) ctx.font = font = S.font
-        if (S.color !== color) ctx.fillStyle = color = S.color
         const c = Math.cos(p.a), sn = Math.sin(p.a)
         ctx.setTransform(d * c * S.sx, d * sn * S.sx, -d * sn, d * c, d * p.x, d * p.y)
-        ctx.fillText(S.g, 0, 0)
+        sheet.draw(ctx, S.sp)
       }
       ctx.globalAlpha = 1
       ctx.setTransform(d, 0, 0, d, 0, 0)
-      ctx.textAlign = "start"
       return tug !== 0
     },
 }
@@ -373,7 +377,7 @@ export function Install() {
       const L = lastLaid.get(cv)
       if (!L) return
       const line = readLine(L.sec, cv)
-      if (line) L.slots = line.slots
+      if (line) L.slots = cutSlots(L.sheet, line.slots)
     })
     mo.observe(code, { childList: true, subtree: true, characterData: true })
     return () => mo.disconnect()
