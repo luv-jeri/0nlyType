@@ -87,6 +87,8 @@ function Carousel({ variant = "poster", trackLabel = "Slides", previousLabel = "
         aria-label={trackLabel}
         className="ot-carousel-track"
         onKeyDown={(e) => {
+          const target = e.target as HTMLElement
+          if (e.defaultPrevented || (target !== e.currentTarget && (target.isContentEditable || target.closest("input, textarea, select")))) return
           const rtl = getComputedStyle(e.currentTarget).direction === "rtl"
           const to = { ArrowLeft: at + (rtl ? 1 : -1), ArrowRight: at + (rtl ? -1 : 1), Home: 0, End: total - 1 }[e.key]
           if (to === undefined) return

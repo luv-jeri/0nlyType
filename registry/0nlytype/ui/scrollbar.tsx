@@ -166,13 +166,31 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
     const resize = new ResizeObserver(soon)
     resize.observe(el)
     // Content that redraws changes what there is to scroll without resizing the box.
-    const mutation = new MutationObserver(soon)
+    const content = new Set<Element>()
+    const watchContent = () => {
+      const children = [...host.children].filter((child) => child.getAttribute("data-slot") !== "scrollbar")
+      content.forEach((child) => {
+        if (children.includes(child)) return
+        resize.unobserve(child)
+        content.delete(child)
+      })
+      children.forEach((child) => {
+        if (content.has(child)) return
+        resize.observe(child)
+        content.add(child)
+      })
+    }
+    const mutation = new MutationObserver(() => {
+      watchContent()
+      soon()
+    })
     if (page) {
       resize.observe(document.body)
       addEventListener("resize", soon)
     } else {
       resize.observe(host)
-      mutation.observe(host, { childList: true, subtree: true, characterData: true })
+      watchContent()
+      mutation.observe(host, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["open"] })
     }
     const onScroll = () => {
       at = top()
