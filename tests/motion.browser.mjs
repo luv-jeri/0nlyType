@@ -95,7 +95,21 @@ async function check(name, fn) {
   ran++
   // Keep assertion details: console-error arrays and Playwright's call log are otherwise lost in CI.
   const before = new Set(browser.contexts())
-  try { await fn() } catch (error) { failures.push(`${name}: ${error.message}`) } finally {
+  try { await fn() } catch (error) {
+    failures.push(`${name}: ${error.message}`)
+    for (const context of browser.contexts().filter((context) => !before.has(context))) {
+      for (const page of context.pages()) {
+        try {
+          const state = await page.evaluate(() => ({
+            path: location.pathname, ready: document.readyState, scroll: scrollY,
+            clock: document.documentElement?.getAttribute("data-overture-at"),
+            ended: document.documentElement?.getAttribute("data-overture-ended"), log: window.__overture,
+          }))
+          failures.push(`  page state: ${JSON.stringify(state)}`)
+        } catch { /* The original failure remains when the page itself is unavailable. */ }
+      }
+    }
+  } finally {
     // A failed case must not leave its canvases and observers competing with the next case's deadline.
     await Promise.all(browser.contexts().filter((context) => !before.has(context)).map((context) => context.close()))
   }
