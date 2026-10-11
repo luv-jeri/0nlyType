@@ -14,6 +14,7 @@ export type SearchGroup = { heading: string; entries: { label: string; href: str
 export function Search({ groups }: { groups: SearchGroup[] }) {
   const [open, setOpen] = React.useState(false)
   const [requested, setRequested] = React.useState(false)
+  const button = React.useRef<HTMLButtonElement>(null)
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -25,10 +26,10 @@ export function Search({ groups }: { groups: SearchGroup[] }) {
 
   return (
     <>
-      <Button variant="quiet" className="bar-search" onClick={() => { setRequested(true); setOpen(true) }} aria-keyshortcuts="Meta+K Control+K">
+      <Button ref={button} variant="quiet" className="bar-search" onClick={() => { setRequested(true); setOpen(true) }} aria-keyshortcuts="Meta+K Control+K">
         Search <Kbd dir="ltr">⌘K</Kbd>
       </Button>
-      {requested ? <SearchDialog groups={groups} open={open} onOpenChange={setOpen} /> : null}
+      {requested ? <SearchDialog groups={groups} open={open} onOpenChange={setOpen} onCloseAutoFocus={(e) => { e.preventDefault(); button.current?.focus() }} /> : null}
     </>
   )
 }

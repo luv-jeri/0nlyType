@@ -8,7 +8,7 @@ export default function Example() {
         <TextRibbon className="ot-mf">a little room to move</TextRibbon>
         <p className="ot-pp" style={{ margin: 0, color: "var(--ot-pencil)" }}>Let the phrase drift, or take over with a drag, the keys or the page. Pause holds it still.</p>
       </div>
-      <TextRibbon variant="wave" className="ot-mp">the quietest sound a person can hear</TextRibbon>
+      <TextRibbon variant="wave" className="ot-mp">everything here is made of type</TextRibbon>
     </div>
   )
 }

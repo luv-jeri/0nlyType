@@ -6,7 +6,7 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import type { SearchGroup } from "./search"
 
 /** The palette is fetched on its first click or keyboard shortcut. */
-export function SearchDialog({ groups, open, onOpenChange }: { groups: SearchGroup[]; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function SearchDialog({ groups, open, onOpenChange, onCloseAutoFocus }: { groups: SearchGroup[]; open: boolean; onOpenChange: (open: boolean) => void; onCloseAutoFocus?: (event: Event) => void }) {
   const router = useRouter()
   const go = (href: string) => {
     onOpenChange(false)
@@ -15,8 +15,8 @@ export function SearchDialog({ groups, open, onOpenChange }: { groups: SearchGro
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} title="Search the docs">
-      <CommandInput placeholder="A component, a page or a token" />
+    <CommandDialog open={open} onOpenChange={onOpenChange} onCloseAutoFocus={onCloseAutoFocus} title="Search the docs">
+      <CommandInput placeholder="Find a component" />
       <CommandList>
         <CommandEmpty>Nothing by that name. Try “menu” or “accent”.</CommandEmpty>
         {groups.map((g) => (

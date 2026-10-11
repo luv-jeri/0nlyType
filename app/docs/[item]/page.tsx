@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import type { Metadata } from "next"
+import type { CSSProperties } from "react"
 import NextLink from "next/link"
 import { notFound } from "next/navigation"
 
@@ -105,7 +106,7 @@ export default async function ItemPage({ params }: Params) {
           <span>{UNDER[meta.underneath]}</span>
           <span className="ot-label">{meta.contract}</span>
         </Meta>
-        <h1 className="doc-title">{meta.title}</h1>
+        <h1 className="doc-title" style={{ "--doc-title-chars": Math.max(...meta.title.split(/\s+/).map((word) => word.length)) } as CSSProperties}>{meta.title}</h1>
         <p className="doc-summary">{meta.summary}</p>
         <Link asChild className="ot-report-item-link"><NextLink href={`/feedback/?kind=bug&item=${encodeURIComponent(meta.name)}`} prefetch={false}>Report an issue with {meta.title}</NextLink></Link>
       </header>

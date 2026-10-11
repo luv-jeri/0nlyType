@@ -9,8 +9,8 @@ const releases = [
   { version: "0.0", name: "A name", notes: ["A name, taken from music."] },
 ]
 
-const threshold = [
-  "Zero decibels is the quietest sound a person can hear. The library sits at that threshold, and it gives an interface two typefaces, one accent and a great deal of space to lean on.",
+const idea = [
+  "Everything is type. The library gives an interface two typefaces, one accent and a great deal of space to lean on, and takes every picture away.",
   "Space does the layout. Where a box would say that things belong together, the gap between them says it first, and more quietly.",
   "Type is the only ornament. A word can be large or small, roman or italic, ink or pencil, and that is all the decoration there is.",
   "One colour marks where you are. If two things on the page were in the accent, there would be two places to be.",
@@ -32,10 +32,10 @@ const dynamics = [
   ["dim.", "Growing softer"],
 ]
 
-function Threshold() {
+function Idea() {
   return (
     <div className="grid gap-[var(--ot-space-4)] py-[var(--ot-space-3)] pe-[var(--ot-space-6)]">
-      {threshold.map((t) => <p key={t}>{t}</p>)}
+      {idea.map((t) => <p key={t}>{t}</p>)}
     </div>
   )
 }
@@ -78,8 +78,8 @@ export default function Example() {
           ))}
         </div>
       </ScrollArea>
-      <ScrollArea variant="catchword" aria-label="The threshold" className="max-h-56">
-        <Threshold />
+      <ScrollArea variant="catchword" aria-label="The idea" className="max-h-56">
+        <Idea />
       </ScrollArea>
       <ScrollArea variant="wheel" aria-label="Dynamics" className="max-h-56">
         <Dynamics />
@@ -109,8 +109,8 @@ export function States() {
         </ScrollArea>
       </State>
       <State label="Catchword">
-        <ScrollArea variant="catchword" aria-label="The threshold, narrow" className="max-h-40 w-64">
-          <Threshold />
+        <ScrollArea variant="catchword" aria-label="The idea, narrow" className="max-h-40 w-64">
+          <Idea />
         </ScrollArea>
       </State>
       <State label="Catchword, right to left">

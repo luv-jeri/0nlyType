@@ -15,7 +15,7 @@ export function downloadReceipt(receipt: Pick<Receipt, "id" | "token">) {
   const url = URL.createObjectURL(new Blob([JSON.stringify({ id: receipt.id, token: receipt.token }, null, 2)], { type: "application/json" }))
   const link = document.createElement("a")
   link.href = url
-  link.download = `0db-receipt-${receipt.id}.json`
+  link.download = `0nlytype-receipt-${receipt.id}.json`
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

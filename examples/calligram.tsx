@@ -2,11 +2,11 @@ import { Calligram } from "@/registry/0nlytype/ui/calligram"
 import { State } from "@/components/site/state"
 
 const text =
-  "Zero decibels is not silence. It is the quietest sound a person can hear, the edge of the audible, and everything else in the world is measured upward from it. A room at zero has a pulse in it, a breath, a page turning three seats away. The threshold is a place you can stand and listen, and this is the shape it leaves when it is set down in words."
+  "Everything is type. A heading is type, and so is a button, a rule, a sign on a door, and nothing in the interface is a picture of something else. A page like this has a pulse in it, a breath, a line turning three words along. Type is a place you can stand and read, and this is the shape it leaves when it is set down in words."
 
-const short = "Zero decibels is not silence. It is the quietest sound a person can hear, and everything else is measured upward from it."
+const short = "Everything is type. A heading is type, a button is type, and nothing here is a picture of something else."
 
-const rain = "It is raining the quietest sound there is, a hiss under everything, and a page turns three seats away, and nobody in the room looks up"
+const rain = "It is raining letters, a soft fall under everything, and a line breaks three words along, and nobody in the room looks up"
 
 const frame = "Held in this frame the room goes quiet, the street and the voices and the hum fall away one by one, and what is left in the middle is the one thing you came here to do"
 

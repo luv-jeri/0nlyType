@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs"
+import * as React from "react"
 import type { Metadata } from "next"
 
 import { CopyButton } from "@/registry/0nlytype/ui/source"
@@ -8,6 +9,26 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 export const metadata: Metadata = {
   title: "Tokens",
   description: "Every --ot- token and its Day value. Copy one to use it.",
+}
+
+/** Text that names tokens, set so it can wrap at a hyphen of a token's name and nowhere else inside it: --ot- and the first word stay whole, then each later word may start a line. */
+function Wrappable({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(--[\w-]+)/).map((part, i) => {
+        if (i % 2 === 0) return part
+        const words = part.slice(2).split("-")
+        const first = words.slice(0, 2).join("-")
+        const rest = words.slice(2)
+        return (
+          <React.Fragment key={i}>
+            <span className="doc-token-ref">--{first}</span>
+            {rest.map((word, j) => <React.Fragment key={j}>-<wbr />{word}</React.Fragment>)}
+          </React.Fragment>
+        )
+      })}
+    </>
+  )
 }
 
 /** The first :root block of tokens.css, grouped by its own comments. */
@@ -40,7 +61,7 @@ export default function Tokens() {
       {groups().map((g) => (
         <section key={g.title} className="doc-section" aria-labelledby={`t-${g.title}`}>
           <h2 id={`t-${g.title}`} data-rail={g.title}>{g.title}</h2>
-          <div className="doc-table" role="region" aria-label={`${g.title} tokens`} tabIndex={0}>
+          <div className="doc-table doc-tokens" role="region" aria-label={`${g.title} tokens`} tabIndex={0}>
             <Table>
               <TableCaption>{g.title} tokens</TableCaption>
               <TableHeader>
@@ -56,10 +77,10 @@ export default function Tokens() {
                 {g.tokens.map((t) => (
                   <TableRow key={t.name}>
                     <TableCell primary>
-                      <code>{t.name}</code>
+                      <code><Wrappable text={t.name} /></code>
                     </TableCell>
                     <TableCell>
-                      <code>{t.value}</code>
+                      <code><Wrappable text={t.value} /></code>
                     </TableCell>
                     <TableCell>
                       <CopyButton text={`var(${t.name})`} aria-label={`Copy var(${t.name})`} />

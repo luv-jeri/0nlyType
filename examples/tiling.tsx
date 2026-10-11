@@ -26,7 +26,7 @@ export default function Example() {
       {/* One sheet after "Less is more.": the headline set a word to a tile, the notes kept to the corners, a large number at the foot. */}
       <Tiling aria-label="Less but better">
         <Tile span={8}>
-          <p className={note}>Less noise, more meaning</p>
+          <p className={note}>Fewer things, more meaning</p>
           <p className={`${word} mt-(--ot-space-7)`}>Less</p>
         </Tile>
         <Tile span={4} rows={3} place="end-top">

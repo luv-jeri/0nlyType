@@ -14,15 +14,15 @@ export default function Example() {
     <div className="grid justify-items-center gap-16">
       <div className="grid grid-cols-[minmax(0,1fr)] justify-items-center gap-x-20 gap-y-14 sm:grid-cols-3">
         <figure className="grid justify-items-center gap-6">
-          <SignSearchDots size={120} />
+          <SignSearchDots size={168} />
           <figcaption className="ot-label">Dots</figcaption>
         </figure>
         <figure className="grid justify-items-center gap-6">
-          <SignSearchWords size={120} />
+          <SignSearchWords size={168} />
           <figcaption className="ot-label">Words</figcaption>
         </figure>
         <figure className="grid justify-items-center gap-6">
-          <SignSearchFill size={120} />
+          <SignSearchFill size={168} />
           <figcaption className="ot-label">Fill</figcaption>
         </figure>
       </div>

@@ -278,7 +278,7 @@
       "name": "button",
       "type": "registry:ui",
       "title": "Button",
-      "description": "One family of three (a statement in an ink block, a bracket that steps apart, a quiet line that redraws) four heroes for the big call to action (overture, crescendo, stave and ink) and two measures: space and repeat. Nothing moves its neighbours.",
+      "description": "One family of three (a statement in an ink block, a bracket that steps apart, a quiet line that redraws), four heroes for the big call to action (overture, crescendo, stave and ink), and two measures: space and repeat. Nothing moves its neighbours.",
       "registryDependencies": [
         "https://thedirectors.agency/ui/r/0nlytype.json",
         "https://thedirectors.agency/ui/r/spinner.json"

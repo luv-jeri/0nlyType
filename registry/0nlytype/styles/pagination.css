@@ -119,7 +119,8 @@
   .ot-pager[data-variant="thumb"] a[data-slot="pagination-link"]:is(:hover, [data-force~="hover"]):not([aria-current="page"]) { background-color: var(--ot-rule); color: var(--ot-ink); }
   .ot-pager[data-variant="thumb"] > li > a[data-slot="pagination-link"][aria-current="page"] { background-color: var(--ot-accent); color: var(--ot-paper); font-weight: 700; transition-duration: var(--ot-moderato); }
   @media (max-width: 40rem) {
-    .ot-pager[data-variant="thumb"] { display: grid; grid-template-columns: repeat(13, minmax(24px, 1fr)); row-gap: var(--ot-space-2); }
+    .ot-pager[data-variant="thumb"] { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); row-gap: var(--ot-space-2); font-size: var(--ot-mp); letter-spacing: var(--ot-mp-tr); }
+    .ot-pager[data-variant="thumb"] > li { min-width: 0; } /* thirteen letters to a row stay inside a phone's measure instead of running past it */
   }
 
   @media (forced-colors: active) {

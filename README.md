@@ -2,7 +2,7 @@
 
 A component library for type and silence: two typefaces, one accent and a great deal of space. Every control is a typographic idea standing on a native element or a Radix primitive. A checkbox is a sentence you strike through, and a switch is the last word of a sentence.
 
-0 dB is the threshold of hearing, the quietest sound a person can hear. [INTENT.md](INTENT.md) says who it's for and what it refuses; [DESIGN.md](DESIGN.md) is the how.
+Everything is type. [INTENT.md](INTENT.md) says who it's for and what it refuses; [DESIGN.md](DESIGN.md) is the how.
 
 **[Docs](https://thedirectors.agency/ui/docs/)** · [Specimen](https://thedirectors.agency/ui/specimen/) · MIT licensed, shadcn-compatible
 

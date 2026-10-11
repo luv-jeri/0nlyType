@@ -189,8 +189,12 @@ function CopyButton({ text, onCopied, variant = "quiet", className, ...props }: 
       }}
       {...props}
     >
-      <span ref={label} aria-live="polite">
-        {copied ? "Copied" : "Copy"}
+      <span className="ot-source-copy-word">
+        <span ref={label} aria-live="polite">
+          {copied ? "Copied" : "Copy"}
+        </span>
+        {/* The room for the longer word, so Copied never moves what stands beside the button. */}
+        <span aria-hidden="true">Copied</span>
       </span>
     </Button>
   )

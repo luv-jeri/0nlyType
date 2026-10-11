@@ -134,15 +134,17 @@ type CommandDialogProps = CommandProps & {
   onOpenChange: (open: boolean) => void
   /** Read out by screen readers; not shown. */
   title?: string
+  /** Where focus goes when the palette closes. By default it returns to what had focus when it opened, which is the page itself if a key opened it; preventDefault and focus your trigger instead. */
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 /** The ⌘K palette: a modal over the page. Register the key yourself; this only opens where you tell it. */
-function CommandDialog({ open, onOpenChange, title = "Search", children, ...props }: CommandDialogProps) {
+function CommandDialog({ open, onOpenChange, title = "Search", onCloseAutoFocus, children, ...props }: CommandDialogProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay data-slot="command-overlay" className="ot-command-overlay" />
-        <DialogPrimitive.Content data-slot="command-dialog" aria-describedby={undefined} className="ot-command-dialog ot-corners">
+        <DialogPrimitive.Content data-slot="command-dialog" aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus} className="ot-command-dialog ot-corners">
           <DialogPrimitive.Title className="ot-sr">{title}</DialogPrimitive.Title>
           <Command {...props}>{children}</Command>
         </DialogPrimitive.Content>

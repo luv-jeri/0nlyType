@@ -97,7 +97,7 @@ function CommandLine({ command, runner = false, emphasis, variant = "line", glos
           ))}
         </RadioGroup>
       ) : null}
-      <div key={copied} data-copied={copied || undefined} className="ot-command-line-row">
+      <div data-copied={copied ? (copied % 2 ? "a" : "b") : undefined} className="ot-command-line-row">
         <code data-slot="command-line-text" className="ot-command-line-text" dir="ltr">
           {prefix ? <span className="ot-command-line-quiet">{prefix}</span> : null}
           {words(command, emphasis, yours, parsed ? glosses : undefined)}

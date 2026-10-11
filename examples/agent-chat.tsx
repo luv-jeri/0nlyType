@@ -223,7 +223,7 @@ function Callouts({ className, dir, lang }: { className?: string; dir?: "rtl"; l
 export default function Example() {
   return (
     <div className="grid w-full max-w-[72rem] gap-(--ot-space-8) lg:grid-cols-2">
-      <div className="grid gap-(--ot-space-4)">
+      <div className="grid content-start gap-(--ot-space-4)">
         <Live />
         <p className="ot-pp text-(--ot-pencil)">Send it: Ada writes back, asks before she opens anything, reads, and asks you to choose.</p>
       </div>

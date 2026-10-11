@@ -4,7 +4,9 @@
      ot-thread, ot-msg, ot-attachments, ot-field, ot-dialog, ot-choice, ot-progress, ot-marker and ot-agent. */
   .ot-agent-chat {
     display: grid; grid-template-rows: auto minmax(0, 1fr) auto; row-gap: var(--ot-space-5);
-    block-size: min(44rem, 88svh); container-type: inline-size;
+    /* No taller than a window: the thread grows with its messages up to the ceiling, then scrolls. A fixed height left a short
+       thread with a dead block above its first message. Give it a height of your own and that wins. */
+    max-block-size: min(44rem, 88svh); container-type: inline-size;
   }
   .ot-agent-chat-head {
     display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--ot-space-2) var(--ot-space-5);

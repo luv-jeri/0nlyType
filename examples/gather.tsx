@@ -46,7 +46,7 @@ export function States() {
       </State>
       <State label="By word">
         <Gather by="word" className="ot-mp" style={{ width: "16rem", maxWidth: "100%" }}>
-          Less noise, and every word in its place.
+          Fewer words, and every one in its place.
         </Gather>
       </State>
       <State label="By line">

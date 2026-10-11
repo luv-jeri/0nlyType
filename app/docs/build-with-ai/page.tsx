@@ -103,7 +103,7 @@ export default function BuildWithAI() {
                 <CopyButton text={prompt.text} aria-label={`Copy prompt: ${prompt.title}`} />
               </div>
               <Prose className="doc-ai-prompt">
-                <blockquote><p dir="ltr">{prompt.text}</p></blockquote>
+                <blockquote><p dir="ltr">{prompt.text.split("/").flatMap((part, i) => (i ? [<wbr key={i} />, "/" + part] : [part]))}</p></blockquote>
               </Prose>
             </section>
           ))}

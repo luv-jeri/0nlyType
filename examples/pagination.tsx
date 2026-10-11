@@ -103,8 +103,8 @@ function Thumb({ at, go = () => ({ href: "?letter" }), force }: { at: string; go
 
 function Neighbours({ at, go = () => ({ href: "?chapter" }), force }: { at: number; go?: Go; force?: string }) {
   return (
-    <Pagination aria-label="Chapters">
-      <PaginationContent variant="neighbours" className="w-[min(28rem,80vw)]">
+    <Pagination aria-label="Chapters" className="w-[min(28rem,100%)]">
+      <PaginationContent variant="neighbours" className="w-full">
         {at > 0 && <PaginationItem><PaginationPrevious {...go(at - 1)} data-force={force}>{chapters[at - 1]}</PaginationPrevious></PaginationItem>}
         {at < chapters.length - 1 && <PaginationItem><PaginationNext {...go(at + 1)}>{chapters[at + 1]}</PaginationNext></PaginationItem>}
       </PaginationContent>

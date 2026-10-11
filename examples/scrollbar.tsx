@@ -12,8 +12,8 @@ const sections = [
 const lines = Array.from({ length: 18 }, (_, i) => `Line ${i + 1} of the brief.`)
 
 const passage = [
-  "Zero decibels is the quietest sound a person can hear.",
-  "The library sits at that threshold, and asks the page to hold still.",
+  "Everything is type.",
+  "The library gives the page two typefaces, and asks it to hold still.",
   "Space does the layout. Type is the only ornament.",
   "One colour marks where you are, and only that.",
   "What you choose is set in the italic; the rest is roman.",
@@ -37,13 +37,13 @@ export default function Example() {
         </div>
         <Scrollbar sections={sections} />
       </div>
-      <div className="relative h-56 overflow-auto" tabIndex={0} role="region" aria-label="The threshold, with the numeral rail">
+      <div className="relative h-56 overflow-auto" tabIndex={0} role="region" aria-label="The idea, with the numeral rail">
         <div className="grid gap-[var(--ot-space-4)] pe-[var(--ot-space-8)]">
           {passage.concat(passage).map((l, i) => <p key={i}>{l}</p>)}
         </div>
         <Scrollbar variant="numeral" />
       </div>
-      <div className="relative h-56 overflow-auto" tabIndex={0} role="region" aria-label="The threshold, with the leaves rail">
+      <div className="relative h-56 overflow-auto" tabIndex={0} role="region" aria-label="The idea, with the leaves rail">
         <div className="grid gap-[var(--ot-space-4)] pe-[var(--ot-space-7)]">
           {passage.concat(passage, passage).map((l, i) => <p key={i}>{l}</p>)}
         </div>

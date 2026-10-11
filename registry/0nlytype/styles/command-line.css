@@ -17,8 +17,16 @@
     background: var(--ot-accent); transform-origin: 0 0; scale: 0 1; opacity: 0; pointer-events: none;
   }
   .ot-command-line-row:is([dir="rtl"], [dir="rtl"] *)::after { transform-origin: 100% 0; }
-  .ot-command-line-row[data-copied]::after { animation: ot-command-line-draw var(--ot-adagio) var(--ot-exhale) both; }
+  /* The row is never remounted (that would drop Copy's own "Copied" and its focus), so each copy flips between two identical
+     keyframes to start the line again. */
+  .ot-command-line-row[data-copied="a"]::after { animation: ot-command-line-draw var(--ot-adagio) var(--ot-exhale) both; }
+  .ot-command-line-row[data-copied="b"]::after { animation: ot-command-line-draw-again var(--ot-adagio) var(--ot-exhale) both; }
   @keyframes ot-command-line-draw {
+    0%   { opacity: 1; scale: 0 1; }
+    45%  { opacity: 1; scale: 1 1; }
+    100% { opacity: 0; scale: 1 1; }
+  }
+  @keyframes ot-command-line-draw-again {
     0%   { opacity: 1; scale: 0 1; }
     45%  { opacity: 1; scale: 1 1; }
     100% { opacity: 0; scale: 1 1; }

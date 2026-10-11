@@ -43,13 +43,13 @@ export default function Example() {
 /** A step drawn still, in the page: a word, the leader and the callout. */
 function Still({ at, of, last, force }: { at: number; of: number; last?: boolean; force?: string }) {
   return (
-    <div style={{ position: "relative", width: "20rem", height: "13rem" }}>
+    <div style={{ position: "relative", width: "min(20rem, calc(100vw - 5.2rem))", height: "13rem" }}>
       <span style={{ position: "absolute", left: 0, top: 0, color: "var(--ot-ink)" }}>Send the draft</span>
       <svg className="ot-tour-lead" aria-hidden="true">
         <line className="ot-tour-line" x1="56" y1="26" x2="130" y2="84" pathLength={1} />
         <circle className="ot-tour-dot" cx="56" cy="26" r={3.5} />
       </svg>
-      <div className="ot-tour-callout" data-laid="" style={{ left: 112, top: 84, animation: "none", maxInlineSize: "13rem" }}>
+      <div className="ot-tour-callout" data-laid="" style={{ left: "min(112px, calc(100vw - 5.2rem - 13rem))", top: 84, animation: "none", maxInlineSize: "13rem" }}>
         <div className="ot-tour-head">
           <p className="ot-tour-title">Send it</p>
           <span className="ot-tour-count">0{at}/0{of}</span>

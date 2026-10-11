@@ -18,13 +18,16 @@
   .ot-source-lang { font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: var(--ot-pencil); }
   .ot-source-copy { margin-inline-start: auto; }
   .ot-source-meta > .ot-source-copy { font-size: inherit; }
-  .ot-source-copy > span { display: inline-block; }
+  .ot-source-copy-word { display: inline-grid; justify-items: end; }
+  .ot-source-copy-word > * { grid-area: 1 / 1; }
+  .ot-source-copy-word > [aria-hidden] { visibility: hidden; }
 
   /* Wide enough for a margin: the name and Copy stand to the left of the lines. */
   @container (min-width: 34rem) {
     .ot-source-frame:has(> .ot-source-meta) { grid-template-columns: 8.5rem minmax(0, 1fr); column-gap: var(--ot-space-3); }
     .ot-source-meta { flex-direction: column; align-items: flex-start; row-gap: var(--ot-space-2); padding-inline-start: 0; padding-block-start: 0.4em; }
     .ot-source-copy { margin-inline-start: 0; }
+    .ot-source-copy-word { justify-items: start; }
   }
 
   .ot-source-code {
