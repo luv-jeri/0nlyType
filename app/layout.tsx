@@ -7,27 +7,14 @@ import { PageRail } from "@/components/site/page-rail"
 import { RegistryStyles } from "@/components/site/registry-styles"
 import { Toaster } from "@/registry/0nlytype/ui/toast"
 import { TooltipProvider } from "@/registry/0nlytype/ui/tooltip"
+import { pageMeta, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site/meta"
 import { places, searchGroups } from "@/lib/site/nav"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: { default: "0nlyType", template: "%s · 0nlyType" },
-  description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: "./" },
-  openGraph: {
-    type: "website",
-    siteName: "0nlyType",
-    locale: "en_US",
-    url: "./",
-    title: { default: "0nlyType", template: "%s · 0nlyType" },
-    description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
-  },
-  twitter: {
-    card: "summary",
-    title: { default: "0nlyType", template: "%s · 0nlyType" },
-    description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
-  },
+  ...pageMeta({ description: SITE_DESCRIPTION }),
+  title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,14 +1,15 @@
 import type { Metadata } from "next"
 import NextLink from "next/link"
 
+import { pageMeta } from "@/lib/site/meta"
 import { Rows, Row, RowKind, RowMeta, RowTitle } from "@/registry/0nlytype/ui/rows"
 import { Link } from "@/registry/0nlytype/ui/link"
 import { catalog, UNDER } from "@/lib/site/catalog"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Index",
-  description: "Every 0nlyType item, by movement.",
-}
+  description: "Every 0nlyType component, grouped by movement, with a line on what each one does.",
+})
 
 export default function DocsIndexPage() {
   const count = catalog.reduce((n, m) => n + m.items.length, 0)

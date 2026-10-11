@@ -14,6 +14,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     .filter((file) => /(?:^|[\\/])page\.(tsx|ts|jsx|js)$/.test(file))
     .map((file) => path.dirname(file).split(path.sep))
     .filter((segments) => !segments.some((segment) => /^[\[_@]/.test(segment)))
+    // The lab is for judging work in progress, and asks not to be indexed.
+    .filter((segments) => segments[0] !== "lab")
     .map((segments) => segments.filter((segment) => segment !== "." && !segment.startsWith("(")).join("/"))
   const paths = new Set([
     ...pages.map((page) => page ? `/${page}/` : "/"),

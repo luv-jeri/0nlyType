@@ -2,14 +2,15 @@ import { readFileSync } from "node:fs"
 import * as React from "react"
 import type { Metadata } from "next"
 
+import { pageMeta } from "@/lib/site/meta"
 import { CopyButton } from "@/registry/0nlytype/ui/source"
 import { Waterfall } from "@/registry/0nlytype/ui/waterfall"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/registry/0nlytype/ui/table"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Tokens",
   description: "Every --ot- token and its Day value. Copy one to use it.",
-}
+})
 
 /** Text that names tokens, set so it can wrap at a hyphen of a token's name and nowhere else inside it: --ot- and the first word stay whole, then each later word may start a line. */
 function Wrappable({ text }: { text: string }) {

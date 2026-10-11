@@ -22,6 +22,9 @@ import { rewriteImports } from "@/scripts/lib/items.mjs"
 import { ItemExample } from "./examples"
 import { DemoExample } from "./demo-example"
 import { SignCatalogue } from "@/components/site/sign-catalogue"
+import { JsonLd } from "@/components/site/json-ld"
+import { pageMeta, SITE_NAME, STUDIO } from "@/lib/site/meta"
+import { siteURL } from "@/lib/site/config.mjs"
 
 type Params = { params: Promise<{ item: string }> }
 
@@ -32,7 +35,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { item } = await params
   const entry = entries.find((e) => e.meta.name === item)
-  return entry ? { title: entry.meta.title, description: entry.meta.summary } : {}
+  return entry ? pageMeta({ title: entry.meta.title, description: entry.meta.summary }) : {}
 }
 
 /** The files `shadcn add` writes for this item, read from its published payload. */
@@ -96,8 +99,26 @@ export default async function ItemPage({ params }: Params) {
   const siblings = entry.siblings as string[]
   const exampleDependencies = entry.exampleDependencies.map((name) => entries.find((e) => e.meta.name === name)!.meta)
 
+  // For search: the page is a technical article about one component, under the docs, under the library.
+  const url = siteURL(`/docs/${meta.name}/`)
+  const data = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "TechArticle", headline: meta.title, description: meta.summary, url, inLanguage: "en", author: STUDIO, isPartOf: { "@type": "WebSite", name: SITE_NAME, url: siteURL("/") } },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: SITE_NAME, item: siteURL("/") },
+          { "@type": "ListItem", position: 2, name: "Docs", item: siteURL("/docs/") },
+          { "@type": "ListItem", position: 3, name: meta.title, item: url },
+        ],
+      },
+    ],
+  }
+
   return (
     <article>
+      <JsonLd data={data} />
       <header className="doc-head">
         <Meta>
           <span>

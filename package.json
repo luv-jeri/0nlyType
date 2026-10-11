@@ -12,6 +12,7 @@
     "dev": "node scripts/copy-specimen.mjs && next dev",
     "build": "node --import tsx scripts/build-registry.mjs && node scripts/copy-specimen.mjs && next build && npm run package:site",
     "registry:build": "node --import tsx scripts/build-registry.mjs",
+    "og:build": "node --import tsx scripts/build-og.mjs",
     "wordmark:set": "node scripts/set-wordmark.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint-css.mjs && eslint --max-warnings=0 .",

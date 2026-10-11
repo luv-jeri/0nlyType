@@ -3,14 +3,13 @@
 import { siteURL } from "@/lib/site/config.mjs"
 import * as React from "react"
 
+import { REPO } from "@/lib/site/meta"
 import { Link } from "@/registry/0nlytype/ui/link"
 
 // Pass it on: one click copies the link and says so, and the places to send it open beside it, as words. Each
 // place is a link to its own share page, in a new tab. Where the system has a share sheet (phones, mostly),
 // "Other apps" opens it, and that reaches Instagram and the rest. Esc, a click elsewhere, or tabbing out
 // closes it, and focus goes back where it was. The sea and "Help build it" set it on a line.
-
-export const REPO = "https://github.com/luv-jeri/0nlyType"
 
 const places = (url: string, text: string) => {
   const u = encodeURIComponent(url), t = encodeURIComponent(text)

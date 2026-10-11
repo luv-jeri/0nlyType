@@ -1,6 +1,7 @@
 import { Cta } from "@/components/site/landing-hero"
 import { Sec } from "@/components/site/landing-section"
-import { REPO, ShareCall } from "@/components/site/landing-share"
+import { ShareCall } from "@/components/site/landing-share"
+import { REPO } from "@/lib/site/meta"
 
 // 06, how to help build it: a type poster made of the four calls. "Request", "Report", "Star" and "Share" are set
 // large, heavy and condensed, stacked tight, one running up the margin and one leaning a few degrees, and each is

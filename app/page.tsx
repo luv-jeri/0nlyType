@@ -1,4 +1,5 @@
-import { sitePath } from "@/lib/site/config.mjs"
+import { sitePath, siteURL } from "@/lib/site/config.mjs"
+import type { Metadata } from "next"
 
 import "./landing.css"
 import "./landing-leaves.css"
@@ -14,8 +15,9 @@ import { Help } from "@/components/site/landing-help"
 import { Install } from "@/components/site/landing-install"
 import { Leaves } from "@/components/site/landing-leaves"
 import { Sea } from "@/components/site/landing-sea"
-import { REPO } from "@/components/site/landing-share"
 import { LandingZero, type Movement } from "@/components/site/landing-zero"
+import { JsonLd } from "@/components/site/json-ld"
+import { pageMeta, REPO, SITE_DESCRIPTION, SITE_NAME, STUDIO } from "@/lib/site/meta"
 import { catalog } from "@/lib/site/catalog"
 import { entries } from "@/lib/site/entries"
 import { Link } from "@/registry/0nlytype/ui/link"
@@ -31,9 +33,32 @@ const movements: Movement[] = catalog.map((m) => ({
 }))
 const count = entries.length
 
+// The home page names the library and what it is in the title, where a search result shows it.
+export const metadata: Metadata = pageMeta({ absolute: `${SITE_NAME} · A React component library set entirely in type`, description: SITE_DESCRIPTION })
+
+// For search: the site, and the code it publishes.
+const data = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebSite", name: SITE_NAME, url: siteURL("/"), description: SITE_DESCRIPTION, inLanguage: "en", publisher: STUDIO },
+    {
+      "@type": "SoftwareSourceCode",
+      name: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      url: siteURL("/"),
+      codeRepository: REPO,
+      programmingLanguage: ["TypeScript", "CSS"],
+      runtimePlatform: "React",
+      license: "https://opensource.org/licenses/MIT",
+      author: STUDIO,
+    },
+  ],
+}
+
 export default function Home() {
   return (
     <main id="content" className="page landing">
+      <JsonLd data={data} />
       <LandingZero movements={movements} count={count} />
 
       <Leaves />
