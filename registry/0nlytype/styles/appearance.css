@@ -30,6 +30,9 @@
   /* A change opens the new page as a circle from the control that made it (applyAppearance sets the centre). It
      arrives (exhale): the circle is wide at once and slows as it fills, so the answer is seen as the press lands. */
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+  /* Under the circle the colours are already new, so the body's own colour fade is off. Left on, every letter on the page
+     inherits a colour still on its way, and the page was restyled whole on every frame of the circle. */
+  :root:active-view-transition body { transition: none; }
   ::view-transition-new(root) { animation: ot-appearance-open var(--ot-andante) var(--ot-exhale); }
   @keyframes ot-appearance-open {
     from { clip-path: circle(0 at var(--ot-appearance-x, 50%) var(--ot-appearance-y, 0)); }

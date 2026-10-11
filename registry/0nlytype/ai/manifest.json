@@ -2,13 +2,13 @@
   "version": "0.1.0",
   "sources": {
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "54757749ce194cbef583734aae0756147c17ce603b10daaa980603b294e70d9d"
+    "DESIGN.md": "2171cb6b93203ac0939c209e0a33468d09403744c3f159de4a7debd9255677bf"
   },
   "files": {
     "AGENTS.md": "4f0be791d303fa4f283e867f210ec3a4b48f041ecae6ead63ea4022414da030c",
     "docs/AGENTS.md": "021d8a0711100ab41843e12d00041488edbf2c5f5602b85600f5695fa3ef57ff",
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "54757749ce194cbef583734aae0756147c17ce603b10daaa980603b294e70d9d",
+    "DESIGN.md": "2171cb6b93203ac0939c209e0a33468d09403744c3f159de4a7debd9255677bf",
     "DESIGN-core.md": "930dd1a59fc21fecce0dbfb8ee31a0fbb1401599a2c0aff4b30631ac70293531",
     "components/link.md": "24eff267d16966dfffe3ab52d1db40a976ad7154129d0b2a074e44721c00e8fe",
     "components/meta.md": "ef5a3495f84051b5e075ed0b3637eccca3ce18cdf2ca99561b7b493851145ddf",
@@ -77,7 +77,7 @@
     "components/activity-feed.md": "280af003f6016b2dee97cace91637e9c38b57ed2bb5379929e6a981b965b5e8f",
     "components/agent-chat.md": "a1f8224d509c6464de242f9989656ba0a3838c8fbc6e5f3a9b6aae2b10fd11b9",
     "components/agent-state.md": "2e7d1ef85f9ab5fb71e77dab3e444bd2d4a961b4d085a564cf91c57b9d5f5649",
-    "components/appearance.md": "cd6241e22e64931ef2cffdccff17d030a01a79bcd6b16a09288d9b792a51de2e",
+    "components/appearance.md": "3a173a171e1b0c41a2d6e775baded53648dbdf5438665c1882f95b5442e48573",
     "components/area-chart.md": "0c7022f6555f0fb22e94bb3f8081b3e7affc3fb8edaf08f3f5b582e0bed623db",
     "components/calligram.md": "6931e538340930b30beb1fbc412f67bc98fdd609dd8ad458c517b321a637057c",
     "components/command-line.md": "7abdc02c0331df28972dc0616bb31e3ab29316e7658dd35e37987975edb8bef5",
