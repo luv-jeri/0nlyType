@@ -2,10 +2,11 @@
    scroll takes them apart, and their letters fall into the list, where each word inks in and is struck
    (components/site/landing-leaves.tsx). The run is the held stretch: the stage sticks for all of it but one screen. ── */
 .leaves-run { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; height: 270vh; height: 270svh; }
-.leaves-stage { grid-column: 1 / -1; position: sticky; top: 0; display: grid; grid-template-columns: subgrid; align-content: end; height: 100vh; height: 100svh; padding-bottom: var(--ot-space-7); }
-/* The canvas bleeds to the window's edges, over the list, and never takes a press: the words under it stay selectable. */
+.leaves-stage { grid-column: 1 / -1; position: sticky; top: 0; display: grid; grid-template-columns: subgrid; align-content: center; height: 100vh; height: 100svh; }
+/* The canvas bleeds to the window's edges, around the list, and never takes a press: the words under it stay selectable. */
 .leaves-pictures { position: absolute; top: 0; left: calc(50% - 50vw); z-index: 1; width: 100vw; height: 100%; pointer-events: none; }
-.leaves-list { grid-column: 4 / -1; max-width: 15em; font-size: clamp(var(--ot-f), calc(5.2 * var(--site-vw)), 120px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-wrap: balance; }
+/* The list holds the middle of the stage; the pictures float in the room either side of it. */
+.leaves-list { grid-column: 1 / -1; justify-self: center; max-width: 10em; margin-top: var(--ot-space-6); font-size: clamp(var(--ot-f), calc(4.2 * var(--site-vw)), 100px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-align: center; text-wrap: balance; }
 .leaves-strike { position: relative; text-decoration: none; }
 .leaves-strike::after { content: ""; position: absolute; left: -0.04em; right: -0.04em; top: 0.56em; height: max(var(--ot-stroke), 0.05em); background: var(--ot-ink); transform-origin: 0 50%; }
 :is([dir="rtl"], [dir="rtl"] *).leaves-strike::after { transform-origin: 100% 50%; }
@@ -29,7 +30,7 @@
 /* Under reduced motion nothing is held: the pictures hang whole and small above the struck list. */
 @media (prefers-reduced-motion: reduce) {
   .leaves-run, .leaves-stage { height: auto; }
-  .leaves-stage { position: relative; padding-bottom: 0; }
+  .leaves-stage { position: relative; }
   .leaves-pictures { position: relative; left: auto; grid-column: 1 / -1; width: 100%; height: clamp(220px, 22vw, 340px); margin-bottom: var(--ot-space-6); }
 }
 @media (max-width: 860px) {

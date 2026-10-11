@@ -56,9 +56,16 @@ const PICS: Pic[] = [
   // A framed landscape: the frame, two ranges of hills, and a sun.
   {
     w: 300, h: 228, parts: [
-      { word: 0, text: "picture", weight: 640, tone: "ink", lh: 1.06, draw: (x) => { x.fillRect(0, 0, 300, 228); cut(x, () => x.fillRect(24, 24, 252, 180)) } },
+      { word: 0, text: "picture", weight: 640, tone: "ink", lh: 1.06, draw: (x) => {
+        x.fillRect(0, 0, 300, 228)
+        cut(x, () => x.fillRect(24, 24, 252, 180))
+      } },
       { word: 0, text: "picture", weight: 430, tone: "graphite", lh: 1.06, draw: (x) => poly(x, [30, 200, 30, 156, 72, 112, 104, 138, 164, 72, 214, 130, 238, 116, 270, 150, 270, 200]) },
-      { word: 0, text: "picture", weight: 780, tone: "ink", lh: 1.06, draw: (x) => { x.beginPath(); x.arc(226, 66, 25, 0, 7); x.fill() } },
+      { word: 0, text: "picture", weight: 780, tone: "ink", lh: 1.06, draw: (x) => {
+        x.beginPath()
+        x.arc(226, 66, 25, 0, 7)
+        x.fill()
+      } },
     ],
   },
   // A box: three faces of a cube, lit from above, toned by weight and spacing.
@@ -72,11 +79,21 @@ const PICS: Pic[] = [
   // A card and its hard drop shadow, the shadow lighter and sparser.
   {
     w: 268, h: 190, parts: [
-      { word: 2, text: "card", weight: 470, tone: "ink", lh: 1.06, draw: (x) => { x.beginPath(); x.roundRect(0, 0, 236, 158, 16); x.fill() } },
+      { word: 2, text: "card", weight: 470, tone: "ink", lh: 1.06, draw: (x) => {
+        x.beginPath()
+        x.roundRect(0, 0, 236, 158, 16)
+        x.fill()
+      } },
       {
         word: 3, text: "shadow", weight: 320, tone: "pencil", lh: 1.6, draw: (x) => {
-          x.beginPath(); x.roundRect(30, 30, 236, 158, 16); x.fill()
-          cut(x, () => { x.beginPath(); x.roundRect(-5, -5, 246, 168, 20); x.fill() })
+          x.beginPath()
+          x.roundRect(30, 30, 236, 158, 16)
+          x.fill()
+          cut(x, () => {
+            x.beginPath()
+            x.roundRect(-5, -5, 246, 168, 20)
+            x.fill()
+          })
         },
       },
     ],
@@ -103,25 +120,42 @@ const PICS: Pic[] = [
     w: 150, h: 150, parts: [
       {
         word: 5, text: "icon", weight: 620, tone: "ink", lh: 1.06, draw: (x) => {
-          x.beginPath(); x.arc(75, 75, 53, 0, 7); x.fill()
+          x.beginPath()
+          x.arc(75, 75, 53, 0, 7)
+          x.fill()
           for (let k = 0; k < 8; k++) {
-            x.save(); x.translate(75, 75); x.rotate((k * Math.PI) / 4 + Math.PI / 8); x.fillRect(-12, -75, 24, 30); x.restore()
+            x.save()
+            x.translate(75, 75)
+            x.rotate((k * Math.PI) / 4 + Math.PI / 8)
+            x.fillRect(-12, -75, 24, 30)
+            x.restore()
           }
-          cut(x, () => { x.beginPath(); x.arc(75, 75, 21, 0, 7); x.fill() })
+          cut(x, () => {
+            x.beginPath()
+            x.arc(75, 75, 21, 0, 7)
+            x.fill()
+          })
         },
       },
     ],
   },
 ]
 
-// Where the pictures hang: centre x and y as shares of the room, a scale, and a tilt in degrees. The room is the page's
-// width over the list while the stage is held. Under reduced motion the pictures sit in rows above the list instead
-// (one row wide, three on a phone), packed side by side so none is cut by the edge; there only the scale and tilt count,
-// and y nudges a picture up or down in its row.
+// Where the pictures hang while the stage is held: the list sits in the middle, and the pictures float around it, in
+// the room to its left or right (above or below it on a phone). Each is its side (0 left or above, 1 right or below),
+// its centre x and y as shares of that room, a scale, a tilt in degrees, and a depth: how far the scroll carries it
+// against the list, so the near ones drift more than the far ones. Under reduced motion the pictures sit in rows above
+// the list instead (one row wide, three on a phone), packed side by side so none is cut by the edge; there only the
+// scale and tilt count, and y nudges a picture up or down in its row.
+type Float = [number, number, number, number, number, number][]
+const FLOAT: Record<"wide" | "phone", Float> = {
+  wide: [[0, 0.52, 0.26, 1, -3, 1], [0, 0.62, 0.76, 0.78, 4, 0.55], [1, 0.46, 0.22, 1, -2.5, 0.8], [1, 0.56, 0.7, 0.86, 3, 1.25], [0, 0.17, 0.56, 0.62, -7, 1.6]],
+  phone: [[0, 0.33, 0.5, 1, -3, 1], [0, 0.8, 0.46, 0.76, 4, 0.6], [1, 0.24, 0.5, 0.84, -2.5, 0.8], [1, 0.64, 0.42, 0.6, 3, 1.2], [1, 0.9, 0.66, 0.5, -7, 1.5]],
+}
+/** How far the float carries a picture over the held stretch, as a share of the stage's height; and the moment it hangs where it was set. */
+const SWAY = { wide: 0.24, phone: 0.12 }, SET = 0.24
 type Hang = [number, number, number, number][]
-const HANG: Record<"wide" | "phone" | "wideStill" | "phoneStill", Hang> = {
-  wide: [[0.155, 0.5, 1.1, -3], [0.4, 0.3, 0.92, 4], [0.615, 0.6, 1, -2.5], [0.835, 0.36, 0.92, 3], [0.962, 0.72, 0.84, -7]],
-  phone: [[0.34, 0.2, 0.6, -3], [0.2, 0.66, 0.6, 4], [0.62, 0.52, 0.56, -2.5], [0.87, 0.86, 0.5, 3], [0.86, 0.15, 0.56, -7]],
+const HANG: Record<"wideStill" | "phoneStill", Hang> = {
   wideStill: [[0, 0.5, 1, -3], [0, 0.44, 0.9, 4], [0, 0.54, 1, -2.5], [0, 0.46, 0.9, 3], [0, 0.56, 0.8, -7]],
   phoneStill: [[0, 0.5, 1, -3], [0, 0.5, 0.95, 4], [0, 0.5, 1, -2.5], [0, 0.5, 0.95, 3], [0, 0.5, 0.8, -7]],
 }
@@ -174,10 +208,14 @@ function inkOf(el: Element, origin: DOMRect) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
   for (let i = 0; i < text.length; i++) {
     if (/\s/.test(text[i])) continue
-    range.setStart(node, i); range.setEnd(node, i + 1)
+    range.setStart(node, i)
+    range.setEnd(node, i + 1)
     const b = range.getBoundingClientRect()
     at.push({ ch: text[i], x: b.left, top: b.top })
-    x0 = Math.min(x0, b.left); y0 = Math.min(y0, b.top); x1 = Math.max(x1, b.right); y1 = Math.max(y1, b.bottom)
+    x0 = Math.min(x0, b.left)
+    y0 = Math.min(y0, b.top)
+    x1 = Math.max(x1, b.right)
+    y1 = Math.max(y1, b.bottom)
   }
   if (!at.length) return new Float32Array(0)
   const W = Math.ceil(x1 - x0) + 4, H = Math.ceil(y1 - y0) + 4, { c, x } = sheet(W, H)
@@ -192,30 +230,37 @@ function inkOf(el: Element, origin: DOMRect) {
 type Line = { x: number; y: number; w: number; h: number; rel0: number; rel1: number; g0: number; g1: number }
 type Laid = {
   still: boolean
-  pics: { x: number; y: number; c: number; s: number; w: number; h: number; sheet: CanvasImageSource; rel0: number; l0: number; l1: number }[]
+  /** How far a picture of depth 1 floats over the held stretch, in pixels. */
+  sway: number
+  pics: { x: number; y: number; c: number; s: number; w: number; h: number; d: number; sheet: CanvasImageSource; rel0: number; l0: number; l1: number }[]
   lines: Line[]
   /** Per letter: home on the canvas and its tilt there, where it lands, when it lets go, its hop, drift and spin, its glyph. */
   hx: Float32Array; hy: Float32Array; ha: Float32Array; tx: Float32Array; ty: Float32Array
-  rel: Float32Array; hop: Float32Array; drift: Float32Array; spin: Float32Array; cell: Int32Array; fly: Uint8Array
+  rel: Float32Array; hop: Float32Array; drift: Float32Array; spin: Float32Array; cell: Int32Array; fly: Uint8Array; depth: Float32Array
   atlas: CanvasImageSource; cells: Float32Array
 }
 
 function lay(f: Frame, list: HTMLElement | null): Laid | null {
   const { lib, ink, dpr, w: W, h: H, still, phone } = f
   const cv = f.ctx.canvas, box = cv.getBoundingClientRect()
-  const stage = cv.parentElement?.getBoundingClientRect() ?? box
   const fs = phone ? 5 : 6.4
-  // The room the pictures hang in: under the bar, over the list, across the page's columns.
-  let rx = stage.left - box.left, rw = stage.width, ry = 0, rh = H
-  if (!still) {
-    const top = list ? list.getBoundingClientRect().top - box.top : H * 0.6
-    ry = 64 + (phone ? 16 : 28); rh = Math.max(120, top - ry - (phone ? 24 : 40))
-  } else {
-    rx = 0; rw = W
-  }
-  const hang = HANG[still ? (phone ? "phoneStill" : "wideStill") : phone ? "phone" : "wide"]
-  const packed = still ? pack(hang, phone ? ROWS.phone : ROWS.wide, rw, rh, phone ? 14 : 40) : null
-  const k = packed ? packed.k : phone ? Math.min(rw / 335, rh / 400) : Math.min(rh / 320, rw / 1070, 1.5)
+  // The two rooms the pictures float in: left and right of the list, from under the bar to the stage's foot, out to the
+  // window's edges; on a phone, above and below it, across the window.
+  const lr = list ? list.getBoundingClientRect() : null
+  const L0 = lr ? lr.left - box.left : W * 0.3, R0 = lr ? lr.right - box.left : W * 0.7
+  const T0 = lr ? lr.top - box.top : H * 0.4, B0 = lr ? lr.bottom - box.top : H * 0.6
+  const bar = 64 + (phone ? 12 : 28), edge = phone ? 12 : 28, gap = phone ? 18 : 40
+  const rooms = phone
+    ? [{ x: edge, y: bar, w: W - 4 * edge, h: Math.max(80, T0 - gap - bar) }, { x: edge, y: B0 + gap, w: W - 4 * edge, h: Math.max(80, H - edge - B0 - gap) }]
+    : [{ x: edge, y: bar, w: Math.max(120, L0 - gap - edge), h: H - edge - bar }, { x: R0 + gap, y: bar, w: Math.max(120, W - edge - R0 - gap), h: H - edge - bar }]
+  const float = still ? null : FLOAT[phone ? "phone" : "wide"]
+  const hang: Hang = float ? float.map(([, x, y, sc, deg]) => [x, y, sc, deg]) : HANG[phone ? "phoneStill" : "wideStill"]
+  const packed = still ? pack(hang, phone ? ROWS.phone : ROWS.wide, W, H, phone ? 14 : 40) : null
+  const k = packed
+    ? packed.k
+    : phone
+      ? Math.min(rooms[0].w / 500, rooms[0].h / 250, rooms[1].h / 220)
+      : Math.min(rooms[0].w / 330, rooms[1].w / 300, rooms[0].h / 560, 1.5)
 
   // Where the letters land: the ink of each word in the list.
   const ink0 = !still && list ? [...list.querySelectorAll(".leaves-strike")].map((el) => inkOf(el, box)) : []
@@ -270,7 +315,10 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
         }
       } else if (part.draw) {
         const st = style(part.weight, part.tone), font = styles[st].font, lh = fs * part.lh, draw = part.draw
-        const got = fillShape(lib, pw, ph, (x) => { x.scale(kk, kk); draw(x) }, Array(90).fill(part.text).join(" "), font, fs, lh, { min: 1.9, prepared: prep(part.text, font) })
+        const got = fillShape(lib, pw, ph, (x) => {
+          x.scale(kk, kk)
+          draw(x)
+        }, Array(90).fill(part.text).join(" "), font, fs, lh, { min: 1.9, prepared: prep(part.text, font) })
         for (const l of got) set.push({ l, lh, st })
       }
       // Each letter's place along its line, spread as the line is justified: by the word gaps, or by letter space.
@@ -280,14 +328,18 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
         for (const c of chars) nat += adv(font, c)
         const extra = Math.max(0, l.fit - nat), ws = gaps ? extra / gaps : 0, ls = gaps ? 0 : extra / Math.max(1, chars.length - 1)
         const base = l.y + lh / 2 + fs * 0.265, li = lines.length, g0 = glyphs.length
-        px.font = font; px.fillStyle = styles[st].color
+        px.font = font
+        px.fillStyle = styles[st].color
         let x = l.x
         for (const c of chars) {
           const a = adv(font, c)
           if (c !== " ") {
             px.fillText(c, x, base)
             const key = st + "|" + c
-            if (!cellOf.has(key)) { cellOf.set(key, cellKeys.length); cellKeys.push([st, c]) }
+            if (!cellOf.has(key)) {
+              cellOf.set(key, cellKeys.length)
+              cellKeys.push([st, c])
+            }
             glyphs.push({ lx: x + a / 2, ly: base - fs * 0.265, st, ch: c, word: part.word, line: li })
           }
           x += a + ls + (c === " " ? ws : 0)
@@ -296,8 +348,9 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
       }
     }
     const rad = (deg * Math.PI) / 180
-    const [cx, cy] = packed ? packed.at[n] : [cxs * rw, cys * rh]
-    pics.push({ x: rx + cx, y: ry + cy, c: Math.cos(rad), s: Math.sin(rad), w: pw, h: ph, sheet: pc, rel0: 1, l0, l1: lines.length })
+    const room = rooms[float ? float[n][0] : 0]
+    const [x, y] = packed ? packed.at[n] : [room.x + cxs * room.w, room.y + cys * room.h]
+    pics.push({ x, y, c: Math.cos(rad), s: Math.sin(rad), w: pw, h: ph, d: float ? float[n][5] : 0, sheet: pc, rel0: 1, l0, l1: lines.length })
   })
 
   // The glyph sheet: every letter in every style the pictures use, once, at the screen's density.
@@ -308,7 +361,8 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
   cellKeys.forEach(([st, c], i) => {
     const X = (i % cols) * cw, Y = Math.floor(i / cols) * ch
     ax.setTransform(dpr, 0, 0, dpr, X, Y)
-    ax.font = styles[st].font; ax.fillStyle = styles[st].color
+    ax.font = styles[st].font
+    ax.fillStyle = styles[st].color
     ax.fillText(c, cw / dpr / 2, ch / dpr / 2 + fs * 0.265)
     cells.set([X, Y, cw, ch], i * 4)
   })
@@ -317,9 +371,9 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
   // from one side), where in its word it lands, and the hop, drift and turn of its arc.
   const N = glyphs.length
   const L: Laid = {
-    still, pics, lines, atlas, cells,
+    still, pics, lines, atlas, cells, sway: H * SWAY[phone ? "phone" : "wide"],
     hx: new Float32Array(N), hy: new Float32Array(N), ha: new Float32Array(N), tx: new Float32Array(N), ty: new Float32Array(N),
-    rel: new Float32Array(N), hop: new Float32Array(N), drift: new Float32Array(N), spin: new Float32Array(N), cell: new Int32Array(N), fly: new Uint8Array(N),
+    rel: new Float32Array(N), hop: new Float32Array(N), drift: new Float32Array(N), spin: new Float32Array(N), cell: new Int32Array(N), fly: new Uint8Array(N), depth: new Float32Array(N),
   }
   const span = new Map<number, [number, number]>()
   for (const g of glyphs) {
@@ -335,21 +389,25 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
         L.hx[i] = P.x + lx * P.c - ly * P.s
         L.hy[i] = P.y + lx * P.s + ly * P.c
         L.ha[i] = Math.atan2(P.s, P.c)
+        L.depth[i] = P.d
         L.cell[i] = cellOf.get(g.st + "|" + g.ch)!
         const [top, bottom] = span.get(g.word)!, up = bottom > top ? (bottom - g.ly) / (bottom - top) : 0
         L.rel[i] = AT[g.word] + LET_GO * Math.min(1, 0.84 * up + 0.12 * (g.lx / P.w) + 0.04 * rand())
         const pts = ink0[g.word]
         if (pts && pts.length) {
           const j = Math.floor(rand() * (pts.length / 2)) * 2
-          L.tx[i] = pts[j]; L.ty[i] = pts[j + 1]
+          L.tx[i] = pts[j]
+          L.ty[i] = pts[j + 1]
         } else {
-          L.tx[i] = L.hx[i]; L.ty[i] = H + 40
+          L.tx[i] = L.hx[i]
+          L.ty[i] = H + 40
         }
         L.hop[i] = (phone ? 8 : 14) + rand() * (phone ? 18 : 34)
         L.drift[i] = (rand() - 0.5) * (phone ? 30 : 60)
         L.spin[i] = (rand() - 0.5) * 2.4
         L.fly[i] = rand() < FLY ? 1 : 0
-        line.rel0 = Math.min(line.rel0, L.rel[i]); line.rel1 = Math.max(line.rel1, L.rel[i])
+        line.rel0 = Math.min(line.rel0, L.rel[i])
+        line.rel1 = Math.max(line.rel1, L.rel[i])
       }
       P.rel0 = Math.min(P.rel0, line.rel0)
     }
@@ -360,11 +418,13 @@ function lay(f: Frame, list: HTMLElement | null): Laid | null {
 function draw(f: Frame, L: Laid | null) {
   if (!L) return false
   const { ctx, dpr } = f
-  // How far the held stage has been carried: 0 as it settles at the top of the window, 1 as it leaves.
-  const s = L.still ? -1 : clamp01(-f.top / Math.max(1, f.height - f.vh))
-  // What still hangs: a whole picture in one copy, or the lines of it that have not let go yet.
+  // How far the held stage has been carried: 0 as it settles at the top of the window, 1 as it leaves. The float reads
+  // it a little past both ends, so the pictures already float against the list as the stage comes up into view.
+  const raw = -f.top / Math.max(1, f.height - f.vh), s = L.still ? -1 : clamp01(raw)
+  const lift = L.still ? 0 : (SET - Math.min(1.2, Math.max(-0.6, raw))) * L.sway
+  // What still hangs: a whole picture in one copy, or the lines of it that have not let go yet, each lifted by its depth.
   for (const P of L.pics) {
-    ctx.setTransform(dpr * P.c, dpr * P.s, -dpr * P.s, dpr * P.c, dpr * P.x, dpr * P.y)
+    ctx.setTransform(dpr * P.c, dpr * P.s, -dpr * P.s, dpr * P.c, dpr * P.x, dpr * (P.y + lift * P.d))
     if (s <= P.rel0) {
       ctx.drawImage(P.sheet, -P.w / 2, -P.h / 2, P.w, P.h)
       continue
@@ -380,15 +440,17 @@ function draw(f: Frame, L: Laid | null) {
   }
   // The letters that leave: falling on their arcs, or settling into their word. Before a letter lets go, its line's
   // copy still shows it in place.
-  const { hx, hy, ha, tx, ty, rel, hop, drift, spin, cell, fly, cells, atlas } = L
+  const { hx, hy, ha, tx, ty, rel, hop, drift, spin, cell, fly, cells, atlas, depth } = L
   for (const l of L.lines) {
     if (s <= l.rel0 || s >= l.rel1 + FALL) continue
     for (let i = l.g0; i < l.g1; i++) {
       const t = (s - rel[i]) / FALL
       if (!fly[i] || t <= 0 || t >= 1) continue
       const u = Math.min(1, t / FLIGHT), e = u * u * (3 - 2 * u)
+      // A letter leaves from where its picture floats now, and the pull of its word takes it over from there.
+      const y0 = hy[i] + lift * depth[i]
       const x = hx[i] + (tx[i] - hx[i]) * u + drift[i] * Math.sin(Math.PI * u)
-      const y = hy[i] - hop[i] * u + (ty[i] - hy[i] + hop[i]) * u * u
+      const y = y0 - hop[i] * u + (ty[i] - y0 + hop[i]) * u * u
       const a = ha[i] + spin[i] * e, o = t > FLIGHT ? 1 - (t - FLIGHT) / (1 - FLIGHT) : 1
       // The glyph sheet is at the screen's density already, so the turn carries no scale.
       const c = Math.cos(a), sn = Math.sin(a), k = cell[i] * 4, cw = cells[k + 2], ch = cells[k + 3]

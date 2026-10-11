@@ -10,6 +10,7 @@ import { onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/l
 // inks and faces of the page as it is tuned now. A scene lays its type out once (layout, with pretext, when the size,
 // the theme or the fonts change) and draws a frame from it (draw). Nothing moves by itself: a frame is asked for only
 // by a scroll, a pointer, a resize or a retune, and the loop keeps running only while draw says something still moves.
+// Focus coming to or leaving the host asks for a frame too, so a scene can answer the keyboard as it does the pointer.
 
 type Lib = typeof import("@chenglou/pretext")
 
@@ -166,11 +167,14 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       wake()
     }
     const onMotion = () => void relayout()
+    const onFocus = () => wake()
     addEventListener("scroll", onScroll, { passive: true })
     cv.addEventListener("pointermove", onMove, { passive: true })
     cv.addEventListener("pointerdown", onMove, { passive: true })
     cv.addEventListener("pointerleave", onLeave)
     motion.addEventListener("change", onMotion)
+    el.addEventListener("focusin", onFocus)
+    el.addEventListener("focusout", onFocus)
     void relayout()
     return () => {
       alive = false
@@ -182,6 +186,8 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       cv.removeEventListener("pointerdown", onMove)
       cv.removeEventListener("pointerleave", onLeave)
       motion.removeEventListener("change", onMotion)
+      el.removeEventListener("focusin", onFocus)
+      el.removeEventListener("focusout", onFocus)
     }
   }, [host])
   return canvas
