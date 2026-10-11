@@ -1,14 +1,17 @@
+import * as React from "react"
+
 import { TextRibbon } from "@/registry/0nlytype/ui/text-ribbon"
-import { State } from "@/components/site/state"
+import { State, Still } from "@/components/site/state"
 
 export default function Example() {
+  const still = React.useContext(Still)
   return (
     <div className="grid w-full grid-cols-[minmax(0,1fr)] gap-(--ot-space-8)">
       <div className="grid gap-(--ot-space-3)">
-        <TextRibbon className="ot-mf">a little room to move</TextRibbon>
+        <TextRibbon autoplay={!still} className="ot-mf">a little room to move</TextRibbon>
         <p className="ot-pp" style={{ margin: 0, color: "var(--ot-pencil)" }}>Let the phrase drift, or take over with a drag, the keys or the page. Pause holds it still.</p>
       </div>
-      <TextRibbon variant="wave" className="ot-mp">everything here is made of type</TextRibbon>
+      <TextRibbon autoplay={!still} variant="wave" className="ot-mp">everything here is made of type</TextRibbon>
     </div>
   )
 }

@@ -2,163 +2,150 @@
 
 import * as React from "react"
 
-import { useDemoClock } from "@/components/site/demo-player"
+import { ItemExample } from "@/app/docs/[item]/examples"
+import { PreviewStyles } from "@/components/site/registry-styles"
+import { Still } from "@/components/site/state"
+import { afterOverture } from "@/components/site/landing-overture"
 
-type Example = React.ComponentType
-const loaded = new Map<string, Example>()
-const load = async (name: string) => (await liveExample(name)) ?? import(`@/examples/${name}`).then((m: { default: Example; States?: Example }) => PINNED.has(name) && m.States ? m.States : m.default)
-// Layers are shown in place, so every surface can be read together without opening a portal.
-const PINNED = new Set(["dialog", "popover", "hover-card", "tooltip", "drawer", "toast", "context-menu", "dropdown-menu", "tour", "typography"])
-const FACE = ["data-pair", "data-scheme", "data-mode", "data-key"]
+// The piece being read, shown as itself: its docs example, live, in the room the sheet gives it, laid out at the
+// room's width in one column. Most examples are several demos one under another, so the preview shows the first demo
+// (with any heading or lead line above it) and as many more as fit whole at their own size. A first demo too tall for
+// the room is scaled down, never up, but not below the size its words still read at: past that it is cut instead, to
+// its fields, rows or lines that fit whole. The parts left out keep their place, unseen and clipped off, since several
+// pieces lay themselves out by their own width and would lay out again for nothing if taken out of the flow. The
+// preview waits for the reading to settle on a piece, so turning through the rings does not load every piece on the
+// way: the last piece fades as the reading moves, and the next arrives once its own sidecars have loaded (the
+// landing's sheet does not carry every piece's). It is a picture of the piece, not a second control: it takes no focus
+// and no press, so the keys stay with the rings, and the name and description beside it say what it is to a screen
+// reader.
+const SETTLE = 240
+// A part shorter than this is a heading or a lead line: it shows with the demo under it, never alone.
+const LABEL = 32
+// The smallest a demo is drawn. Below it the words stop reading, so the demo is drawn at this size instead and cut to
+// the whole parts of it that fit: its first fields, rows or lines, never half of one.
+const FLOOR = 0.66
+// What is kept whole or left out whole when a demo is cut: a picture, a control or a run of text.
+const WHOLE = new Set(["svg", "img", "canvas", "video", "picture", "p", "h1", "h2", "h3", "h4", "h5", "h6", "button", "input", "select", "textarea", "label", "a", "legend", "figcaption", "code", "pre"])
+const SKIP = new Set(["link", "style", "script", "template"])
+const elements = (el: Element) => [...el.children].filter((c) => !SKIP.has(c.localName)) as HTMLElement[]
 
-/** A failure stays legible and offers the actual specimen instead of an empty stage. */
-class Guard extends React.Component<{ children: React.ReactNode }, { failed: boolean }> {
-  state = { failed: false }
-  static getDerivedStateFromError() { return { failed: true } }
-  render() {
-    return this.state.failed ? <p data-preview-error>Preview unavailable. Open the component below.</p> : this.props.children
-  }
-}
+export function PiecePreview({ item }: { item: string }) {
+  const [shown, setShown] = React.useState<string | null>(null)
+  const room = React.useRef<HTMLDivElement>(null)
+  const body = React.useRef<HTMLDivElement>(null)
 
-// These are layouts for the examples, not changes to the components' contracts. Each gallery keeps all
-// its variants mounted. A natural-size sheet is fitted in both dimensions, including after live changes.
-const COLUMNS: Record<string, number> = {
-  "accordion": 2, "activity-feed": 2, "agent-chat": 2, "area-chart": 2, "avatar": 2, "breadcrumb": 2,
-  "calendar": 2, "chart": 2, "checkbox": 2, "collapsible": 3, "combobox": 2, "data-table": 2, "dialog": 3,
-  "dropzone": 2, "empty": 2, "field": 2, "form": 2, "grid": 2, "input-group": 2, "input-otp": 2,
-  "item": 2, "line-chart": 2, "mode-toggle": 3, "number-input": 2, "pagination": 1, "picks": 2,
-  "progress": 2, "radio-group": 2, "scroll-area": 2, "scrollbar": 2, "scroll-expand": 2, "select": 2, "skeleton": 2, "steps": 2, "stat": 2,
-  "sheet": 2, "source": 2, "spinner": 3, "table": 2, "tabs": 2, "thread": 2, "tiling": 2, "toggle": 2, "tree": 2, "typography": 2,
-}
-const WIDTHS: Record<string, number> = { "calendar": 880, "agent-chat": 1000, "agent-state": 240, "data-table": 1100, "table": 1000, "form": 960, "source": 1000, "dialog": 1100 }
-
-async function liveExample(name: string): Promise<Example | null> {
-  if (name === "word-relay") {
-    const { WordRelay } = await import("@/registry/0nlytype/ui/word-relay")
-    return function RelayVariations() {
-      const { ref, step } = useDemoClock()
-      const [own, setOwn] = React.useState<number | null>(null)
-      return <div ref={ref} data-demo-clock className="grid">{(["statement", "sentence"] as const).map((variant) => <p className={variant === "statement" ? "ot-f" : "ot-mp"} style={{ margin: 0 }} key={variant}><WordRelay variant={variant} autoplay={false} index={(own ?? step) % 4} onIndexChange={setOwn} words={["design.", "type.", "silence.", "yours."]}>It has to be</WordRelay></p>)}</div>
-    }
-  }
-  if (name === "scroll-expand") {
-    const { ScrollExpand } = await import("@/registry/0nlytype/ui/scroll-expand")
-    return function ExpandVariations() {
-      const { ref, step } = useDemoClock()
-      return <div ref={ref} data-demo-clock className="grid">{(["mark", "horizon"] as const).map((variant) => <ScrollExpand key={variant} variant={variant} progress={[1, 0.25, 0.6, 1, 0.6][step % 5]} caption={[variant, "Space opens"]}><p className="ot-f" style={{ margin: 0, paddingBlock: "var(--ot-space-6)" }}>Space<br />does the<br />layout.</p></ScrollExpand>)}</div>
-    }
-  }
-  if (name === "steps") {
-    const { Steps, Step, StepTitle } = await import("@/registry/0nlytype/ui/steps")
-    return function StepVariations() {
-      const { ref, step } = useDemoClock()
-      return <div ref={ref} data-demo-clock className="grid">{(["margin", "rise", "cascade", "folio"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><Steps variant={variant} value={step % 3 + 1}>{["Brief", "Scope", "Call"].map((title) => <Step key={title}><StepTitle>{title}</StepTitle></Step>)}</Steps></div>)}</div>
-    }
-  }
-  if (name === "activity-feed") {
-    const { ActivityFeed } = await import("@/registry/0nlytype/ui/activity-feed")
-    const entries = [
-      { id: "proof", who: "Ada", what: "approved the proof", at: "2026-09-30T16:40" },
-      { id: "mark", who: "Bruno", what: "shared the mark", at: "2026-09-30T14:12" },
-      { id: "brief", what: "The brief was agreed", at: "2026-09-30T14:02" },
-    ]
-    return function FeedVariations() {
-      return <div className="grid">{(["ledger", "almanac", "lapse"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><ActivityFeed variant={variant} entries={entries} initial={2} days={{ "2026-09-30": "Today" }} /></div>)}</div>
-    }
-  }
-  if (name === "thread") {
-    const { Thread, ThreadDay } = await import("@/registry/0nlytype/ui/thread")
-    const { Message, MessageBody, MessageBubble, MessageHeader } = await import("@/registry/0nlytype/ui/message")
-    return function ThreadVariations() {
-      const { ref, step } = useDemoClock()
-      const words = ["The proofs are back.", "The flag holds at stamp size.", "Send it to the ferry office."]
-      return <div ref={ref} data-demo-clock className="grid">{(["default", "rests", "running"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><Thread variant={variant} label={`${variant} thread`} style={{ height: "15rem" }}><ThreadDay>Today</ThreadDay><Message><MessageHeader name="Ada" time="09:40" dateTime="2026-09-30T09:40" /><MessageBody><MessageBubble>The harbour mark is ready.</MessageBubble></MessageBody></Message><Message key={step % 3} arriving={step > 0}><MessageHeader name="Bruno" time="10:40" dateTime="2026-09-30T10:40" /><MessageBody><MessageBubble>{words[step % 3]}</MessageBubble></MessageBody></Message></Thread></div>)}</div>
-    }
-  }
-  if (name === "tiling") {
-    const { TilingEditor } = await import("@/registry/0nlytype/ui/tiling")
-    return function TilingVariations() {
-      const { ref, step } = useDemoClock()
-      const layout = [
-        { id: "space", label: "Space", column: step % 2 ? 7 : 1, row: 1, span: 6, rows: 1 },
-        { id: "type", label: "Type", column: step % 2 ? 1 : 7, row: 2, span: 6, rows: 1 },
-      ]
-      const [own, setOwn] = React.useState<typeof layout | null>(null)
-      return <div ref={ref} data-demo-clock className="grid">{(["rules", "crosses"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><TilingEditor variant={variant} label="Make room for the words" value={own ?? layout} onValueChange={setOwn} /></div>)}</div>
-    }
-  }
-  if (name === "mode-toggle") {
-    const { ModeToggle } = await import("@/registry/0nlytype/ui/mode-toggle")
-    return function ModeVariations() {
-      return <div className="grid">{(["stop", "dimmer", "noon", "eclipse", "horizon", "words", "fermata", "sentence", "knockout", "hour"] as const).map((variant) => <div key={variant} className="grid"><span className="ot-label">{variant}</span><ModeToggle variant={variant} /></div>)}</div>
-    }
-  }
-  if (name === "progress") {
-    const { Progress } = await import("@/registry/0nlytype/ui/progress")
-    return function ProgressVariations() {
-      const { ref, step } = useDemoClock()
-      return <div ref={ref} data-demo-clock className="grid">{(["hairline", "sentence", "count", "parentheses", "tally"] as const).map((variant) => <div key={variant} className="grid"><span className="ot-label">{variant}</span><Progress variant={variant} value={(step % 5) * 25} label="Setting the type" /></div>)}</div>
-    }
-  }
-  if (name === "agent-state") {
-    const { AgentState } = await import("@/registry/0nlytype/ui/agent-state")
-    return function AgentVariations() {
-      const { ref, step } = useDemoClock()
-      const state = (["ready", "thinking", "working", "input", "done"] as const)[step % 5]
-      return <div ref={ref} data-demo-clock className="grid">{(["dot", "word"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><AgentState variant={variant} state={state} /></div>)}</div>
-    }
-  }
-  if (name === "sheet") {
-    const { Sheet, SheetTitle, SheetDescription } = await import("@/registry/0nlytype/ui/sheet")
-    return function SheetVariations() {
-      return <div className="grid">{(["spine", "shelf", "rag", "fold"] as const).map((variant) => <div className="grid" key={variant}><span className="ot-label">{variant}</span><Sheet><dialog open className="ot-sheet" data-side="end" data-variant={variant === "spine" ? undefined : variant} style={{ position: "relative", inset: "auto", translate: "none", width: "100%", height: "18rem", maxHeight: "none", transition: "none" }}><p className="ot-sheet-spine" aria-hidden="true">The brief</p><SheetTitle>The brief</SheetTitle><SheetDescription>Keep the flag. Lose the anchor. Set the timetable large.</SheetDescription></dialog></Sheet></div>)}</div>
-    }
-  }
-  return null
-}
-
-export default function Preview({ name }: { name: string }) {
-  const [got, setGot] = React.useState<{ name: string; E: Example } | null>(null)
-  const [failed, setFailed] = React.useState(false)
-  const ref = React.useRef<HTMLDivElement>(null)
-  const Piece = loaded.get(name) ?? (got?.name === name ? got.E : null)
   React.useEffect(() => {
-    if (loaded.has(name)) return
-    let live = true
-    load(name).then((E) => { loaded.set(name, E); if (live) setGot({ name, E }) }).catch(() => live && setFailed(true))
-    return () => { live = false }
-  }, [name])
-  React.useLayoutEffect(() => {
-    const sheet = ref.current, frame = sheet?.parentElement
-    if (!sheet || !frame || !Piece) return
-    let raf = 0
-    const fit = () => {
-      const css = getComputedStyle(frame)
-      const w = frame.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight)
-      const h = frame.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom)
-      const width = Math.max(sheet.offsetWidth, sheet.scrollWidth), height = Math.max(sheet.offsetHeight, sheet.scrollHeight)
-      const scale = Math.min(w / width, h / height, 1.15)
-      sheet.style.setProperty("--preview-scale", String(scale))
-      sheet.dataset.fitted = "true"
+    let t: ReturnType<typeof setTimeout>
+    const off = afterOverture(() => {
+      t = setTimeout(() => React.startTransition(() => setShown(item)), SETTLE)
+    })
+    return () => {
+      off()
+      clearTimeout(t)
     }
-    const queue = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit) }
-    const resize = new ResizeObserver(queue)
-    resize.observe(sheet)
-    resize.observe(frame)
-    const changes = new MutationObserver(queue)
-    changes.observe(sheet, { subtree: true, childList: true, characterData: true })
-    const theme = new MutationObserver(queue)
-    theme.observe(document.documentElement, { attributeFilter: FACE })
-    document.fonts.ready.then(queue)
-    fit()
-    return () => { cancelAnimationFrame(raf); resize.disconnect(); changes.disconnect(); theme.disconnect() }
-  }, [Piece, name])
+  }, [item])
+
+  // A picture never moves the page: a piece that brings its own part into view as it mounts (Command's list does,
+  // through cmdk) would scroll the window, and the scroll is what turns the rings to another piece.
+  React.useEffect(() => {
+    const r = room.current
+    const own = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element, ...args: Parameters<Element["scrollIntoView"]>) {
+      if (!r?.contains(this)) own.apply(this, args)
+    }
+    return () => {
+      Element.prototype.scrollIntoView = own
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const r = room.current, b = body.current
+    if (!r || !b || !shown) return
+    const out =(el: Element) => el.setAttribute("data-pt-out", "")
+    const fit = () => {
+      b.style.removeProperty("--pt-k")
+      b.style.removeProperty("--pt-y")
+      b.style.height = ""
+      for (const el of b.querySelectorAll("[data-pt-out]")) el.removeAttribute("data-pt-out")
+      const kids = elements(b)
+      const root = kids.length > 1 ? b : kids[0]
+      if (!root) return
+      const parts = elements(root)
+      if (!parts.length) return
+      // Measured from the demo's own top, which still rises as it arrives, so the rise does not count as height.
+      const top = root.getBoundingClientRect().top
+      const foot = (el: Element) => el.getBoundingClientRect().bottom - top
+      const reach = (els: Element[]) => Math.max(0, ...els.map(foot))
+      const rh = r.clientHeight, rw = r.clientWidth
+      const wide = Math.min(1, rw / Math.max(1, root.scrollWidth))
+      // The first demo, with any heading or lead line above it.
+      let lead = parts.findIndex((c) => c.offsetHeight >= LABEL)
+      if (lead < 0) lead = parts.length - 1
+      let k = Math.min(wide, rh / Math.max(1, reach(parts.slice(0, lead + 1))))
+      let h: number
+      if (k >= FLOOR) {
+        // It fits at a size that reads: add the demos after it that fit whole, less a heading left without its demo.
+        let last = lead + 1
+        while (last < parts.length && foot(parts[last]) * k <= rh + 1) last++
+        if (last > lead + 1 && last < parts.length && parts[last - 1].offsetHeight < LABEL) last--
+        parts.slice(last).forEach(out)
+        h = reach(parts.slice(0, last))
+      } else {
+        // Too tall to read whole: draw it at the floor and keep only the parts of it that end inside the room, going
+        // into a part that crosses the edge and cutting there, down to the whole pictures, controls and lines.
+        const kk = Math.min(wide, FLOOR), limit = rh / kk
+        let kept = reach(parts.slice(0, lead))
+        const cut = (el: Element) => {
+          for (const c of elements(el)) {
+            const f = foot(c)
+            if (f <= limit) kept = Math.max(kept, f)
+            else if (c.getBoundingClientRect().top - top >= limit || WHOLE.has(c.localName) || !c.childElementCount) out(c)
+            else cut(c)
+          }
+        }
+        cut(parts[lead])
+        parts.slice(lead + 1).forEach(out)
+        if (kept >= limit / 2) {
+          k = kk
+          h = kept
+        } else {
+          // What fits is too little to say what the piece is (one large picture, mostly): show it whole and smaller.
+          for (const el of parts[lead].querySelectorAll("[data-pt-out]")) el.removeAttribute("data-pt-out")
+          h = reach(parts.slice(0, lead + 1))
+        }
+      }
+      b.style.height = `${Math.ceil(h)}px`
+      b.style.setProperty("--pt-k", String(k))
+      b.style.setProperty("--pt-y", `${Math.max(0, (rh - h * k) / 2)}px`)
+    }
+    // The body's height is set by the last fit, so a new piece arriving is seen by its own root changing size. The
+    // pieces that left are let go of, so their trees are not kept alive by being watched.
+    const ro = new ResizeObserver(fit)
+    const watch = () => {
+      ro.disconnect()
+      ro.observe(r)
+      for (const c of b.children) ro.observe(c)
+      fit()
+    }
+    const mo = new MutationObserver(watch)
+    mo.observe(b, { childList: true })
+    watch()
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+    }
+  }, [shown])
+
   return (
-    <div className="pieces-preview-scale" ref={ref} data-piece={name} data-pinned={PINNED.has(name) || undefined} style={{ "--preview-width": `${WIDTHS[name] ?? 680}px`, "--preview-columns": COLUMNS[name] ?? 1 } as React.CSSProperties}>
-      <div className="pieces-preview-demo">
-        {failed ? <p data-preview-error>Preview unavailable. Open the component below.</p> : Piece ? <Guard key={name}>{React.createElement(Piece)}</Guard> : <p className="pieces-loading" role="status">Setting the type…</p>}
+    <div ref={room} className="pt-preview" aria-hidden="true" inert>
+      <div ref={body} className="pt-preview-body doc-example" data-leaving={item !== shown || undefined}>
+        {shown && <>
+          <PreviewStyles item={shown} />
+          <Still value={true}>
+            <ItemExample key={shown} item={shown} />
+          </Still>
+        </>}
       </div>
     </div>
   )
 }
-

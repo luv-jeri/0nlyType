@@ -12,7 +12,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: { default: "0nlyType", template: "%s · 0nlyType" },
-  description: "A component library for type and silence: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
+  description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
   metadataBase: new URL(SITE_URL),
   alternates: { canonical: "./" },
   openGraph: {
@@ -21,12 +21,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "./",
     title: { default: "0nlyType", template: "%s · 0nlyType" },
-    description: "A component library for type and silence: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
+    description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
   },
   twitter: {
     card: "summary",
     title: { default: "0nlyType", template: "%s · 0nlyType" },
-    description: "A component library for type and silence: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
+    description: "A component library set entirely in type: two typefaces, one accent and a great deal of space. Installs with the shadcn CLI.",
   },
 }
 

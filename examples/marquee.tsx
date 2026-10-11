@@ -1,18 +1,21 @@
+import * as React from "react"
+
 import { Marquee } from "@/registry/0nlytype/ui/marquee"
-import { State } from "@/components/site/state"
+import { State, Still } from "@/components/site/state"
 
 const words = ["Silence", "Space", "Type", "Rest", "Line", "Measure"]
 
 export default function Example() {
+  const still = React.useContext(Still)
   return (
     <div className="grid gap-y-16">
-      <Marquee className="ot-fff" label="What the page is made of">
+      <Marquee autoplay={!still} className="ot-fff" label="What the page is made of">
         {words.map((w) => <span key={w}>{w}</span>)}
       </Marquee>
-      <Marquee variant="ticker" label="Index">
+      <Marquee autoplay={!still} variant="ticker" label="Index">
         {["New era", "Of silence", "Oslo 2026", "Set in Archivo", "Printed on paper", "Read slowly"].map((w) => <span key={w}>{w}</span>)}
       </Marquee>
-      <Marquee variant="counter" className="ot-fff" label="Both ways">
+      <Marquee autoplay={!still} variant="counter" className="ot-fff" label="Both ways">
         {["Spectra", "Point", "Dust", "Hush"].map((w) => <span key={w}>{w}</span>)}
       </Marquee>
     </div>

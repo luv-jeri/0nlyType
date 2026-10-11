@@ -1,0 +1,33 @@
+/* ── the coda: start from zero. A pool of rings in type round the title's full stop (components/site/landing-coda.tsx).
+   The pool is a screen and a pin tall: its stage holds still under the bar while the scroll closes the rings, then
+   goes on. Every box has its size from here before the script runs; the canvas bleeds to the window's edges and sits
+   under the title. Only the title's words take the pointer, so the rest of the water answers it and the words stay
+   selectable. The full stop is the one accent; the script scales it as it lands (--coda-stop), 1 without it. Under
+   reduced motion there is nothing to scrub, so there is no pin: the stage is the settled pool, one screen tall. ── */
+.coda { --pin: 90svh; grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: 0 var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.coda > * { grid-column: 4 / -1; }
+.coda > .coda-pool { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; height: calc(100svh - var(--bar) + var(--pin)); }
+.coda-stage { position: sticky; top: var(--bar); grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-content: center; height: calc(100svh - var(--bar)); min-height: 560px; }
+.coda-rings { position: absolute; top: 0; inset-inline-start: calc(50% - 50vw); width: 100vw; height: 100%; touch-action: pan-y; }
+.coda-title { position: relative; grid-column: 4 / -1; margin-block-end: 0.9em; font-size: clamp(var(--ot-ff), calc(10 * var(--site-vw)), 200px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); pointer-events: none; }
+.coda-line { display: block; width: max-content; pointer-events: auto; }
+.coda-stop { display: inline-block; color: var(--ot-accent); transform: scale(var(--coda-stop, 1)); }
+.coda-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-6); }
+.coda-licence { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
+@media (prefers-reduced-motion: reduce) {
+  .coda { --pin: 0px; }
+}
+@media (max-width: 860px) {
+  .coda { --pin: 70svh; }
+  .coda-title { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  /* The section keeps clear of the page rail by a padding at its end; the canvas still spans the window. */
+  .coda-rings { inset-inline-start: calc(50% + 14px - 50vw); }
+}
+@media (max-width: 560px) {
+  .coda-title { margin-block-end: 0.5em; font-size: min(var(--ot-ff), 19vw); }
+}
+@media (max-width: 860px) and (prefers-reduced-motion: reduce) {
+  .coda { --pin: 0px; }
+}

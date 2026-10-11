@@ -21,7 +21,7 @@ type DropzoneProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   hint?: React.ReactNode
   /** Files held from the start, such as a draft's. */
   defaultFiles?: File[]
-  /** Called with every file held, after each drop, choice or removal. */
+  /** Called with every file held, after each drop, choice, removal or form reset. */
   onFilesChange?: (files: File[]) => void
   /** Lists the files held as attachment rows (the default). Turn it off to list them yourself, with their progress. */
   list?: boolean
@@ -84,7 +84,7 @@ function Dropzone({
   const [focused, setFocused] = React.useState(false)
 
   /** Keeps the real input holding exactly the listed files, so a form sends what you see. */
-  const hold = (next: File[]) => {
+  const hold = React.useCallback((next: File[]) => {
     setFiles(next)
     onFilesChange?.(next)
     if (input.current && typeof DataTransfer !== "undefined") {
@@ -92,7 +92,7 @@ function Dropzone({
       next.forEach((f) => t.items.add(f))
       input.current.files = t.files
     }
-  }
+  }, [onFilesChange])
 
   // The real input starts out holding what's listed, too.
   React.useEffect(() => {
@@ -102,6 +102,20 @@ function Dropzone({
       input.current.files = t.files
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- only the first files
+
+  // Resetting the form empties what's listed as well as the real input.
+  React.useEffect(() => {
+    const form = input.current?.form
+    if (!form) return
+    const reset = () => {
+      hold([])
+      setRefused([])
+      depth.current = 0
+      setCarried(0)
+    }
+    form.addEventListener("reset", reset)
+    return () => form.removeEventListener("reset", reset)
+  }, [hold])
 
   const take = (incoming: File[]) => {
     const ok: File[] = []

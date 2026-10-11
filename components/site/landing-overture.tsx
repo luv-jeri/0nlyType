@@ -1,14 +1,12 @@
 "use client"
 
-import * as React from "react"
-
 import { OVERTURE_ATTR, OVERTURE_DEADLINE, OVERTURE_END_EVENT, OVERTURE_SCRIPT } from "@/lib/site/overture.mjs"
 import { Button } from "@/registry/0nlytype/ui/button"
 
 // The home overture, seen from React. The clock is not here: a script in the hero's HTML (lib/site/overture.mjs)
 // decides on a browser's first visit, sets data-overture-at on <html>, and ends the overture itself (at the deadline,
-// on the person's first move, or from Skip intro), whether or not React ever loads. The title's exhale (landing.css)
-// plays only while that attribute is there; the Noise field listens here for the end and settles with it.
+// on the person's first move, or from Skip intro), whether or not React ever loads. The hands' settle and the dot's
+// light (landing.css) play only while that attribute is there; the zero listens here for how much of it is left.
 // Nothing here is stored: the choice to play was made, and recorded, before the first paint.
 
 export type OvertureEnd = "deadline" | "skip" | "input" | "motion"
@@ -28,6 +26,8 @@ export function onOvertureEnd(fn: (why: OvertureEnd) => void) {
   return () => document.removeEventListener(OVERTURE_END_EVENT, listen)
 }
 
+export { afterOverture } from "@/lib/site/overture.mjs"
+
 /**
  * The visible way out. Always in the HTML and shown by CSS only while the overture plays, so it is a real control for
  * the whole of the intro and costs nothing after it. The script's own delegated click listener is what ends the
@@ -35,7 +35,7 @@ export function onOvertureEnd(fn: (why: OvertureEnd) => void) {
  */
 export function Overture() {
   return (
-    <Button variant="bracket" type="button" className="hero-skip" data-hush>
+    <Button variant="bracket" type="button" className="hero-skip">
       Skip intro
     </Button>
   )

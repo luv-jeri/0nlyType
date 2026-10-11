@@ -1,5 +1,3 @@
-import * as React from "react"
-
 import { Button } from "@/registry/0nlytype/ui/button"
 import {
   Dialog,

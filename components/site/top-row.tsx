@@ -8,6 +8,7 @@ import { ThemeControls } from "@/components/site/theme-controls"
 import { Search, type SearchGroup } from "@/components/site/search"
 import { tempo } from "@/lib/site/tempo"
 import { FeedbackLink } from "@/components/site/reporting/launcher"
+import { Lockup } from "@/components/site/wordmark"
 
 type Place = { num: string; name: string }
 
@@ -31,8 +32,7 @@ export function TopRow({ places, groups }: { places: Record<string, Place>; grou
   return (
     <header className="bar">
       <Link className="bar-mark" href="/" prefetch={false} aria-label="0nlyType, home">
-        <svg viewBox="0 0 20 13" aria-hidden="true"><path d="M1.5 11.5 A8.5 8.5 0 0 1 18.5 11.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="10" cy="10.2" r="1.7" fill="currentColor" /></svg>
-        <span>0nlyType</span>
+        <Lockup />
       </Link>
       <p className="bar-now" ref={now} aria-live="polite">
         <span className="bar-num">{place.num}</span> <span>{place.name}</span>

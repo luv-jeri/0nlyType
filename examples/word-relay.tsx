@@ -3,20 +3,21 @@
 import * as React from "react"
 
 import { WordRelay } from "@/registry/0nlytype/ui/word-relay"
-import { State } from "@/components/site/state"
+import { State, Still } from "@/components/site/state"
 
 const ends = ["design.", "type.", "silence.", "yours."]
 
 export default function Example() {
   const [pace, setPace] = React.useState(1)
+  const still = React.useContext(Still)
   return (
     <div className="grid w-full grid-cols-[minmax(0,1fr)] justify-items-start gap-(--ot-space-8)">
       <p className="ot-ff" style={{ margin: 0, fontSize: "clamp(36px, 10vw, var(--ot-ff))" }}>
-        <WordRelay variant="statement" words={ends}>It has to be</WordRelay>
+        <WordRelay autoplay={!still} variant="statement" words={ends}>It has to be</WordRelay>
       </p>
       <div className="grid gap-(--ot-space-3)">
         <p className="ot-mp" style={{ margin: 0 }}>
-          <WordRelay words={["slowly.", "at a walk.", "at a run."]} index={pace} onIndexChange={setPace}>Read the page</WordRelay>
+          <WordRelay autoplay={!still} words={["slowly.", "at a walk.", "at a run."]} index={pace} onIndexChange={setPace}>Read the page</WordRelay>
         </p>
         <p className="ot-pp" style={{ margin: 0, color: "var(--ot-pencil)" }}>A new word every 2.4 seconds. Press the sentence or use the arrow keys to take over; pause lets it rest.</p>
       </div>

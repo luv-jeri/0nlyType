@@ -8,8 +8,7 @@ import { Link } from "@/registry/0nlytype/ui/link"
 // Pass it on: one click copies the link and says so, and the places to send it open beside it, as words. Each
 // place is a link to its own share page, in a new tab. Where the system has a share sheet (phones, mostly),
 // "Other apps" opens it, and that reaches Instagram and the rest. Esc, a click elsewhere, or tabbing out
-// closes it, and focus goes back where it was. The noise section sets it in the silence the pointer makes;
-// "Help build it" sets it on a line.
+// closes it, and focus goes back where it was. The sea and "Help build it" set it on a line.
 
 export const REPO = "https://github.com/luv-jeri/0nlyType"
 
@@ -161,7 +160,7 @@ export function SharePlaces({ share, text, star = true, className, style }: Plac
 
 // ponytail: the call's letters repeat landing-hero's Cta markup, which is a link; lift it into one when a third wants it.
 /** Help build it: a call like its neighbours; the places take the note's place on the line, so nothing moves. */
-export function ShareCall({ url, text, children, note }: { url: string; text: string; children: string; note: string }) {
+export function ShareCall({ url, text, children, label, note }: { url: string; text: string; children: string; label?: string; note: string }) {
   const share = useShare(url)
   return (
     <>
@@ -171,7 +170,7 @@ export function ShareCall({ url, text, children, note }: { url: string; text: st
         aria-expanded={share.open}
         onClick={(e) => (share.open ? share.close() : share.show(e.currentTarget))}
       >
-        <span className="ot-sr">{children}</span>
+        <span className="ot-sr">{label ?? children}</span>
         <span className="cta-word" aria-hidden="true" data-text={children}>
           <span className="cta-letters">
             {Array.from(children).map((c, i) => (

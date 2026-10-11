@@ -4,6 +4,7 @@ import * as React from "react"
 import { usePathname } from "next/navigation"
 
 import { ReadingTrail, type TrailSection } from "@/registry/0nlytype/ui/reading-trail"
+import { afterOverture } from "@/lib/site/overture.mjs"
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
 
@@ -20,7 +21,11 @@ const never = () => () => {}
  * becomes a section, numbered in order unless it says its own (data-rail-num).
  */
 export function PageRail() {
-  usePathname() // a new page renders this again, and the sections are read again with it
+  const path = usePathname() // a new page renders this again, and the sections are read again with it
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => afterOverture(() => setReady(true)), [])
   const sections = React.useSyncExternalStore(never, () => read(), () => "[]") // (a fresh function each time, so React looks again after the commit)
+  // The landing's rail is decoration until someone scrolls; its observers must not compete with Skip intro.
+  if (path === "/" && !ready) return null
   return <ReadingTrail variant="rail" className="page-rail" sections={JSON.parse(sections) as TrailSection[]} />
 }
