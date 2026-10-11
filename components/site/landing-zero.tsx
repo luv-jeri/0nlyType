@@ -857,7 +857,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         lean = 0
         for (const c of canvases) c.style.transform = ""
         paint()
-        sense()
+        if (inside || touch.some((T) => T.s || T.litA || T.wasA || T.dim)) sense()
       }
       // A load enters once: with the overture on its clock, or by itself when there is none. A load the overture was
       // already playing for has had its entrance, even if it ended before the hands were set; a load that opens below
@@ -1158,26 +1158,30 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const offOverture = onOvertureEnd(() => {
       // The inline clock has ended it. Settle now: a busy or suspended frame must not leave the letters rising.
       cancelAnimationFrame(rise)
-      play()
+      // The entrance normally settles before the deadline. Do not redraw thousands of settled letters in the end event.
+      if (rising) play()
       key = ""
       wake()
     })
     // A new pair is a new set of letters, and a new mode new inks: the hands and the names are set again once the fonts
     // arrive.
     const pair = new MutationObserver(() => {
+      // Startup reads the current face; a person's retune ends the intro before changing it.
+      if (overtureActive()) return
       requestAnimationFrame(() => void document.fonts.ready.then(relayout))
     })
     pair.observe(root, { attributes: true, attributeFilter: ["data-pair", "data-mode"] })
-    let alive = true
+    let alive = true, cancelFonts = () => {}
     // Font loading must not spend the entrance's budget. Draw with the page's current face, then re-set when it swaps.
     relayout()
     if (document.fonts.status !== "loaded") void document.fonts.ready.then(() => {
-      if (alive) relayout()
+      if (alive) cancelFonts = afterOverture(relayout)
     })
 
     api.current = { turnTo: scrollToPiece, h: () => target().h }
     return () => {
       alive = false
+      cancelFonts()
       cancelTunnel()
       cancelAnimationFrame(raf)
       clearTimeout(rT)

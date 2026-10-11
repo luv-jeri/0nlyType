@@ -155,7 +155,9 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     nearIo.observe(cv)
     const ro = new ResizeObserver(() => void relayout())
     ro.observe(cv)
-    const mo = new MutationObserver(() => requestAnimationFrame(() => void relayout()))
+    const mo = new MutationObserver(() => {
+      if (!overtureActive()) requestAnimationFrame(() => void relayout())
+    })
     mo.observe(document.documentElement, { attributes: true, attributeFilter: THEME })
     const onScroll = () => wake()
     const onMove = (e: PointerEvent) => {
