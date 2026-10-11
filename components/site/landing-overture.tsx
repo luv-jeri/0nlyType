@@ -26,6 +26,8 @@ export function onOvertureEnd(fn: (why: OvertureEnd) => void) {
   return () => document.removeEventListener(OVERTURE_END_EVENT, listen)
 }
 
+export { afterOverture } from "@/lib/site/overture.mjs"
+
 /**
  * The visible way out. Always in the HTML and shown by CSS only while the overture plays, so it is a real control for
  * the whole of the intro and costs nothing after it. The script's own delegated click listener is what ends the

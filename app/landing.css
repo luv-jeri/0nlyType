@@ -220,21 +220,17 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 @media (min-width: 761px) and (max-height: 780px) { .pieces-sheet { bottom: 64px; } }
 @keyframes pt-arrive { from { opacity: 0; filter: blur(2px); translate: 0 8px; } }
 /* Where scroll timelines run, the scroll itself draws the stage around the zero's opening, so a frame restyles only
-   what moves: the band lifts away over the first 12svh and the hands step off over the first 15svh, both gone before
-   the names reach them, and the reading arrives once the rings have formed, between 64.5svh and 75svh. The numbers
+   what moves: the band lifts away over the first 12svh, and the reading arrives once the rings have formed, between
+   64.5svh and 75svh. The hands use the names' own progress, so a late canvas layout cannot restart their departure. The numbers
    match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or with
    reduced motion. The names themselves the script moves either way, by transforms alone. */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .zero { view-timeline: --zero block; view-timeline-inset: 0px; }
-    .zero-hands .hand-a { animation: zero-away-a linear both; animation-timeline: --zero; animation-range: contain 0px contain 15svh; }
-    .zero-hands .hand-g { animation: zero-away-g linear both; animation-timeline: --zero; animation-range: contain 0px contain 15svh; }
     .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 12svh; }
     .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 64.5svh contain 75svh; }
   }
 }
-@keyframes zero-away-a { 50% { opacity: 1; } to { translate: -42vw 0; opacity: 0; } }
-@keyframes zero-away-g { 50% { opacity: 1; } to { translate: 42vw 0; opacity: 0; } }
 @keyframes zero-lift { to { opacity: 0; transform: translateY(-30px); } }
 @keyframes zero-arrive { from { opacity: 0; } to { opacity: 1; } }
 

@@ -3,7 +3,7 @@ import NextLink from "next/link"
 
 import { AskFor } from "@/components/site/landing-ask-for"
 import { Sec } from "@/components/site/landing-section"
-import { CommandLine } from "@/registry/0nlytype/ui/command-line"
+import { LandingCommand } from "@/components/site/landing"
 import { Link } from "@/registry/0nlytype/ui/link"
 
 // 05, your words become the page: the kit that teaches your AI, then the sentence you finish, and the page you asked
@@ -14,7 +14,7 @@ export function Ask() {
       <ol className="ask-steps">
         <li>
           <p className="ask-step">Add the kit.</p>
-          <CommandLine runner command={`shadcn@latest add ${registryURL("ai")}`} emphasis="ai" className="ask-cmd" />
+          <LandingCommand command={`shadcn@latest add ${registryURL("ai")}`} emphasis="ai" className="ask-cmd" />
         </li>
         <li>
           <p className="ask-step">Say what you want.</p>

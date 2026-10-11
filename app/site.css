@@ -16,8 +16,8 @@ html { scroll-padding-top: calc(var(--bar) + 2rem); }
 }
 html { scroll-padding-top: calc(var(--bar) + var(--ot-space-6)); scrollbar-gutter: stable; }
 /* The pre-paint theme script selects the ruler before the browser allocates a
-   native gutter. Its SSR hairline is already present; hydration only measures
-   the thumb. Touch, no-script and browsers without scroll timelines keep the
+   native gutter. The docs' SSR hairline is already present; hydration only measures
+   the thumb. The landing mounts its rail after the overture. Touch, no-script and browsers without scroll timelines keep the
    native stroke from base.css. The docs index makes the same choice in CSS. */
 @supports (animation-timeline: scroll()) {
   @media (pointer: fine) {

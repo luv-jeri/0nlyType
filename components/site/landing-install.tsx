@@ -8,7 +8,7 @@ import { glyphSheet, type Glyph, type GlyphSheet } from "@/components/site/glyph
 import { Sec } from "@/components/site/landing-section"
 import { breath, span, useStage, type Frame } from "@/components/site/stage"
 import { advances } from "@/components/site/type-shapes"
-import { CommandLine } from "@/registry/0nlytype/ui/command-line"
+import { LandingCommand } from "@/components/site/landing"
 import { Link } from "@/registry/0nlytype/ui/link"
 
 // 04, the line that installs it. Above the empty command line hangs a tangle of string, and the string is made of fine
@@ -399,7 +399,7 @@ export function Install() {
         wide={<canvas ref={canvas} className="install-knot" aria-hidden="true" />}
       >
         <div className="install-room" aria-hidden="true" />
-        <CommandLine runner command={`shadcn@latest add ${registryURL("button")}`} emphasis="button" className="install-line" />
+        <LandingCommand command={`shadcn@latest add ${registryURL("button")}`} emphasis="button" className="install-line" />
         <p className="install-then">Nothing to update. Nothing to wrap. It&rsquo;s yours now.</p>
         <p className="install-links">
           <Link asChild>

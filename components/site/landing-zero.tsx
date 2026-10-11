@@ -8,7 +8,7 @@ import * as React from "react"
 import { CopyCommand } from "@/components/site/landing"
 import { DocsField } from "@/components/site/landing-docs"
 import { PiecePreview } from "@/components/site/landing-preview"
-import { Overture, OvertureScript, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
+import { Overture, OvertureScript, afterOverture, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
 import { area, decodeHands, drawHand, extent, setHand, type Hand, type Place, type Touch } from "@/components/site/hands"
 import { Wordmark } from "@/components/site/wordmark"
 
@@ -437,12 +437,13 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     // The angle that brings a point along a ring to the front: the bottom of the disc, nearest the reader.
     const front = (r: Ring, s: number) => 180 + s / r.r * (180 / Math.PI)
     const near = (cur: number, to: number) => cur + ((((to - cur) % 360) + 540) % 360) - 180
-    const buildRings = () => {
+    function* buildRings() {
       // Each name is measured once, at a hundred units, in the face the rings are set in: its length, and where the
       // middle of each letter falls along it.
       const probe = svg("svg", { class: "tunnel-ring" }, discEl), mt = svg("text", { "font-size": 100 }, probe)
       const width: number[] = [], mids: number[][] = []
       for (const q of pieces) {
+        yield
         mt.textContent = q.name
         width.push(mt.getComputedTextLength() / 100)
         const o = mt.getStartPositionOfChar(0).x
@@ -456,7 +457,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       probe.remove()
       const kept = rings
       discEl.replaceChildren()
-      rings = groups.map((items, k) => {
+      const next: Ring[] = []
+      for (const [k, items] of groups.entries()) {
         const r = R0 * SHR ** k, len = TAU * r, id = `tunnel-path-${k}`
         const el = svg("svg", { class: "tunnel-ring", viewBox: "-400 -400 800 800" }, discEl)
         // Counterclockwise from the back: the near side reads upright, the far side upside down.
@@ -472,6 +474,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const rB = r - base * fs, deg = 180 / Math.PI
         let s = 0
         for (const i of items) {
+          yield
           const w = width[i] * fs, g = svg("g", { class: "nm", "data-i": i }, set), sc = s + w / 2
           const tB = -90 - (sc / r) * deg, oB = tB - 90, ca = Math.cos(oB * RAD), sa = Math.sin(oB * RAD)
           const cx = rB * Math.cos(tB * RAD), cy = rB * Math.sin(tB * RAD)
@@ -492,8 +495,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         dash.push(0, len * 2)
         const rule = svg("use", { href: `#${id}`, class: "rule", "stroke-width": Math.max(0.6, fs / 16).toFixed(2), "stroke-dasharray": dash.map((v) => v.toFixed(1)).join(" ") }, el)
         const old = kept[k]
-        return { k, r, fs, el, face: set, flying: false, nm, at, names: list, ref: list[list.length >> 1], rule, slot: 0, shift: 0, set: false, fin: false, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0 }
-      })
+        next.push({ k, r, fs, el, face: set, flying: false, nm, at, names: list, ref: list[list.length >> 1], rule, slot: 0, shift: 0, set: false, fin: false, x: 0, v: 0, to: old ? old.to : -k * 18, tone: 0, toneTo: 0 })
+      }
+      rings = next
       for (const r of rings) {
         if (r.k === ringOf[SEL]) r.to = near(r.to, front(r, r.at.get(SEL)!))
         r.x = r.to
@@ -516,7 +520,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     let kU = 1, c0 = 0, drew = false
     // Each ring's letters, set and read, in its face and inks as styled, a little sharper than the canvas needs where a
     // name in the zero is set larger than on its ring. Once per layout, after the fonts, the pair and the mode.
-    const drawSheet = () => {
+    function* drawSheet() {
       const S = D?.S ?? 0, dpr = devicePixelRatio || 1, ink = sheet.getContext("2d")
       const side = Math.max(1, Math.round(S * OVER * dpr * Math.min(1.25, 4096 / (S * OVER * dpr))))
       sprites.width = sprites.height = side
@@ -537,6 +541,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       ink.textAlign = "center"
       ink.textBaseline = "alphabetic"
       for (const r of rings) {
+        yield
         const m = clamp(Math.max(...r.names.map((n) => n.sA)), 1, 2), px = r.fs * kU * m
         for (const look of ["c", "b"] as const) {
           ink.font = font(looks[look].w, px)
@@ -565,6 +570,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       ink.textAlign = "center"
       ink.textBaseline = "alphabetic"
       for (const j of jobs) {
+        yield
         ink.font = font(looks[j.look].w, j.px)
         ink.fillStyle = looks[j.look].fill
         ink.fillText(j.ch, j.bx, j.by)
@@ -573,11 +579,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     // Where every letter stands in the zero, taken from the zero's own names as set (each letter's middle, less where a
     // letter set on its middle has it), as seen from the zero's middle, in the disc's units. Once per layout.
-    const capture = () => {
+    function* capture() {
       if (!G || !D) return
       const z = G.hero, u = 800 / (D.S * D.near)
       for (const r of rings)
         for (const n of r.names) {
+          yield
           const p = pose[n.i], a = p.rot * RAD, ca = Math.cos(a), sa = Math.sin(a), el = names[n.i]
           const pts = n.ls.map((_, j) => {
             const e = el.getExtentOfChar(j), lx = e.x + e.width / 2, ly = e.y + e.height / 2 - mid * p.f
@@ -733,22 +740,36 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       move(dotEl, `translate(${(D.cx + dx + X * Math.cos(a) - Y * Math.sin(a)).toFixed(2)}px, ${(D.cy + dy + X * Math.sin(a) + Y * Math.cos(a)).toFixed(2)}px) scale(${lerp(dotA.d / 9, 1, pr).toFixed(3)})`)
       tone(dotEl, lit.toFixed(3))
     }
-    const layoutTunnel = (g: Geometry) => {
-      const d = (D = dialGeometry(g))
+    let tunnelVersion = 0, tunnelReady = false
+    const layoutTunnel = async (g: Geometry) => {
+      const v = ++tunnelVersion, d = dialGeometry(g)
+      tunnelReady = false
+      D = null
       spinEl.style.cssText = `left:${(d.cx - d.S / 2).toFixed(1)}px;top:${(d.cy - d.S / 2).toFixed(1)}px;width:${d.S.toFixed(1)}px;height:${d.S.toFixed(1)}px`
       const css = getComputedStyle(root), ms = (n: string, v: number) => parseFloat(css.getPropertyValue(n)) || v, ease = (n: string, v: string) => css.getPropertyValue(n).trim() || v
       T = tempo.current = { quick: ms("--ot-allegro", 160), mid: ms("--ot-moderato", 320), slow: ms("--ot-andante", 640), step: ms("--ot-arpeggio", 36), breath: ease("--ot-breath", TEMPO.breath), exhale: ease("--ot-exhale", TEMPO.exhale) }
-      buildRings()
-      capture()
-      drawSheet()
+      if (await slice(buildRings(), () => alive && v === tunnelVersion) === null) return
+      D = d
+      // Geometry is needed to capture the hero's letters; rendering waits until the atlas is ready.
+      const finish = function* () {
+        yield* capture()
+        yield* drawSheet()
+      }
+      if (await slice(finish(), () => alive && v === tunnelVersion) === null) return
+      tunnelReady = true
       read(true)
+      key = ""
+      render(true)
+      wake()
     }
 
     /* ── the hands: Michelangelo's, set in real letters on two canvases (components/site/hands.ts) ── */
     const canvases = Array.from(handsEl.children) as HTMLCanvasElement[]
     // Adam's hand is what you ask for, in the italic; God's is what we hand back, in roman.
     const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
-    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false, entered = overtureActive()
+    const handData = Promise.all([import("@chenglou/pretext"), import("@/lib/site/hands")])
+    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false, entered = overtureActive() || root.hasAttribute("data-overture-ended")
+    let entranceAt: number | null = null
     const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
     // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
     let pieceOf: number[] = [], phraseOf = new Map<number, number>()
@@ -758,22 +779,22 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       handsEl.setAttribute("data-drawn", "")
       handsEl.toggleAttribute("data-rising", t !== Infinity)
     }
-    // The data and the layout engine load only when the hands are drawn, so neither holds up the first paint. A hand
-    // is laid out a few milliseconds at a time, giving the frame back between slices, so no task runs long even on a
+    // The data and layout engine load alongside the fonts. A hand is laid out a few milliseconds at a time,
+    // giving the frame back between slices, so no task runs long even on a
     // slow phone; a newer layout drops an older one at the next slice.
-    const slice = async (steps: Generator<void, Hand>, v: number) => {
+    const slice = async <L,>(steps: Generator<void, L>, valid: () => boolean) => {
       for (;;) {
+        if (!valid()) return null
         const end = performance.now() + 8
         let r = steps.next()
         while (!r.done && performance.now() < end) r = steps.next()
         if (r.done) return r.value
         await new Promise((go) => setTimeout(go))
-        if (v !== version || !alive) return null
       }
     }
     const setHands = async (g: Geometry) => {
       const v = ++version
-      const [lib, { HANDS }] = await Promise.all([import("@chenglou/pretext"), import("@/lib/site/hands")])
+      const [lib, { HANDS }] = await handData
       if (v !== version || !alive) return
       const grid_ = (grid ??= decodeHands(HANDS))
       const { W, hero, phone } = g
@@ -805,7 +826,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const res = Math.min(2, devicePixelRatio || 1)
       const next: Hand[] = []
       for (const side of [0, 1] as const) {
-        const hand = await slice(setHand(lib, HANDS, grid_, side, places[side], streams[side], fonts[side], inks, side ? fs : fy, W, res), v)
+        const hand = await slice(setHand(lib, HANDS, grid_, side, places[side], streams[side], fonts[side], inks, side ? fs : fy, W, res), () => v === version && alive)
         if (!hand) return
         next.push(hand)
       }
@@ -844,13 +865,14 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const own = !overtureActive()
       if (reduce || (own && (entered || scrollY > 4))) return settle()
       entered = rising = true
-      const start = own ? performance.now() : performance.now() - Math.max(0, RUN - overtureLeft())
+      const start = entranceAt ??= own ? performance.now() : performance.now() - Math.max(0, RUN - overtureLeft())
       // On a machine slow enough that a frame of the rise takes most of a frame, the next is set only after as long
       // again has passed, so the rise never holds more than half the page's time and the keys and presses that end the
       // overture still find it free. A fast machine sets every frame.
       let free = 0
-      const frame = (now: number) => {
-        const t = now - start
+      const frame = () => {
+        // A frame's timestamp precedes other callbacks in its batch. Read the clock after their work, not before it.
+        const t = performance.now() - start
         if (t >= RUN || (!own && !overtureActive())) return settle()
         if (performance.now() < free) {
           rise = requestAnimationFrame(frame)
@@ -865,7 +887,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         free = took > 12 ? performance.now() + took : 0
         rise = requestAnimationFrame(frame)
       }
-      rise = requestAnimationFrame(frame)
+      frame()
     }
 
     // Pointing at the hands, once they have settled and while they are the hero, on a screen with a fine pointer. Each
@@ -967,6 +989,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
 
     /* ── the scroll: the hands fall away, the zero opens into the tunnel, then the tunnel turns ── */
+    let cancelTunnel = () => {}
     const relayout = () => {
       const r = sec.getBoundingClientRect()
       y = scrollY
@@ -982,9 +1005,12 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       void setHands(G)
       layoutRing(G, G.hero)
       if (SEL < 0) SEL = clamp(Math.round(target().raw), 0, N - 1)
-      layoutTunnel(G)
-      key = ""
-      render(true)
+      cancelTunnel()
+      tunnelVersion++
+      cancelTunnel = afterOverture(() => {
+        if (!alive || !G) return
+        void layoutTunnel(G)
+      })
     }
     const target = () => {
       const s = clamp(y - top, 0, range)
@@ -997,13 +1023,14 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     let key = ""
     const render = (force = false) => {
-      if (!G || !D) return
+      if (!G || !D || !tunnelReady) return
       const k = h.toFixed(4)
       if (force || k !== key) {
         key = k
         const out = clamp(h / MORPH.band), inn = smooth(clamp((h - MORPH.part[0]) / MORPH.part[1]))
         const scripted = !driven || reduce
-        put(handsEl, "--h", scripted ? h.toFixed(4) : "")
+        // The same progress that moves the names takes the hands away, including after a late canvas layout.
+        put(handsEl, "--h", h.toFixed(4))
         put(bandEl, "--out", scripted ? out.toFixed(3) : "")
         put(partEl, "--inn", scripted ? inn.toFixed(3) : "")
         st.toggleAttribute("data-dial", h >= 0.9)
@@ -1053,7 +1080,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (lean || touch.some((T) => T.s || T.lit >= 0)) sense()
     }
     const wake = () => {
-      if (!raf) raf = requestAnimationFrame(tick)
+      if (!raf && tunnelReady && !overtureActive()) raf = requestAnimationFrame(tick)
     }
     // The scroll is read as it happens, while the page is still laid out, so no frame has to lay it out again to ask.
     const onScroll = () => {
@@ -1129,9 +1156,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     motion.addEventListener("change", onMotion)
     const offOverture = onOvertureEnd(() => {
-      // The hands settle on the next frame, not in the end itself, so the key or press that ended it is answered first.
+      // The inline clock has ended it. Settle now: a busy or suspended frame must not leave the letters rising.
       cancelAnimationFrame(rise)
-      rise = requestAnimationFrame(() => play())
+      play()
       key = ""
       wake()
     })
@@ -1142,13 +1169,16 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     })
     pair.observe(root, { attributes: true, attributeFilter: ["data-pair", "data-mode"] })
     let alive = true
-    void document.fonts.ready.then(() => {
+    // Font loading must not spend the entrance's budget. Draw with the page's current face, then re-set when it swaps.
+    relayout()
+    if (document.fonts.status !== "loaded") void document.fonts.ready.then(() => {
       if (alive) relayout()
     })
 
     api.current = { turnTo: scrollToPiece, h: () => target().h }
     return () => {
       alive = false
+      cancelTunnel()
       cancelAnimationFrame(raf)
       clearTimeout(rT)
       ringSvg.removeEventListener("pointermove", onMove)

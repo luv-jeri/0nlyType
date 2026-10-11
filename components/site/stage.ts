@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
+import { afterOverture, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
 
 // One canvas that a section draws its type on, answering only the scroll, the pointer and the theme. The stage owns
 // what every section would otherwise repeat: the canvas's size at the screen's density, drawing only while on screen,
@@ -112,14 +112,15 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       if (sceneRef.current.draw(frame(now), laid)) wake()
     }
     const wake = () => {
-      if (!raf && alive && seen) raf = requestAnimationFrame(tick)
+      if (!raf && alive && seen && laid !== null && !overtureActive()) raf = requestAnimationFrame(tick)
     }
     // Sets the type again. A newer call wins over a slower older one, so a quick retune never paints stale letters.
     const relayout = async () => {
+      if (overtureActive()) return
       const mine = ++gen
       await document.fonts.ready
       if (!lib) lib = await import("@chenglou/pretext")
-      if (!alive || mine !== gen) return
+      if (!alive || mine !== gen || overtureActive()) return
       if (!near) {
         await new Promise<void>((go) => {
           const turn = () => { hurry = null; go() }
@@ -149,7 +150,7 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     // Within a window's height of the screen, a stage waiting its turn is set at once.
     const nearIo = new IntersectionObserver(([e]) => {
       near = e.isIntersecting
-      if (near) hurry?.()
+      if (near && !overtureActive()) hurry?.()
     }, { rootMargin: "100% 0px" })
     nearIo.observe(cv)
     const ro = new ResizeObserver(() => void relayout())
@@ -175,9 +176,10 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     motion.addEventListener("change", onMotion)
     el.addEventListener("focusin", onFocus)
     el.addEventListener("focusout", onFocus)
-    void relayout()
+    const offOverture = afterOverture(() => void relayout())
     return () => {
       alive = false
+      offOverture()
       cancelAnimationFrame(raf)
       io.disconnect(); nearIo.disconnect(); ro.disconnect(); mo.disconnect()
       hurry?.()

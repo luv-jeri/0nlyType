@@ -2,13 +2,13 @@
   "version": "0.1.0",
   "sources": {
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "51b48728e83eebfdd42c1c6118695731ce452849a11fbc3ff74755f4ee044363"
+    "DESIGN.md": "cd6e8c1100a0275ff5b0402f9048a1bac2946b1344479e15fbd76744489ce1ea"
   },
   "files": {
     "AGENTS.md": "4f0be791d303fa4f283e867f210ec3a4b48f041ecae6ead63ea4022414da030c",
     "docs/AGENTS.md": "021d8a0711100ab41843e12d00041488edbf2c5f5602b85600f5695fa3ef57ff",
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "51b48728e83eebfdd42c1c6118695731ce452849a11fbc3ff74755f4ee044363",
+    "DESIGN.md": "cd6e8c1100a0275ff5b0402f9048a1bac2946b1344479e15fbd76744489ce1ea",
     "DESIGN-core.md": "930dd1a59fc21fecce0dbfb8ee31a0fbb1401599a2c0aff4b30631ac70293531",
     "components/link.md": "24eff267d16966dfffe3ab52d1db40a976ad7154129d0b2a074e44721c00e8fe",
     "components/meta.md": "ef5a3495f84051b5e075ed0b3637eccca3ce18cdf2ca99561b7b493851145ddf",

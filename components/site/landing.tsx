@@ -6,8 +6,17 @@ import * as React from "react"
 import { KEYS, PAIRS, SCHEMES, useTheme } from "@/components/site/theme-controls"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"
 import { Select } from "@/registry/0nlytype/ui/select"
+import { CommandLine } from "@/registry/0nlytype/ui/command-line"
+import { afterOverture } from "@/lib/site/overture.mjs"
 
 // The home page's small instruments: the ones that answer a hand. Everything else on the page is a server component.
+
+/** Keep the command readable in the HTML; the offscreen runner's measured controls wait for the intro. */
+export function LandingCommand({ command, ...props }: React.ComponentProps<typeof CommandLine>) {
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => afterOverture(() => setReady(true)), [])
+  return <CommandLine {...props} runner={ready} command={ready ? command : `npx ${command}`} />
+}
 
 /** One note of colour: the whole page, retuned from one sentence. */
 export function TuneSentence() {

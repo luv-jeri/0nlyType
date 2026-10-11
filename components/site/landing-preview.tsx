@@ -5,6 +5,7 @@ import * as React from "react"
 import { ItemExample } from "@/app/docs/[item]/examples"
 import { PreviewStyles } from "@/components/site/registry-styles"
 import { Still } from "@/components/site/state"
+import { afterOverture } from "@/components/site/landing-overture"
 
 // The piece being read, shown as itself: its docs example, live, in the room the sheet gives it, laid out at the
 // room's width in one column. Most examples are several demos one under another, so the preview shows the first demo
@@ -29,13 +30,19 @@ const SKIP = new Set(["link", "style", "script", "template"])
 const elements = (el: Element) => [...el.children].filter((c) => !SKIP.has(c.localName)) as HTMLElement[]
 
 export function PiecePreview({ item }: { item: string }) {
-  const [shown, setShown] = React.useState(item)
+  const [shown, setShown] = React.useState<string | null>(null)
   const room = React.useRef<HTMLDivElement>(null)
   const body = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    const t = setTimeout(() => React.startTransition(() => setShown(item)), SETTLE)
-    return () => clearTimeout(t)
+    let t: ReturnType<typeof setTimeout>
+    const off = afterOverture(() => {
+      t = setTimeout(() => React.startTransition(() => setShown(item)), SETTLE)
+    })
+    return () => {
+      off()
+      clearTimeout(t)
+    }
   }, [item])
 
   // A picture never moves the page: a piece that brings its own part into view as it mounts (Command's list does,
@@ -53,7 +60,7 @@ export function PiecePreview({ item }: { item: string }) {
 
   React.useEffect(() => {
     const r = room.current, b = body.current
-    if (!r || !b) return
+    if (!r || !b || !shown) return
     const out =(el: Element) => el.setAttribute("data-pt-out", "")
     const fit = () => {
       b.style.removeProperty("--pt-k")
@@ -127,15 +134,17 @@ export function PiecePreview({ item }: { item: string }) {
       ro.disconnect()
       mo.disconnect()
     }
-  }, [])
+  }, [shown])
 
   return (
     <div ref={room} className="pt-preview" aria-hidden="true" inert>
       <div ref={body} className="pt-preview-body doc-example" data-leaving={item !== shown || undefined}>
-        <PreviewStyles item={shown} />
-        <Still value={true}>
-          <ItemExample key={shown} item={shown} />
-        </Still>
+        {shown && <>
+          <PreviewStyles item={shown} />
+          <Still value={true}>
+            <ItemExample key={shown} item={shown} />
+          </Still>
+        </>}
       </div>
     </div>
   )

@@ -135,6 +135,7 @@ test("the script sets its own deadline timer, at the deadline", () => {
   assert.equal(b.events.length, 1)
   assert.equal(b.events[0].type, OVERTURE_END_EVENT)
   assert.equal(b.events[0].detail, "deadline")
+  assert.equal(b.attrs["data-overture-ended"], "deadline", "late hydration must know this load already ended its entrance")
   assert.equal(b.live(), 0, "ending must remove every listener it added")
 })
 
@@ -207,6 +208,26 @@ test("Enter or Space on Skip intro waits for its click, so the press cannot go o
   other.run()
   other.fire("document", "keydown", { key: "a" })
   assert.equal(other.attrs[OVERTURE_ATTR], undefined, "another key on Skip intro should still end it")
+})
+
+test("the first forward Tab reaches Skip intro directly, then leaves Tab to the browser", () => {
+  const b = browser(), doc = b.context.document
+  doc.body = {}
+  doc.activeElement = doc.body
+  const skip = { focus: () => { doc.activeElement = skip } }
+  doc.querySelector = () => skip
+  b.run()
+  assert.equal(doc.activeElement, doc.body, "the intro must not move focus without a key")
+  let prevented = 0
+  const tab = { key: "Tab", preventDefault: () => { prevented++ } }
+  b.fire("document", "keydown", { ...tab, shiftKey: true })
+  assert.equal(prevented, 0, "Shift+Tab keeps its native direction")
+  b.fire("document", "keydown", tab)
+  assert.equal(doc.activeElement, skip)
+  assert.equal(prevented, 1)
+  assert.notEqual(b.attrs[OVERTURE_ATTR], undefined, "Tab must not end the intro")
+  b.fire("document", "keydown", tab)
+  assert.equal(prevented, 1, "Tab from the control must not be trapped")
 })
 
 test("ending twice is harmless: one event, and the timer is cleared", () => {
