@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import { glyphSheet, type Glyph, type GlyphSheet } from "@/components/site/glyph-sheet"
 import { TuneSentence } from "@/components/site/landing"
 import { Sec } from "@/components/site/landing-section"
 import { useStage, type Frame } from "@/components/site/stage"
@@ -35,15 +36,21 @@ type Row = { y: number; fs: number; q: number; Z: number; amp: number; tone: num
 // One sea, set once per layout. Every unit (a word far off, a few letters or one letter up close) is held in typed
 // arrays: where it rests across the row, its place on the water (X, world units, the nearest row spanning -1..1), the
 // waves' phase there and the word it belongs to; each word has its extent across the row and whether it is yours.
-// `from` is the sea it replaced, kept while the retune rolls out over it.
+// `from` is the sea it replaced, kept while the retune rolls out over it. Every unit's letters are cut once per layout
+// into `sheet`, in the five looks it can take (`LOOKS`), and `cut` holds them unit by unit.
 type Sea = {
   W: number; H: number; S: number; hY: number; yN: number
   rows: Row[]; inks: string[]; str: string[]; row: Uint16Array; x: Float32Array; X: Float32Array; ph: Float32Array; word: Uint32Array
   wl: Float32Array; wr: Float32Array; mine: Uint8Array
   clear: Rect[]; ox: number; oy: number; reach: number; key: string; from: Sea | null; t0: number
+  sheet: GlyphSheet; cut: Glyph[]
 }
 type Drop = { X: number; Z: number; t: number; s: number }
 type Water = { drops: Drop[]; at: number; px: number; py: number; dx: number; dy: number }
+
+// The looks a unit can take, as an index: a step lighter in a trough, as set, a step darker on a crest (the same face
+// where it is too fine for a heavier cut to show), a crest in the heavier cut, and yours in the italic.
+const TROUGH_LOOK = 0, PLAIN_LOOK = 1, DARK_LOOK = 2, CREST_LOOK = 3, ITAL_LOOK = 4, LOOKS = 5
 
 const TAU = Math.PI * 2
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
@@ -225,9 +232,20 @@ async function setSea(f: Frame, cv: HTMLCanvasElement | null, sentence: HTMLElem
   const cxs = clear.length ? clear.reduce((s, c) => s + (c.l + c.r) / 2, 0) / clear.length : W / 2
   const cys = clear.length ? clear.reduce((s, c) => s + (c.t + c.b) / 2, 0) / clear.length : H / 2
   const reach = Math.max(...[[0, 0], [W, 0], [0, H], [W, H]].map(([x, y]) => Math.hypot(x - cxs, (y - cys) * ROLL.flat)))
+  // Every unit's letters, once, in each look it can take.
+  const pen = glyphSheet(f.dpr), cut: Glyph[] = new Array(n * LOOKS)
+  for (let i = 0; i < n; i++) {
+    const R = rows[row[i]], t = R.tone, lo = inks[clamp(t - 1, 0, 2)], mid = inks[t], hi = inks[clamp(t + 1, 0, 2)]
+    cut[i * LOOKS + TROUGH_LOOK] = pen.glyph(R.font, lo, str[i])
+    cut[i * LOOKS + PLAIN_LOOK] = pen.glyph(R.font, mid, str[i])
+    cut[i * LOOKS + DARK_LOOK] = pen.glyph(R.font, hi, str[i])
+    cut[i * LOOKS + CREST_LOOK] = R.fs >= 9 ? pen.glyph(R.crest, hi, str[i]) : cut[i * LOOKS + DARK_LOOK]
+    cut[i * LOOKS + ITAL_LOOK] = own[word[i]] ? pen.glyph(R.ital, inks[Math.min(2, t + 1)], str[i]) : cut[i * LOOKS + PLAIN_LOOK]
+  }
+  pen.bake()
   const sea: Sea = {
     W, H, S, hY, yN: yBot, rows, inks, str, row: Uint16Array.from(row), x: Float32Array.from(xs), X: Float32Array.from(Xs), ph, word: Uint32Array.from(word),
-    wl: Float32Array.from(wl), wr: Float32Array.from(wr), mine: Uint8Array.from(own), clear, ox: cxs, oy: cys, reach, key, from: null, t0: 0,
+    wl: Float32Array.from(wl), wr: Float32Array.from(wr), mine: Uint8Array.from(own), clear, ox: cxs, oy: cys, reach, key, from: null, t0: 0, sheet: pen, cut,
   }
   // A new face or ink (not a resize, not the fonts arriving) is a retune: keep the old sea to roll out over.
   if (prev && prev.key !== key && !still && prev.W === W && prev.H === H) {
@@ -309,15 +327,12 @@ function drawSea(f: Frame, sea: Sea, water: Water) {
 
 /** Draws one setting of the sea: inside the retune's ring (`inner`) or beyond it, which is all of it once it is done. */
 function layer(ctx: CanvasRenderingContext2D, dpr: number, sea: Sea, t: number, drops: Drop[], now: number, R: number, inner: boolean) {
-  const { rows, inks, str, x, X, ph, word, wl, wr, mine, clear, hY, yN } = sea
+  const { rows, cut, sheet, x, X, ph, word, wl, wr, mine, clear, hY, yN } = sea
   const om = WAVES.map((w) => w.om * t), live = drops.map((d) => ({ ...d, age: (now - d.t) / 1000 }))
   const rolling = R !== Infinity, depth = yN - hY
-  ctx.textAlign = "center"
-  ctx.textBaseline = "alphabetic"
-  let font = "", fill = ""
   for (const row of rows) {
-    const { y, Z, q, amp, fs, tone } = row, toX = sea.S / Z, toY = depth * q * q, dXdx = Z / sea.S
-    let wk = -1, skip = false, gone = false, look = row.font, ink = inks[tone]
+    const { y, Z, q, amp, fs } = row, toX = sea.S / Z, toY = depth * q * q, dXdx = Z / sea.S
+    let wk = -1, skip = false, gone = false, look = PLAIN_LOOK
     for (let i = row.u0; i < row.u1; i++) {
       const Xi = X[i], k = word[i], first = k !== wk
       // The roll: this setting keeps whole words on its side of the ring, with a lane of open water between the two,
@@ -358,11 +373,10 @@ function layer(ctx: CanvasRenderingContext2D, dpr: number, sea: Sea, t: number, 
       // too fine for a weight to show, and a face switch costs time), in a trough it fades; yours is in the italic.
       // Near the sentence, a word the water lifts into its clear water is left out.
       if (first) {
-        if (mine[wk]) { look = row.ital; ink = inks[Math.min(2, tone + 1)] }
+        if (mine[wk]) look = ITAL_LOOK
         else {
           const up = eta > CREST || lift > 0.45
-          look = up && fs >= 9 ? row.crest : row.font
-          ink = inks[clamp(tone + (up ? 1 : eta < TROUGH ? -1 : 0), 0, 2)]
+          look = up ? (fs >= 9 ? CREST_LOOK : DARK_LOOK) : eta < TROUGH ? TROUGH_LOOK : PLAIN_LOOK
         }
         skip = false
         if (row.guard) {
@@ -371,11 +385,9 @@ function layer(ctx: CanvasRenderingContext2D, dpr: number, sea: Sea, t: number, 
         }
       }
       if (skip) continue
-      if (look !== font) ctx.font = font = look
-      if (ink !== fill) ctx.fillStyle = fill = ink
       const slope = clamp(-deta * dXdx * amp, -0.9, 0.9), c = 1 / Math.sqrt(1 + slope * slope), sn = slope * c
       ctx.setTransform(dpr * c, dpr * sn, -dpr * sn, dpr * c, dpr * xx, dpr * yy)
-      ctx.fillText(str[i], 0, 0)
+      sheet.draw(ctx, cut[i * LOOKS + look])
     }
   }
 }
