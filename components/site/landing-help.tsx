@@ -11,7 +11,7 @@ import { REPO } from "@/lib/site/meta"
 // hover and the share panel all work as they do elsewhere; pointing at one lights its dimension line and its note.
 // At rest one Weingart highlight, in the accent, marks why a star matters; the moment you point at a call, it gives
 // the accent to that call's full stop, so there is never more than one. The scroll sets the poster: each word slides
-// in from its own side and angle and settles as it reaches the middle of the screen (app/landing-help.css). Without
+// in from its own side and angle and is set the moment it is wholly on the screen (app/landing-help.css). Without
 // scroll timelines, or with reduced motion, the poster is simply set.
 
 export function Help() {
