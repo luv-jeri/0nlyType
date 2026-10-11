@@ -134,11 +134,11 @@ try {
   const fl = (v) => Math.floor(v * 100) / 100, ce = (v) => Math.ceil(v * 100) / 100
   set.box = [fl(ink.x0), fl(ink.y0), ce(ink.x1 - fl(ink.x0)), ce(ink.y1 - fl(ink.y0))]
 
-  const head = `// Written by npm run wordmark:set (scripts/set-wordmark.mjs); run it again rather than editing this. In units
-// where H is 100: "0nly" at
-// size nly.s on its baseline, "Type" at type.s on its own, and the lines pretext broke the creed into for the bands
-// of the italic wide enough to hold one: [x, top, width, text, set width], each band lh tall, the text spaced out to its
-// set width. paths holds the outlines of "0nly", "Type" and its full stop, and box the rectangle their ink fills.
+  const head = `// Written by npm run wordmark:set (scripts/set-wordmark.mjs); run it again rather than editing this.
+// In units where H is 100: "0nly" at size nly.s on its baseline, "Type" at type.s on its own, and the lines pretext
+// broke the creed into for the bands of the italic wide enough to hold one: [x, top, width, text, set width], each
+// band lh tall, the text spaced out to its set width. paths holds the outlines of "0nly", "Type" and its full stop,
+// and box the rectangle their ink fills.
 `
   writeFileSync(OUT, `${head}export const SET = ${JSON.stringify(set)} as const\n`)
   console.log(`${OUT}: ${set.lines.length} lines, the ink ${set.box[2]} x ${set.box[3]}, "Type" ${n2(set.box[1] + set.box[3] - set.type.base)} below its baseline`)
