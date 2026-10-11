@@ -1,4 +1,32 @@
-/* ── 04 install: one line ── */
+/* ── 04 install: one line. A tangle of string set in fine type hangs over the empty command line; the section holds
+   while the scroll pulls the string taut onto the line (components/site/landing-install.tsx). The run is the section
+   plus the length of the pull; the section stands still inside it, under the bar, or with its foot in view when it is
+   taller than the window. ── */
+.install-run { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; }
+/* The length of the pull. A spacer, not padding: a sticky box holds only within its run's content, never its padding. */
+.install-run::after { content: ""; grid-column: 1 / -1; height: 110svh; }
+.install-run > .install { position: sticky; top: min(var(--bar), var(--install-fit, var(--bar))); align-self: start; }
+.install { position: relative; }
+/* The drawing lies under the words; only the room it hangs in lets the pointer through to it. */
+.install-knot { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.install .sec-wide { margin: 0; }
+.install :is(.sec-label, .sec-note, .sec-title, .sec-body) { position: relative; z-index: 1; }
+.install .sec-body { pointer-events: none; content-visibility: visible; }
+.install .sec-body > :not(.install-room) { pointer-events: auto; }
+.install-room { width: 100%; height: clamp(170px, calc(100svh - 580px), 400px); margin-bottom: calc(-1 * var(--ot-space-5)); }
+/* The real line is there all along, copyable and read aloud; the drawing hands its letters over to it at the end. */
+.install .ot-command-line-text { opacity: var(--install-land, 1); }
 .install-line { width: min(100%, 48rem); }
 .install-then { font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); }
 .install-links { font-size: var(--ot-p); }
+@media (max-width: 860px) {
+  .install-room { height: clamp(150px, 30svh, 240px); }
+  .install-run::after { height: 90svh; }
+}
+/* Reduced motion: the plain section, the line and nothing to pull. */
+@media (prefers-reduced-motion: reduce) {
+  .install-run::after { display: none; }
+  .install-run > .install { position: relative; top: auto; }
+  .install-knot, .install-room { display: none; }
+  .install .ot-command-line-text { opacity: 1; }
+}
