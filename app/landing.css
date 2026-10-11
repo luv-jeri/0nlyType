@@ -72,6 +72,9 @@ html:has(main.landing) .page-rail .ot-trail-head .ot-trail-num { color: var(--ot
    the scroll opens the zero they step out to the sides and off, whole, fading only on their way out, before the names
    reach them; without scroll timelines, or with reduced motion, they follow --h, which the script writes. */
 .zero-hands canvas { position: absolute; display: block; --away: calc(min(1, var(--h, 0) * 5)); opacity: calc(1 - max(0, var(--away) * 2 - 1)); }
+/* Until the script gives a hand its box it takes none, so it appears where it stands instead of jumping there from a
+   default 300 by 150 at the corner (a layout shift of 0.15). */
+.zero-hands canvas:not([style]) { display: none; }
 .zero-hands .hand-a { translate: calc(var(--away) * -42vw) 0; }
 .zero-hands .hand-g { translate: calc(var(--away) * 42vw) 0; }
 
