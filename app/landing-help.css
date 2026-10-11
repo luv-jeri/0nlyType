@@ -1,7 +1,128 @@
-/* ── help build it: three calls, each with its reason ── */
-.help-list { display: grid; row-gap: var(--ot-space-7); margin: 0; padding: 0; list-style: none; }
-.help-list > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
-.help-note { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
-@media (max-width: 560px) {
-  .help-list .cta { font-size: min(var(--ot-f), 8.4vw); }
+/* ── 06, help build it: a type poster made of the four calls ──
+   The words are the calls themselves (Cta links and the share button), set heavy and as narrow as the voice goes.
+   Each call is a small grid: its dimension line over it, the word, then its small print on a callout string; the
+   italic reason is laid across the word's lower half with a paper-coloured knock-out around its letters, as the
+   italic crosses the roman on the "It has to be design." poster. --size is the poster's word size; each call
+   scales it (--s), leans it (--r), places its italic (--cx) and says where the scroll brings it from (--from,
+   --from-r). */
+.help-poster {
+  --narrow: 1; --size: calc(var(--narrow) * clamp(84px, calc(15.5 * var(--site-vw)), 280px));
+  grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start;
+  margin: var(--ot-space-7) 0 0; padding: 0; list-style: none;
+}
+.help-call {
+  --s: 1; --r: 0deg;
+  position: relative; display: grid; grid-template-columns: max-content; justify-items: start; align-content: start;
+  rotate: var(--r);
+}
+
+/* The press pair's voice has no narrow width, so its words are set smaller to keep the same measure. */
+html[data-pair="press"] .help-poster { --narrow: 0.68; }
+
+/* The word: the Cta's letters, heavy and condensed, with no hairline under them: the dimension line is its line. */
+.help-poster .cta { grid-row: 2; padding: 0; font-size: calc(var(--s) * var(--size)); line-height: 0.8; letter-spacing: -0.03em; font-weight: 860; font-stretch: 62%; background: none; }
+.help-poster .cta-word::after { display: none; }
+.help-poster .cta-letters > span { transition: font-stretch var(--ot-andante) var(--ot-exhale), font-weight var(--ot-andante) var(--ot-exhale); transition-delay: calc(var(--i) * var(--ot-arpeggio)); }
+.help-poster .cta-stop { font-weight: 900; }
+/* Coming to a call, its letters exhale wider one after another (the crescendo, in width), and its full stop lands. */
+.help-poster :is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"]) .cta-letters > span { font-weight: 900; font-stretch: 74%; }
+.help-poster .cta:active .cta-letters > span { font-weight: 760; transition-delay: 0s; }
+
+/* The dimension line: a hairline with a tick at each end, the measure of the word, its label finishing the call. */
+.help-dim {
+  grid-row: 1; display: flex; align-items: center; column-gap: 0.7em; inline-size: 0; min-inline-size: 100%;
+  block-size: 11px; margin: 0 0 var(--ot-space-4);
+  border-inline: var(--ot-hairline) solid var(--ot-rule-strong);
+  font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.02em; white-space: nowrap; color: var(--ot-pencil);
+  transition: color var(--ot-allegro), border-color var(--ot-allegro);
+}
+.help-dim::before, .help-dim::after { content: ""; flex: 1; border-block-start: var(--ot-hairline) solid var(--ot-rule-strong); transition: border-color var(--ot-allegro); }
+
+/* The reason, in the light italic, crossing the word. It never takes the pointer from the word under it. */
+.help-cross {
+  position: absolute; z-index: 1; inset-block-start: calc(11px + var(--ot-space-4) + 0.42 * var(--s) * var(--size)); inset-inline-start: var(--cx, 0.6em);
+  inline-size: max-content; margin: 0; pointer-events: none;
+  font-family: var(--ot-expression); font-style: italic; font-weight: 400;
+  font-size: calc(var(--ot-expression-scale) * 0.2 * var(--size) / var(--narrow)); line-height: 1; letter-spacing: -0.015em; white-space: nowrap;
+  color: var(--ot-ink);
+  -webkit-text-stroke: 0.07em var(--ot-paper); paint-order: stroke fill;
+  transition: font-weight var(--ot-moderato) var(--ot-exhale);
+}
+
+/* The small print hangs from the word on a callout string: a hairline dropped from its baseline. */
+.help-why, .help-call .share-swap {
+  grid-row: 3; position: relative; inline-size: 0; min-inline-size: 26ch; max-inline-size: 30ch;
+  margin: var(--ot-space-6) 0 0 var(--wx, 0px); padding-inline-start: var(--ot-space-3);
+  font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; hyphens: manual;
+}
+.help-why::before, .help-call .share-swap::before {
+  content: ""; position: absolute; inset-inline-start: 0; inset-block: calc(-1 * var(--ot-space-6)) calc(100% - 1lh);
+  border-inline-start: var(--ot-hairline) solid var(--ot-rule-strong); transition: border-color var(--ot-allegro);
+}
+.help-call .help-note { max-width: none; font-size: inherit; line-height: inherit; color: inherit; }
+.help-call .places-line { font-size: var(--ot-pp); }
+
+/* Pointing at a call lights its measure, its string and its small print. */
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) .help-dim,
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) .help-dim::before,
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) .help-dim::after,
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) :is(.help-why, .share-swap)::before { color: var(--ot-ink); border-color: var(--ot-ink); }
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) :is(.help-why, .help-note) { color: var(--ot-ink); }
+.help-call:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) .help-cross { font-weight: 640; }
+
+/* The one accent: a highlighter stroke on why a star matters, until a call is pointed at and takes the accent for
+   its full stop. The stroke leaves the way it was drawn. */
+.help-hl {
+  color: var(--ot-paper); -webkit-text-stroke-color: transparent;
+  background: linear-gradient(var(--ot-accent), var(--ot-accent)) no-repeat 0 70% / 100% 0.6em;
+  transition: background-size var(--ot-moderato) var(--ot-breath), color var(--ot-allegro);
+}
+.help-poster:has(:is(.cta:is(:hover, :focus-visible), .share-call[aria-expanded="true"])) .help-hl { color: inherit; -webkit-text-stroke-color: var(--ot-paper); background-size: 0% 0.6em; background-position: 100% 70%; }
+
+/* ── the poster's composition, on the page's twelve columns ──
+   Report runs up the margin, the height of the stack; Request heads the stave; Star, bigger as it is short, leans in
+   from the right beside Request's small print; Share closes it under Request. */
+.help-call[data-call="report"] {
+  grid-column: 1 / 4; grid-row: 1 / span 3; justify-self: end; align-self: start;
+  writing-mode: vertical-rl; text-orientation: sideways; --s: 1.1; --r: 180deg; --cx: 1.6em;
+  --from: 0 35vh; --from-r: 186deg;
+}
+.help-call[data-call="report"] .help-dim { margin-block-end: var(--ot-space-3); }
+/* Report's p hangs its descender across the gap, so its small print stands clear of it. */
+.help-call[data-call="report"] .help-why { --gap: calc(0.27 * var(--s) * var(--size)); min-inline-size: 64ch; max-inline-size: 64ch; margin-block-start: var(--gap); }
+.help-call[data-call="report"] .help-why::before { inset-block-start: calc(-1 * var(--gap)); }
+.help-call[data-call="request"] { grid-column: 4 / -1; grid-row: 1; --cx: 2.6em; --from: -60vw 0; --from-r: -8deg; }
+.help-call[data-call="star"] { grid-column: 7 / -1; grid-row: 2; justify-self: end; margin-block-start: calc(-0.4 * var(--size)); --s: 1.3; --r: -4deg; --cx: -2.6em; --wx: 0.4em; --from: 55vw -10vh; --from-r: 10deg; }
+.help-call[data-call="share"] { grid-column: 4 / -1; grid-row: 3; margin-block-start: calc(-0.36 * var(--size)); --cx: 2.4em; --from: 40vw 10vh; --from-r: 6deg; }
+
+/* The scroll sets the poster: each call comes from its own side and angle and settles as it reaches the middle of
+   the screen; its italic arrives a beat later, from the other way, and the measure draws out over it. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .help-call { animation: help-set linear both; animation-timeline: view(); animation-range: entry 0% cover 50%; }
+    .help-cross { animation: help-cross linear both; animation-timeline: view(); animation-range: entry 0% cover 50%; }
+    .help-dim { animation: help-measure linear both; animation-timeline: view(); animation-range: entry 30% cover 50%; }
+  }
+}
+@keyframes help-set { from { translate: var(--from); rotate: var(--from-r); opacity: 0; } 35% { opacity: 1; } }
+@keyframes help-cross { from { translate: 4em 0; opacity: 0; } 50% { opacity: 1; } }
+@keyframes help-measure { from { clip-path: inset(0 50%); } }
+
+/* ── a phone: re-composed, not shrunk ── */
+@media (max-width: 760px) {
+  .help-poster { container-type: inline-size; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-7); }
+  .help-call, .help-call[data-call] { grid-column: 1; grid-row: auto; justify-self: start; align-self: start; margin: 0; writing-mode: horizontal-tb; }
+  .help-call[data-call="request"] { --r: 0deg; --from: -60vw 0; --from-r: -5deg; }
+  .help-call[data-call="report"] { --r: -2deg; --from: 60vw 0; --from-r: 6deg; }
+  .help-call[data-call="star"] { --r: 2.5deg; justify-self: end; --from: 60vw 0; --from-r: 8deg; }
+  .help-call[data-call="share"] { --r: -1.5deg; --from: -60vw 0; --from-r: -6deg; }
+  .help-poster .cta { font-size: calc(var(--narrow) * var(--fit) * 100cqi); }
+  .help-call[data-call="request"] .cta { --fit: 0.36; }
+  .help-call[data-call="report"] .cta { --fit: 0.43; }
+  .help-call[data-call="star"] .cta { --fit: 0.64; }
+  .help-call[data-call="share"] .cta { --fit: 0.5; }
+  .help-cross { position: static; grid-row: 3; margin-block-start: -0.35em; font-size: calc(var(--ot-expression-scale) * 26px); }
+  .help-why, .help-call .share-swap { grid-row: 4; margin-block-start: var(--ot-space-4); }
+  .help-call[data-call="report"] .help-why { --gap: var(--ot-space-4); min-inline-size: 26ch; max-inline-size: 30ch; }
+  .help-why::before, .help-call .share-swap::before, .help-call[data-call="report"] .help-why::before { inset-block-start: calc(-1 * var(--ot-space-4)); }
 }
