@@ -38,10 +38,23 @@ export function PiecePreview({ item }: { item: string }) {
     return () => clearTimeout(t)
   }, [item])
 
+  // A picture never moves the page: a piece that brings its own part into view as it mounts (Command's list does,
+  // through cmdk) would scroll the window, and the scroll is what turns the rings to another piece.
+  React.useEffect(() => {
+    const r = room.current
+    const own = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = function (this: Element, ...args: Parameters<Element["scrollIntoView"]>) {
+      if (!r?.contains(this)) own.apply(this, args)
+    }
+    return () => {
+      Element.prototype.scrollIntoView = own
+    }
+  }, [])
+
   React.useEffect(() => {
     const r = room.current, b = body.current
     if (!r || !b) return
-    const out = (el: Element) => el.setAttribute("data-pt-out", "")
+    const out =(el: Element) => el.setAttribute("data-pt-out", "")
     const fit = () => {
       b.style.removeProperty("--pt-k")
       b.style.removeProperty("--pt-y")
