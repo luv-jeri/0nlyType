@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-
 import { OVERTURE_ATTR, OVERTURE_DEADLINE, OVERTURE_END_EVENT, OVERTURE_SCRIPT } from "@/lib/site/overture.mjs"
 import { Button } from "@/registry/0nlytype/ui/button"
 

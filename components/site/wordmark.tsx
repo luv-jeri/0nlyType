@@ -29,18 +29,20 @@ export function Lockup({ written = true, className }: { written?: boolean; class
           </mask>
         )}
       </defs>
-      <g mask={`url(#${cut})`}>
+      <g className="wm-nly" mask={`url(#${cut})`}>
         <path d={paths.nly} />
         <circle cx={nly.dot[0]} cy={nly.dot[1]} r={nly.dot[2]} />
       </g>
-      <path d={paths.type} mask={written ? `url(#${bands})` : undefined} />
-      {written && (
-        <g className="wm-creed" fontSize={fs}>
-          {lines.map(([x, y, , text, fit], i) => (
-            <text key={i} x={x} y={y + lh * 0.78} textLength={fit} lengthAdjust="spacing">{text}</text>
-          ))}
-        </g>
-      )}
+      <g className="wm-type">
+        <path d={paths.type} mask={written ? `url(#${bands})` : undefined} />
+        {written && (
+          <g className="wm-creed" fontSize={fs}>
+            {lines.map(([x, y, , text, fit], i) => (
+              <text key={i} x={x} y={y + lh * 0.78} textLength={fit} lengthAdjust="spacing">{text}</text>
+            ))}
+          </g>
+        )}
+      </g>
       <path className="wm-stop" d={paths.stop} />
     </svg>
   )

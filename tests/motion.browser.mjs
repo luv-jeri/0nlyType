@@ -77,6 +77,16 @@ async function tabToSkip(page) {
 // timeline, never a clock), so at the top of the page they stand where they were set.
 const rest = (page) => page.evaluate(() => !document.querySelector(".zero-hands")?.hasAttribute("data-rising") && [...document.querySelectorAll(".zero-ring :is(.index-dot, .mk-dot)")].every((el) => { const s = getComputedStyle(el); const clock = s.animationName !== "none" && !/^--/.test(s.animationTimeline ?? ""); return !clock && Math.abs(Number(s.opacity) - Number(el.style.opacity || 1)) < 0.01 }))
 
+// Settled within the entrance: a load with no overture still brings the hands in once (owner 2026-10-11), on the
+// overture's own clock, so a later visit is at rest once that has run, never replaying the overture itself.
+const settles = async (page) => {
+  for (let t = 0; t < 2000; t += 100) {
+    if (await rest(page)) return true
+    await page.waitForTimeout(100)
+  }
+  return false
+}
+
 async function check(name, fn) {
   ran++
   try { await fn() } catch (error) { failures.push(`${name}: ${error.message.split("\n")[0]}`) }
@@ -117,7 +127,7 @@ await check("later visits arrive settled: reload, another tab, back", async () =
     await page.waitForTimeout(500)
     const { starts } = await log(page)
     assert.equal(starts.length, 0, `the overture replayed after ${how}`)
-    assert.ok(await rest(page), "the hands should be at rest")
+    assert.ok(await settles(page), "the hands should come to rest")
     assert.equal(await page.locator(".hero-skip").isVisible(), false)
   }
   await context.close()
@@ -305,7 +315,7 @@ const never = (name, options, init, extra) => check(name, async () => {
   await page.waitForTimeout(600)
   assert.equal((await log(page)).starts.length, 0, "the overture played")
   assert.equal(await page.locator(".hero-skip").isVisible(), false)
-  assert.ok(await rest(page), "the hands should be at rest")
+  assert.ok(options.reducedMotion ? await rest(page) : await settles(page), "the hands should be at rest")
   assert.ok(await page.locator("h1").isVisible(), "the page should still render")
   if (extra?.stored !== undefined) assert.equal(await page.evaluate((k) => localStorage.getItem(k), OVERTURE_KEY), extra.stored)
   assert.deepEqual(errors, [])
@@ -417,7 +427,7 @@ await check("667px, coarse pointer: reload and a new tab arrive settled", async 
     await page.waitForSelector("#hero-title")
     await page.waitForTimeout(400)
     assert.equal((await log(page)).starts.length, 0, `the overture replayed after ${how}`)
-    assert.ok(await rest(page), "the hands should be at rest")
+    assert.ok(await settles(page), "the hands should come to rest")
   }
   await context.close()
 })
@@ -437,7 +447,7 @@ async function toTunnel(page, pieces = 30) {
 const reading = (page) => page.evaluate(() => {
   const boxes = [...document.querySelectorAll("[data-swap]")]
   const on = document.querySelector(".tunnel-ring .nm.on"), current = document.querySelector(".pieces-list a[aria-current]")
-  return { copies: boxes.map((b) => b.children.length), on: on?.getAttribute("data-i"), current: current?.dataset.i, name: document.querySelector('[data-swap="name"] > :not(.out)')?.textContent, title: current?.textContent }
+  return { copies: boxes.map((b) => `${b.dataset.swap} ${b.children.length}`), on: on?.getAttribute("data-i"), current: current?.dataset.i, name: document.querySelector('[data-swap="name"] > :not(.out)')?.textContent, title: current?.textContent }
 })
 
 await check("01: a fast scroll turns the tunnel, and the reading never holds more than two copies", async () => {
@@ -464,7 +474,7 @@ await check("01: a fast scroll turns the tunnel, and the reading never holds mor
   assert.ok(most <= 2, `a reading box held ${most} copies`)
   const after = await reading(page)
   assert.notEqual(after.on, before.on, "the scroll did not turn the tunnel")
-  assert.deepEqual(after.copies, [1, 1, 1, 1], "the reading should settle to one copy of each part")
+  assert.deepEqual(after.copies, ["name 1", "desc 1"], "the reading should settle to one copy of each part")
   assert.equal(after.on, after.current, "the ring and the list should read the same piece")
   assert.ok(after.title?.includes(after.name ?? "\0"), `the reading says "${after.name}", the list "${after.title}"`)
   assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)
@@ -521,7 +531,7 @@ await check("01 under reduced motion: settled at once, and it still reads", asyn
   await page.keyboard.press("ArrowDown")
   await page.waitForTimeout(300)
   const r = await reading(page)
-  assert.deepEqual(r.copies, [1, 1, 1, 1], "the reading should change over at once, one copy each")
+  assert.deepEqual(r.copies, ["name 1", "desc 1"], "the reading should change over at once, one copy each")
   assert.equal(r.on, r.current)
   assert.equal(await page.evaluate(() => document.querySelector(".readout").getAnimations({ subtree: true }).filter((x) => x.playState === "running").length), 0, "nothing in the reading should animate")
   assert.deepEqual(errors, [], `the page logged: ${errors.join(" | ")}`)

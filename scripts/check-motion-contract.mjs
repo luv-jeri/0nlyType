@@ -70,7 +70,8 @@ if (!/overtureActive\(\)/.test(zero) || !/overtureLeft\(\)/.test(zero)) fail("th
 // The hands are drawn on canvases: their rise is a clock in the script, inside the deadline, and settled without it.
 const run = zero.match(/const RUN = (\d+) \+ (\d+)/)
 if (!run || Number(run[1]) + Number(run[2]) > OVERTURE_DEADLINE) fail("the home overture", `the hands' rise (RUN) must end inside the ${OVERTURE_DEADLINE}ms deadline`)
-if (!/if \(reduce \|\| !overtureActive\(\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion and once the overture has ended")
+// Without the overture the hands still enter, once a load (owner 2026-10-11), on the same RUN: never again on a resize.
+if (!/if \(reduce \|\| \(own && \(entered \|\| scrollY > 4\)\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion, and enter at most once a load without the overture")
 // Storage: one key, written by the script in the page, nowhere else.
 const keyUses = ["components", "app", "lib", "registry"].flatMap((dir) => sources(dir)).filter((file) => read(file).includes(OVERTURE_KEY) || read(file).includes("overture-seen"))
 if (keyUses.length !== 1 || keyUses[0] !== "lib/site/overture.mjs") fail("the home overture", `the overture key belongs only in lib/site/overture.mjs (found ${keyUses.join(", ") || "nowhere"})`)

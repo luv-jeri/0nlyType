@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-
 import { Appearance, useAppearance, KEYS, PAIRS, SCHEMES, type AppearanceValue } from "@/registry/0nlytype/ui/appearance"
 import { Popover, PopoverContent, PopoverTrigger } from "@/registry/0nlytype/ui/popover"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"

@@ -6,7 +6,8 @@ import NextLink from "next/link"
 import * as React from "react"
 
 import { CopyCommand } from "@/components/site/landing"
-import { Cta } from "@/components/site/landing-hero"
+import { DocsField } from "@/components/site/landing-docs"
+import { PiecePreview } from "@/components/site/landing-preview"
 import { Overture, OvertureScript, onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
 import { area, decodeHands, drawHand, extent, setHand, type Hand, type Place, type Touch } from "@/components/site/hands"
 import { Wordmark } from "@/components/site/wordmark"
@@ -166,6 +167,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
   }, [movements])
   const N = pieces.length
   const starts = React.useMemo(() => movements.map((m) => pieces.findIndex((q) => q.mv === m)), [movements, pieces])
+  const names = React.useMemo(() => pieces.map((q) => q.name), [pieces])
   const [sel, setSel] = React.useState(0)
   const [active, setActive] = React.useState(0)
   const [keys, setKeys] = React.useState(false)
@@ -245,7 +247,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       let hero: Shape
       // Where the hands may reach: under the bar, over the band. Skip intro, while the overture plays, waits in the
       // zero's counter on a wide screen; on a phone, where the zero is only the mark, it sits over the band, under the hands.
-      const say = 44 + 18
+      // On a phone held sideways the room over the band is too short to give Skip intro a row of its own under the zero:
+      // it stands beside it, and the hands keep that row.
+      const over = bandTop - 24 - 44, beside = phone && (W > H || over < bar)
+      const say = beside ? 0 : 44 + 18
       const room: [number, number] = phone ? [bar + 12, bandTop - 24 - say] : [bar + 24, bandTop - 14]
       if (phone) {
         const t = room[0], b = room[1]
@@ -257,8 +262,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         const t = bar + 28, b = bandTop - 28
         hero = { cx: W / 2, cy: t + (b - t) / 2, ...shape(Math.min((b - t) / 2 - 10, 300, Math.max(150, W * 0.125))) }
       }
-      // On a phone held sideways the room over the band is too short to hold it under the zero: it stands beside it.
-      const over = bandTop - 24 - 44, beside = phone && over < bar
       const skip = { y: beside ? Math.max(bar, hero.cy - 22) : phone ? over : hero.cy - 22, beside }
       // The plate the picture is printed on: from under the bar to over the band, marked at its corners and on its axis.
       const plate = bandTop - bar - 40
@@ -423,7 +426,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const groups = movements.map((m) => pieces.filter((q) => q.mv === m).map((q) => q.i))
     const ringOf = pieces.map((q) => movements.indexOf(q.mv))
     const box = (name: string) => partEl.querySelector<HTMLElement>(`[data-swap="${name}"]`)
-    const kgBox = box("kg"), metaBox = box("meta"), nameBox = box("name"), descBox = box("desc")
+    const nameBox = box("name"), descBox = box("desc")
     const digits = [...partEl.querySelectorAll<HTMLElement>(".ro-dg")]
     let rings: Ring[] = [], SEL = -1, T: Tempo = TEMPO
     const dotR: Spring = { x: 0, v: 0, to: 0 }
@@ -624,9 +627,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         col.style.transitionDelay = fast ? "0ms" : `${(2 - j) * T.step}ms`
         col.style.transform = `translateY(${-Number(n[j])}em)`
       })
-      const mv = `${q.mv.num} ${q.mv.name}`
-      swap(kgBox, [mv], 0, fast, calm, T)
-      swap(metaBox, [mv, `${SEL + 1}/${N}`], 0, fast, calm, T)
       swap(nameBox, [q.title], T.step, fast, calm, T)
       swap(descBox, [q.summary], 2.5 * T.step, fast, calm, T)
       onNm?.classList.remove("on")
@@ -748,7 +748,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const canvases = Array.from(handsEl.children) as HTMLCanvasElement[]
     // Adam's hand is what you ask for, in the italic; God's is what we hand back, in roman.
     const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
-    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false
+    let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false, entered = overtureActive()
     const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
     // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
     let pieceOf: number[] = [], phraseOf = new Map<number, number>()
@@ -825,6 +825,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
 
     // The overture (P4): the letters come up out of the paper from the fingertips back, and the hands close the gap
     // to the zero. It is a clock on the frames, so a late start skips what has passed and it still ends in time.
+    // Without the overture (a visitor who has seen it), the hands still enter so, once a load, on their own clock: the
+    // first time they are set, never on a resize or a retune after. A key or a press does not cut this one short; the
+    // hands take only as long to arrive as the overture would have given them.
     const RUN = 700 + 520
     const play = (shift = 0) => {
       cancelAnimationFrame(rise)
@@ -835,16 +838,20 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         paint()
         sense()
       }
-      if (reduce || !overtureActive()) return settle()
-      rising = true
-      const start = performance.now() - Math.max(0, RUN - overtureLeft())
+      // A load enters once: with the overture on its clock, or by itself when there is none. A load the overture was
+      // already playing for has had its entrance, even if it ended before the hands were set; a load that opens below
+      // the top (a link to a part of the page, a restored scroll) arrives settled.
+      const own = !overtureActive()
+      if (reduce || (own && (entered || scrollY > 4))) return settle()
+      entered = rising = true
+      const start = own ? performance.now() : performance.now() - Math.max(0, RUN - overtureLeft())
       // On a machine slow enough that a frame of the rise takes most of a frame, the next is set only after as long
       // again has passed, so the rise never holds more than half the page's time and the keys and presses that end the
       // overture still find it free. A fast machine sets every frame.
       let free = 0
       const frame = (now: number) => {
         const t = now - start
-        if (t >= RUN || !overtureActive()) return settle()
+        if (t >= RUN || (!own && !overtureActive())) return settle()
         if (performance.now() < free) {
           rise = requestAnimationFrame(frame)
           return
@@ -1223,10 +1230,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
           <Wordmark id="hero-title" className="hero-mark" />
           <div className="hero-side">
             <p className="hero-count">
-              {count} React components, set in words, for the shadcn CLI.
+              <span className="hero-n">{count}</span> <span className="hero-what">React components, set in words, for the shadcn CLI.</span>
             </p>
             <span className="hero-cta">
-              <Cta href="/docs/">Read the docs</Cta>
+              <DocsField href="/docs/" names={names} />
             </span>
             <div className="hero-install">
               <CopyCommand command={install("button")} emphasis="button" />
@@ -1236,39 +1243,36 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         </div>
 
         <div ref={part} className="pieces-part" onFocus={into}>
-          <div className="pieces-head">
-            <p className="pieces-meta">
-              <span>(01)</span>
-              <span>The pieces</span>
-              <span className="pieces-meta-r ro-swap" data-swap="kg" />
-            </p>
-            <h2 className="pieces-title" id="pieces">
-              {count} pieces.
-              <br />
-              Turn to one.
-            </h2>
-          </div>
-          <div className="readout">
-            <p className="ro-of ro-swap" data-swap="meta" />
-            <div className="ro-row">
-              <p className="ro-num" aria-hidden="true">
-                {[0, 1, 2].map((j) => (
-                  <span key={j} className="ro-dg">
-                    <i>
-                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
-                        <b key={d}>{d}</b>
-                      ))}
-                    </i>
-                  </span>
-                ))}
-              </p>
-              <div className="ro-body">
-                <p className="ro-name ro-swap" data-swap="name" />
-                <p className="ro-desc ro-swap" data-swap="desc" />
-              </div>
+          <div className="pieces-sheet">
+            <div className="pieces-head">
+              <h2 className="pieces-title" id="pieces">
+                {count} pieces.
+                <br />
+                Turn to one.
+              </h2>
             </div>
-            <div ref={cmd} className="ro-cmd">
-              <CopyCommand command={install(p.name)} emphasis={p.name} />
+            <PiecePreview item={p.name} />
+            <div className="readout">
+              <div className="ro-row">
+                <p className="ro-num" aria-hidden="true">
+                  {[0, 1, 2].map((j) => (
+                    <span key={j} className="ro-dg">
+                      <i>
+                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
+                          <b key={d}>{d}</b>
+                        ))}
+                      </i>
+                    </span>
+                  ))}
+                </p>
+                <div className="ro-body">
+                  <p className="ro-name ro-swap" data-swap="name" />
+                  <p className="ro-desc ro-swap" data-swap="desc" />
+                </div>
+              </div>
+              <div ref={cmd} className="ro-cmd">
+                <CopyCommand command={install(p.name)} emphasis={p.name} />
+              </div>
             </div>
           </div>
           <p className="pieces-keys" aria-hidden="true">
