@@ -5,6 +5,9 @@
 .landing { overflow-x: clip; } /* the hands run off the edges; the page never scrolls sideways */
 /* No paragraph on the page ends on a word alone; headings balance where they are set (.sec-title, .coda-title). */
 :where(.landing) p { text-wrap: pretty; }
+/* The sections' canvases place every line and letter themselves, mirrored by script in right to left; drawn in the
+   page's direction, each would end at its point instead of starting there. */
+.landing canvas { direction: ltr; }
 /* One accent in view: every section here brings its own (the tunnel's mark, the key in 03, the poster's highlight,
    the coda's full stop), so on this page the rail's number is set in ink and the section's accent stays the one. */
 html:has(main.landing) .page-rail .ot-trail-head .ot-trail-num { color: var(--ot-ink); }
