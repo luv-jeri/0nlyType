@@ -1,0 +1,4 @@
+/* ── 04 install: one line ── */
+.install-line { width: min(100%, 48rem); }
+.install-then { font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); }
+.install-links { font-size: var(--ot-p); }

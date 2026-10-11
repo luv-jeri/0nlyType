@@ -261,22 +261,6 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
    the page rail reads where each title is; the clip margin keeps focus rings at the body's edges whole. */
 .sec-body { content-visibility: auto; contain-intrinsic-size: auto 360px; overflow-clip-margin: var(--ot-space-4); }
 
-/* ── 02 what it leaves out: each refused word struck by a line drawn as it scrolls in; the kept words stay roman ── */
-.leaves-list { max-width: 15em; font-size: clamp(var(--ot-f), calc(5.2 * var(--site-vw)), 120px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-pencil); text-wrap: balance; }
-.leaves-strike { position: relative; text-decoration: none; }
-.leaves-strike::after { content: ""; position: absolute; left: -0.04em; right: -0.04em; top: 0.56em; height: max(var(--ot-stroke), 0.05em); background: var(--ot-ink); transform-origin: 0 50%; }
-/* The strike is drawn by the scroll itself: it starts as the word enters the lower third and is across by the time
-   the word reaches the middle, left to right, each word a beat behind the one before it. The word greys as it is
-   struck. Without scroll timelines, or with reduced motion, every word is already struck: the settled state. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .leaves-strike { view-timeline: --strike block; animation: leaves-grey linear both; animation-timeline: --strike; animation-range: cover calc(22% + var(--i) * 3%) cover calc(48% + var(--i) * 1.5%); }
-    .leaves-strike::after { animation: leaves-draw var(--ot-breath) both; animation-timeline: --strike; animation-range: cover calc(22% + var(--i) * 3%) cover calc(46% + var(--i) * 1.5%); }
-  }
-}
-:is([dir="rtl"], [dir="rtl"] *).leaves-strike::after { transform-origin: 100% 50%; }
-@keyframes leaves-draw { from { transform: scaleX(0); } }
-@keyframes leaves-grey { from { color: var(--ot-ink); } }
 .leaves-kept { font-size: var(--ot-mf); line-height: var(--ot-mf-lh); letter-spacing: var(--ot-mf-tr); color: var(--ot-graphite); }
 .leaves-k { color: var(--ot-ink); }
 .leaves-sign { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
@@ -333,41 +317,9 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .share-swap > * { grid-area: 1 / 1; }
 .share-swap[data-open] > .help-note { visibility: hidden; }
 
-/* ── one sentence retunes the page: its words are the settings ── */
-.tune-sentence { max-width: 22em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: 1.3; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); text-wrap: pretty; }
-.tune-sentence .ot-select, .tune-sentence .ot-switch { font-size: inherit; line-height: inherit; color: inherit; }
-.tune-key select { color: var(--ot-accent); }
-.tune-bind { white-space: nowrap; }
-/* The colour is the one accent here; the arrows that say a word can change are pencil, and ink when you point. */
-.tune-sentence :is(.ot-select-box, .ot-mode .ot-mode-art)::after { color: var(--ot-pencil); transition: color var(--ot-allegro) var(--ot-breath); }
-.tune-sentence :is(.ot-select, .ot-mode):is(:hover, :focus-within) :is(.ot-select-box, .ot-mode-art)::after { color: var(--ot-ink); }
 
-/* ── install, and ask ── */
-.install-line { width: min(100%, 48rem); }
-.install-then { font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); }
-.install-links { font-size: var(--ot-p); }
-.ask-steps { display: grid; row-gap: var(--ot-space-7); width: 100%; margin: 0; padding: 0; list-style: none; counter-reset: ask; }
-.ask-steps > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); counter-increment: ask; }
-.ask-step { font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-ink); }
-.ask-step::before { content: counter(ask) "  "; white-space: pre; font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-pencil); }
-/* Yours in italic: the blank is part of the sentence, at the sentence's size. */
-.ask { display: grid; justify-items: start; row-gap: var(--ot-space-5); }
-.ask-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: var(--ot-f-lh); letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
-.ask-fill { display: inline-flex; max-width: 100%; }
-.ask .ask-what { width: auto; min-width: 4ch; max-width: 100%; field-sizing: content; padding-block: 0 0.08em; font-size: calc(var(--ot-expression-scale) * 1em); letter-spacing: 0; }
-.ask .ask-what::placeholder { font-size: 1em; font-family: var(--ot-expression); font-style: italic; }
 
-/* ── help build it: three calls, each with its reason ── */
-.help-list { display: grid; row-gap: var(--ot-space-7); margin: 0; padding: 0; list-style: none; }
-.help-list > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
-.help-note { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
 
-/* ── the coda: start from zero ── */
-.coda { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
-.coda > * { grid-column: 4 / -1; }
-.coda-title { max-width: 12em; font-size: clamp(var(--ot-ff), calc(7.4 * var(--site-vw)), 200px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); text-wrap: balance; }
-.coda-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-6); }
-.coda-licence { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
 .landing-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ot-space-3) var(--ot-space-6); padding-block: var(--ot-space-6) var(--ot-space-7); border-top: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
 
 @media (max-width: 860px) {
@@ -390,10 +342,6 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 }
 @media (max-width: 560px) {
   .sec-title { font-size: var(--ot-f); line-height: var(--ot-f-lh); }
-  .leaves-list { font-size: var(--ot-mf); }
-  .tune-sentence, .ask-line { font-size: min(var(--ot-mf), 8vw); }
   .cta { font-size: min(var(--ot-f), 12vw); }
-  .help-list .cta { font-size: min(var(--ot-f), 8.4vw); }
-  .coda-title { font-size: var(--ot-f); }
   .copy-cmd-text { font-size: var(--ot-p); }
 }

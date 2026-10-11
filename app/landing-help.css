@@ -1,0 +1,7 @@
+/* ── help build it: three calls, each with its reason ── */
+.help-list { display: grid; row-gap: var(--ot-space-7); margin: 0; padding: 0; list-style: none; }
+.help-list > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
+.help-note { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
+@media (max-width: 560px) {
+  .help-list .cta { font-size: min(var(--ot-f), 8.4vw); }
+}

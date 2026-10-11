@@ -1,0 +1,9 @@
+/* ── the coda: start from zero ── */
+.coda { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.coda > * { grid-column: 4 / -1; }
+.coda-title { max-width: 12em; font-size: clamp(var(--ot-ff), calc(7.4 * var(--site-vw)), 200px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); text-wrap: balance; }
+.coda-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-6); }
+.coda-licence { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
+@media (max-width: 560px) {
+  .coda-title { font-size: var(--ot-f); }
+}

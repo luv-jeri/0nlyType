@@ -1,0 +1,11 @@
+/* ── one sentence retunes the page: its words are the settings ── */
+.tune-sentence { max-width: 22em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: 1.3; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); text-wrap: pretty; }
+.tune-sentence .ot-select, .tune-sentence .ot-switch { font-size: inherit; line-height: inherit; color: inherit; }
+.tune-key select { color: var(--ot-accent); }
+.tune-bind { white-space: nowrap; }
+/* The colour is the one accent here; the arrows that say a word can change are pencil, and ink when you point. */
+.tune-sentence :is(.ot-select-box, .ot-mode .ot-mode-art)::after { color: var(--ot-pencil); transition: color var(--ot-allegro) var(--ot-breath); }
+.tune-sentence :is(.ot-select, .ot-mode):is(:hover, :focus-within) :is(.ot-select-box, .ot-mode-art)::after { color: var(--ot-ink); }
+@media (max-width: 560px) {
+  .tune-sentence { font-size: min(var(--ot-mf), 8vw); }
+}
