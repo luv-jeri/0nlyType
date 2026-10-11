@@ -189,6 +189,12 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .hero-mark { grid-column: 1 / 7; }
   .hero-side { grid-column: 7 / -1; }
 }
+/* A phone held sideways: the band would take all but a strip of the plate, and the hands would be drawn too small to
+   read. The install line steps out of the band (04 sets it large, a few screens on) so the picture keeps its room. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hero-install { display: none; }
+  .hero-cta { margin-block-end: 0; }
+}
 @media (max-width: 760px) {
   .zero { --pitch: 20px; }
   .hero-band { bottom: 20px; grid-template-columns: 1fr; row-gap: var(--ot-space-4); padding-top: var(--ot-space-4); }
