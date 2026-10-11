@@ -1164,11 +1164,15 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       wake()
     })
     // A new pair is a new set of letters, and a new mode new inks: the hands and the names are set again once the fonts
-    // arrive.
+    // arrive, at the first idle moment, so the page's circle starts before the names are measured.
+    let retune = 0
+    const idle = typeof requestIdleCallback === "function"
     const pair = new MutationObserver(() => {
       // Startup reads the current face; a person's retune ends the intro before changing it.
       if (overtureActive()) return
-      requestAnimationFrame(() => void document.fonts.ready.then(relayout))
+      const go = () => void document.fonts.ready.then(() => { if (alive) relayout() })
+      if (idle) { cancelIdleCallback(retune); retune = requestIdleCallback(go, { timeout: 300 }) }
+      else { clearTimeout(retune); retune = window.setTimeout(go, 60) }
     })
     pair.observe(root, { attributes: true, attributeFilter: ["data-pair", "data-mode"] })
     let alive = true, cancelFonts = () => {}
@@ -1183,6 +1187,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       alive = false
       cancelFonts()
       cancelTunnel()
+      if (idle) cancelIdleCallback(retune)
+      else clearTimeout(retune)
       cancelAnimationFrame(raf)
       clearTimeout(rT)
       ringSvg.removeEventListener("pointermove", onMove)

@@ -60,9 +60,14 @@ function readInks(): Inks {
 
 // Stages far from the window wait their turn to lay out, one at an idle moment each. Laid out together, as every
 // stage on the page woke at once when pretext arrived, they held the main thread for most of a second on a slow
-// machine, through the overture and the keys meant to end it. A stage near the window does not wait.
-const waiting: (() => void)[] = []
+// machine, through the overture and the keys meant to end it. A stage near the window does not wait. While the page
+// turns to a new look, a stage off screen waits for the turn to end, so the circle opens without a stutter.
+type Turn = { go: () => void; shown: () => boolean }
+const waiting: Turn[] = []
 let pumping = false
+const turning = () => {
+  try { return document.documentElement.matches(":active-view-transition") } catch { return false }
+}
 const later = (go: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 60))
 function pump() {
   if (pumping || !waiting.length) return
@@ -74,8 +79,9 @@ function pump() {
     return
   }
   later(() => {
+    if (turning() && !waiting[0]?.shown()) return void setTimeout(() => { pumping = false; pump() }, 100)
     pumping = false
-    waiting.shift()?.()
+    waiting.shift()?.go()
     pump()
   })
 }
@@ -96,7 +102,7 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     const motion = matchMedia("(prefers-reduced-motion: reduce)"), narrow = matchMedia("(max-width: 760px)")
     let lib: Lib | null = null, laid: L | null = null, ink = readInks(), w = 0, h = 0, dpr = 1
     let seen = false, near = false, raf = 0, alive = true, gen = 0
-    let hurry: (() => void) | null = null
+    let hurry: (() => void) | null = null, retuned = false
     let px: number | null = null, py: number | null = null, moved = -1e9
 
     const frame = (now: number): Frame => {
@@ -121,11 +127,13 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       await document.fonts.ready
       if (!lib) lib = await import("@chenglou/pretext")
       if (!alive || mine !== gen || overtureActive()) return
-      if (!near) {
+      // A retune waits its turn too, the stage on screen first, so the page's circle starts before any letters are cut.
+      if (!near || retuned) {
         await new Promise<void>((go) => {
-          const turn = () => { hurry = null; go() }
-          hurry = () => { const i = waiting.indexOf(turn); if (i >= 0) waiting.splice(i, 1); turn() }
-          waiting.push(turn)
+          const turn: Turn = { go: () => { hurry = null; go() }, shown: () => seen }
+          hurry = () => { const i = waiting.indexOf(turn); if (i >= 0) waiting.splice(i, 1); turn.go() }
+          if (seen) waiting.unshift(turn)
+          else waiting.push(turn)
           pump()
         })
         if (!alive || mine !== gen) return
@@ -139,6 +147,7 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       const next = await sceneRef.current.layout(frame(performance.now()))
       if (!alive || mine !== gen) return
       laid = next
+      retuned = false
       wake()
     }
 
@@ -156,7 +165,9 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     const ro = new ResizeObserver(() => void relayout())
     ro.observe(cv)
     const mo = new MutationObserver(() => {
-      if (!overtureActive()) requestAnimationFrame(() => void relayout())
+      if (overtureActive()) return
+      retuned = true
+      void relayout()
     })
     mo.observe(document.documentElement, { attributes: true, attributeFilter: THEME })
     const onScroll = () => wake()
