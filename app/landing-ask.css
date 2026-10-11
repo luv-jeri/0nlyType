@@ -1,14 +1,35 @@
-/* ── 05 ask: the kit, then the sentence the person finishes ── */
-.ask-steps { display: grid; row-gap: var(--ot-space-7); width: 100%; margin: 0; padding: 0; list-style: none; counter-reset: ask; }
-.ask-steps > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); counter-increment: ask; }
+/* ── 05 ask: the kit, then the sentence the person finishes, and the page they asked for sketched in their words ── */
+.ask-steps { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-7); width: 100%; margin: 0; padding: 0; list-style: none; counter-reset: ask; }
+.ask-steps > li { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; row-gap: var(--ot-space-3); min-width: 0; counter-increment: ask; }
 .ask-step { font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-ink); }
 .ask-step::before { content: counter(ask) "  "; white-space: pre; font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-pencil); }
+.ask-cmd { width: min(100%, 48rem); }
+.ask-links { font-size: var(--ot-p); }
+
 /* Yours in italic: the blank is part of the sentence, at the sentence's size. */
-.ask { display: grid; justify-items: start; row-gap: var(--ot-space-5); }
-.ask-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: var(--ot-f-lh); letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
-.ask-fill { display: inline-flex; max-width: 100%; }
+/* One column no wider than the stave, however long the request: the blank scrolls inside itself, the sketch never widens. */
+.ask { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; row-gap: var(--ot-space-5); width: 100%; min-width: 0; }
+.ask-line { display: flex; flex-wrap: wrap; max-width: 100%; align-items: baseline; column-gap: 0.3em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: var(--ot-f-lh); letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
+.ask-fill { display: inline-flex; min-width: 0; max-width: 100%; }
 .ask .ask-what { width: auto; min-width: 4ch; max-width: 100%; field-sizing: content; padding-block: 0 0.08em; font-size: calc(var(--ot-expression-scale) * 1em); letter-spacing: 0; }
 .ask .ask-what::placeholder { font-size: 1em; font-family: var(--ot-expression); font-style: italic; }
+
+/* The suggestions: ours in roman pencil until one is taken, which turns italic and ink, because it is yours now. */
+.ask-picks { max-width: 60ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
+.ask-picks-name { color: var(--ot-graphite); }
+.ask-pick { margin: 0; padding: 0.2em 0; border: 0; background: none; font: inherit; color: var(--ot-pencil); cursor: pointer; text-decoration: underline var(--ot-hairline) transparent; text-underline-offset: 0.25em; transition: color var(--ot-allegro), text-decoration-color var(--ot-allegro); }
+.ask-pick:is(:hover, :focus-visible) { color: var(--ot-ink); text-decoration-color: var(--ot-rule-strong); }
+.ask-pick[aria-pressed="true"] { color: var(--ot-ink); font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-text-scale, 1.15) * 1em); line-height: 1; }
+.ask-pick-item { white-space: nowrap; }
+.ask-pick-sep { color: var(--ot-rule-strong); }
+
+/* The sketch: its box is set here, before the script runs, so nothing shifts when the sheet is drawn. */
+.ask-sketch { width: 100%; aspect-ratio: 3 / 2; margin-block: var(--ot-space-3) var(--ot-space-2); }
+.ask-canvas { display: block; width: 100%; height: 100%; }
+
+@media (max-width: 760px) {
+  .ask-sketch { aspect-ratio: 5 / 7; }
+}
 @media (max-width: 560px) {
   .ask-line { font-size: min(var(--ot-mf), 8vw); }
 }

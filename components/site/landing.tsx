@@ -4,8 +4,6 @@ import { siteURL } from "@/lib/site/config.mjs"
 import * as React from "react"
 
 import { KEYS, PAIRS, SCHEMES, useTheme } from "@/components/site/theme-controls"
-import { Button } from "@/registry/0nlytype/ui/button"
-import { Input } from "@/registry/0nlytype/ui/field"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"
 import { Select } from "@/registry/0nlytype/ui/select"
 
@@ -96,47 +94,6 @@ export function CopyCommand({ command, emphasis }: { command: string; emphasis?:
         {copied ? "Copied to the clipboard." : ""}
       </span>
     </>
-  )
-}
-
-const PROMPT = (thing: string) =>
-  `Read docs/0nlytype/AGENTS.md, docs/0nlytype/INTENT.md, docs/0nlytype/DESIGN-core.md and the relevant component contracts. Confirm which paths you loaded. Build ${thing} with 0nlyType. Use an installed 0nlyType component as precedent. Run the completion checklist and report evidence.`
-
-/** Ask for it: you write what you want in the blank, in your italic, and copy a prompt that already knows the rules. */
-export function AskFor() {
-  const [what, setWhat] = React.useState("")
-  const [copied, setCopied] = React.useState(false)
-  const timer = React.useRef(0)
-  React.useEffect(() => () => clearTimeout(timer.current), [])
-  const thing = what.trim() || "a pricing page"
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(PROMPT(thing))
-    } catch {
-      return
-    }
-    setCopied(true)
-    clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setCopied(false), 2000)
-  }
-  return (
-    <div className="ask">
-      <label className="ask-line">
-        Build me{" "}
-        <span className="ask-fill">
-          <Input className="ask-what" value={what} placeholder="a pricing page" autoComplete="off" spellCheck={false} maxLength={48} onChange={(e) => setWhat(e.target.value)} />
-        </span>{" "}
-        in 0nlyType.
-      </label>
-      <div className="ask-foot">
-        <Button variant="bracket" onClick={copy}>
-          {copied ? "Copied" : "Copy the prompt"}
-        </Button>
-        <span className="ot-sr" aria-live="polite">
-          {copied ? "The prompt is on the clipboard." : ""}
-        </span>
-      </div>
-    </div>
   )
 }
 
