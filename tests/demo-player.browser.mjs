@@ -178,7 +178,7 @@ const scrollables = (page, rootSelector) => page.evaluate((sel) => [...document.
  * player fails. Examples with no control of their own (reacting to the pointer, or scrolling) are swept by a real
  * pointer and wheel instead. */
 async function answers(page, rootSelector) {
-  const candidates = page.locator(`${rootSelector} :is(label:has(input), button, [role="tab"], [role="slider"], [role="separator"], input:not(label input):not([type="hidden"]), select, textarea, summary):not([data-demo-control])`)
+  const candidates = page.locator(`${rootSelector} :is(label:has(input), button, [role="tab"], [role="slider"], [role="separator"], input:not(label input):not([type="hidden"]), select, textarea, summary, figure[tabindex="0"]):not([data-demo-control])`)
   const count = Math.min(await candidates.count(), 8)
   let tried = 0
   for (let i = 0; i < count; i++) {
@@ -203,6 +203,11 @@ async function answers(page, rootSelector) {
             const text = await control.evaluate((node) => { const now = node.selectedOptions[0]?.text.trim(); return [...node.options].map((o) => o.text.trim()).find((t) => t && t !== now) ?? "" })
             if (text) await page.keyboard.type(text)
           }
+        }
+        // Melody is a focusable figure: its documented control is Enter, not a button or a wide pointer target.
+        else if (await control.evaluate((node) => node.matches("figure[tabindex='0']"))) {
+          await control.focus()
+          await page.keyboard.press("Enter")
         }
         else await control.click({ timeout: 1000, force: true, position })
         if (await control.evaluate((node) => node.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea'))) await page.keyboard.type("1")

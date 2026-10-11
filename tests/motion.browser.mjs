@@ -218,7 +218,8 @@ await check("the deadline holds when fonts arrive late", async () => {
   await started(page, 8000)
   await ended(page, 8000)
   const { starts, ends } = await log(page)
-  assert.ok(ends[0] - starts[0].at <= OVERTURE_DEADLINE + 150, "late fonts stretched the overture")
+  const took = ends[0] - starts[0].at
+  assert.ok(took <= OVERTURE_DEADLINE + 150, `late fonts stretched the overture to ${Math.round(took)}ms`)
   await context.close()
 })
 
