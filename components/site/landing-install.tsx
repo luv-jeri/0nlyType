@@ -377,7 +377,11 @@ export function Install() {
       const L = lastLaid.get(cv)
       if (!L) return
       const line = readLine(L.sec, cv)
-      if (line) L.slots = cutSlots(L.sheet, line.slots)
+      if (!line) return
+      // The letters' places are shares of the new line, so the string lands on the new line too.
+      const F = resample(line.path, 2, L.n)
+      L.fx = F.out[0]; L.fy = F.out[1]
+      L.slots = cutSlots(L.sheet, line.slots)
     })
     mo.observe(code, { childList: true, subtree: true, characterData: true })
     return () => mo.disconnect()
