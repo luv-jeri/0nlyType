@@ -94,7 +94,11 @@ const settles = async (page) => {
 async function check(name, fn) {
   ran++
   // Keep assertion details: console-error arrays and Playwright's call log are otherwise lost in CI.
-  try { await fn() } catch (error) { failures.push(`${name}: ${error.message}`) }
+  const before = new Set(browser.contexts())
+  try { await fn() } catch (error) { failures.push(`${name}: ${error.message}`) } finally {
+    // A failed case must not leave its canvases and observers competing with the next case's deadline.
+    await Promise.all(browser.contexts().filter((context) => !before.has(context)).map((context) => context.close()))
+  }
 }
 
 // ── the first visit ──
