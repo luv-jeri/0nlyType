@@ -29,6 +29,7 @@ This file is for anyone changing this repository, whether a person or an AI agen
 
 - Type is the only ornament: icons are allowed only as signs made of their own word (owner decision 2026-10-10); no icon drawn as a picture; no cards, fills, shadows or gradients, and one accent in view. Interface text is roman; anything the person chose or typed is italic.
 - Names (owner decision 2026-10-10): `ot-` classes, `--ot-` tokens, and `data-variant`, `data-size` and `data-force` attributes. No cva and no `:dir()`. `!important` appears only on `[hidden]` and `.ot-sr`.
+- Copy is plain and written the way a person would say it: no long dash (—) in anything a page shows, its title or its description; use a comma, a colon or a full stop. `check:headers` fails on one.
 - Never run prettier or any formatter. Match the file you're in: no semicolons, double quotes.
 - Never hand-edit generated files: `registry.json`, `public/r/*`, `public/ai/*`, `public/llms*.txt`, `lib/site/entries.ts` and `app/registry.css`. Run `npm run registry:build` instead.
 - Never write a same-origin URL by hand, such as `"/docs/…"` in a `fetch`, an `img` or CSS. Next's `Link` adds `/ui` for you. Everything else goes through `lib/site/config.mjs`.

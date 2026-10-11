@@ -175,7 +175,7 @@ export function PinPicker({ entries, onSelect, onCancel }: { entries: ReportingI
     <div className="ot-report-picker-toolbar" ref={toolbar} tabIndex={-1} role="dialog" aria-label="Pick the item" aria-describedby="ot-report-picker-help">
       <div className="ot-report-actions"><strong>Pick the item.</strong><Button variant="quiet" onClick={onCancel}>Cancel picking</Button></div>
       <p id="ot-report-picker-help">Point, then click. Arrow keys browse; Enter selects. Escape cancels.</p>
-      <p role="status">{target ? <><span className="ot-yours">{target.item.title}</span> — click to select.</> : "Choose a component on this page. Page actions are paused."}</p>
+      <p role="status">{target ? <>Click to select <span className="ot-yours">{target.item.title}</span>.</> : "Choose a component on this page. Page actions are paused."}</p>
     </div>
   </div>, document.body)
 }

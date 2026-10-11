@@ -1,16 +1,17 @@
 import { registryURL, sitePath } from "@/lib/site/config.mjs"
 import type { Metadata } from "next"
 
+import { pageMeta } from "@/lib/site/meta"
 import { CommandLine } from "@/registry/0nlytype/ui/command-line"
 import { CopyButton } from "@/registry/0nlytype/ui/source"
 import { Link } from "@/registry/0nlytype/ui/link"
 import { Prose } from "@/registry/0nlytype/ui/typography"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/registry/0nlytype/ui/table"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Build with AI",
   description: "Give your AI tool the 0nlyType rules, references and component contracts before it builds.",
-}
+})
 
 const INSTALL = `npx shadcn@latest add ${registryURL("ai")}`
 
@@ -44,11 +45,11 @@ const PROMPTS = [
 ]
 
 const DOWNLOADS = [
-  { href: "/ai/AGENTS.md", title: "AGENTS.md", note: "The short rules and completion checklist." },
-  { href: "/ai/INTENT.md", title: "INTENT.md", note: "What 0nlyType is for, and what it refuses." },
-  { href: "/ai/DESIGN-core.md", title: "DESIGN-core.md", note: "Principles, conventions, tokens and motion." },
-  { href: "/ai/DESIGN.md", title: "DESIGN.md", note: "The complete design reference." },
-  { href: "/llms.txt", title: "llms.txt", note: "A small index for browsing assistants." },
+  { href: "/ai/AGENTS.md", title: "AGENTS.md", note: "the short rules and completion checklist." },
+  { href: "/ai/INTENT.md", title: "INTENT.md", note: "what 0nlyType is for, and what it refuses." },
+  { href: "/ai/DESIGN-core.md", title: "DESIGN-core.md", note: "principles, conventions, tokens and motion." },
+  { href: "/ai/DESIGN.md", title: "DESIGN.md", note: "the complete design reference." },
+  { href: "/llms.txt", title: "llms.txt", note: "a small index for browsing assistants." },
 ]
 
 export default function BuildWithAI() {
@@ -122,7 +123,7 @@ export default function BuildWithAI() {
           <p>For tools that read URLs or attachments, download the references or give the tool their links.</p>
           <ul>
             {DOWNLOADS.map((file) => (
-              <li key={file.href}><Link href={sitePath(file.href)} download><bdi dir="ltr">{file.title}</bdi></Link> — {file.note}</li>
+              <li key={file.href}><Link href={sitePath(file.href)} download><bdi dir="ltr">{file.title}</bdi></Link>: {file.note}</li>
             ))}
           </ul>
           <p>A file being available does not mean a tool has read it. Ask it to confirm the loaded paths before it starts.</p>
