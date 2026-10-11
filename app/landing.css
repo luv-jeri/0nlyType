@@ -202,9 +202,10 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .pt-preview-body > .grid { grid-template-columns: minmax(0, 1fr); }
   .pt-preview-body { overflow: clip; }
   .pt-preview-body [data-pt-out] { visibility: hidden; }
-  /* As the reading moves on, the piece sinks back and fades; the next rises into its place once it has loaded. */
+  /* As the reading moves on, the piece sinks back and fades; the next rises into its place once it has loaded. No
+     blur: WebKit's Linux compositor crashes the page compositing a filter over a whole live example. */
   @media (prefers-reduced-motion: no-preference) {
-    .pt-preview-body[data-leaving] { opacity: 0; filter: blur(2px); translate: 0 calc(var(--pt-y, 0px) - 6px); transition: opacity var(--ot-moderato) var(--ot-breath), filter var(--ot-moderato) var(--ot-breath), translate var(--ot-moderato) var(--ot-breath); }
+    .pt-preview-body[data-leaving] { opacity: 0; translate: 0 calc(var(--pt-y, 0px) - 6px); transition: opacity var(--ot-moderato) var(--ot-breath), translate var(--ot-moderato) var(--ot-breath); }
     .pt-preview-body > * { animation: pt-arrive var(--ot-andante) var(--ot-exhale) both; }
   }
   .ro-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; margin: 0; }
@@ -218,7 +219,7 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   .ro-cmd .copy-cmd-text { font-size: min(var(--ot-pp), 100cqi / 33.5); white-space: nowrap; }
 }
 @media (min-width: 761px) and (max-height: 780px) { .pieces-sheet { bottom: 64px; } }
-@keyframes pt-arrive { from { opacity: 0; filter: blur(2px); translate: 0 8px; } }
+@keyframes pt-arrive { from { opacity: 0; translate: 0 8px; } }
 /* Where scroll timelines run, the scroll itself draws the stage around the zero's opening, so a frame restyles only
    what moves: the band lifts away over the first 12svh, and the reading arrives once the rings have formed, between
    64.5svh and 75svh. The hands use the names' own progress, so a late canvas layout cannot restart their departure. The numbers
