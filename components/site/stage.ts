@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import { onOvertureEnd, overtureActive, overtureLeft } from "@/components/site/landing-overture"
+
 // One canvas that a section draws its type on, answering only the scroll, the pointer and the theme. The stage owns
 // what every section would otherwise repeat: the canvas's size at the screen's density, drawing only while on screen,
 // how far the scroll has carried the section, where the pointer is and how long since it moved, reduced motion, and the
@@ -55,6 +57,28 @@ function readInks(): Inks {
   }
 }
 
+// Stages far from the window wait their turn to lay out, one at an idle moment each. Laid out together, as every
+// stage on the page woke at once when pretext arrived, they held the main thread for most of a second on a slow
+// machine, through the overture and the keys meant to end it. A stage near the window does not wait.
+const waiting: (() => void)[] = []
+let pumping = false
+const later = (go: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 60))
+function pump() {
+  if (pumping || !waiting.length) return
+  pumping = true
+  // Not while the overture plays: the keys and the click that end it come first. It ends by its deadline however it ends.
+  if (overtureActive()) {
+    const go = () => { off(); clearTimeout(t); pumping = false; pump() }
+    const off = onOvertureEnd(go), t = setTimeout(go, overtureLeft() + 100)
+    return
+  }
+  later(() => {
+    pumping = false
+    waiting.shift()?.()
+    pump()
+  })
+}
+
 /** Draws `scene` on the canvas the returned ref is given, sized to its CSS box, carried by the scroll of `host`. */
 export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Scene<L>) {
   const canvas = React.useRef<HTMLCanvasElement | null>(null)
@@ -70,7 +94,8 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     if (!ctx) return
     const motion = matchMedia("(prefers-reduced-motion: reduce)"), narrow = matchMedia("(max-width: 760px)")
     let lib: Lib | null = null, laid: L | null = null, ink = readInks(), w = 0, h = 0, dpr = 1
-    let seen = false, raf = 0, alive = true, gen = 0
+    let seen = false, near = false, raf = 0, alive = true, gen = 0
+    let hurry: (() => void) | null = null
     let px: number | null = null, py: number | null = null, moved = -1e9
 
     const frame = (now: number): Frame => {
@@ -94,6 +119,15 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       await document.fonts.ready
       if (!lib) lib = await import("@chenglou/pretext")
       if (!alive || mine !== gen) return
+      if (!near) {
+        await new Promise<void>((go) => {
+          const turn = () => { hurry = null; go() }
+          hurry = () => { const i = waiting.indexOf(turn); if (i >= 0) waiting.splice(i, 1); turn() }
+          waiting.push(turn)
+          pump()
+        })
+        if (!alive || mine !== gen) return
+      }
       const box = cv.getBoundingClientRect()
       dpr = Math.min(2, devicePixelRatio || 1)
       w = Math.max(1, Math.round(box.width)); h = Math.max(1, Math.round(box.height))
@@ -111,6 +145,12 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
       if (seen) wake()
     }, { rootMargin: "100px 0px" })
     io.observe(cv)
+    // Within a window's height of the screen, a stage waiting its turn is set at once.
+    const nearIo = new IntersectionObserver(([e]) => {
+      near = e.isIntersecting
+      if (near) hurry?.()
+    }, { rootMargin: "100% 0px" })
+    nearIo.observe(cv)
     const ro = new ResizeObserver(() => void relayout())
     ro.observe(cv)
     const mo = new MutationObserver(() => requestAnimationFrame(() => void relayout()))
@@ -135,7 +175,8 @@ export function useStage<L>(host: React.RefObject<HTMLElement | null>, scene: Sc
     return () => {
       alive = false
       cancelAnimationFrame(raf)
-      io.disconnect(); ro.disconnect(); mo.disconnect()
+      io.disconnect(); nearIo.disconnect(); ro.disconnect(); mo.disconnect()
+      hurry?.()
       removeEventListener("scroll", onScroll)
       cv.removeEventListener("pointermove", onMove)
       cv.removeEventListener("pointerdown", onMove)
