@@ -6,11 +6,11 @@
 /* No paragraph on the page ends on a word alone; headings balance where they are set (.sec-title, .coda-title). */
 :where(.landing) p { text-wrap: pretty; }
 
-/* ── the large lockup (G1, as A's): "0nly" heavy and condensed, then "Type" in the italic on the same baseline, the
-   T's crossbar reaching back over the y. Set as one line, so nothing sits on the letters it follows. ── */
-.wm-set { --H: 1em; display: flex; align-items: baseline; width: max-content; margin: 0; font-size: var(--H); line-height: 1; white-space: nowrap; color: var(--ot-ink); direction: ltr; }
-.wm-set .wm-zero::after { --zd: 0.1em; }
-.wm-set .wm-type { font-size: 1.12em; margin-inline-start: 0.04em; }
+/* ── the large lockup: "0nly" over "Type.", the italic written in the creed (components/site/wordmark.tsx). 1em is H.
+   Its box is its ink; the descenders of "Type" hang 0.338em under the baseline, outside the heading, so the heading
+   ends on the baseline and whatever stands beside it lines up there. ── */
+.wm-set { width: max-content; margin: 0; font-size: var(--H, 1em); line-height: 1; color: var(--ot-ink); }
+.wm-set .wm-lockup { margin-block-end: -0.338em; }
 
 /* ── hero and 01 (landing-zero): one sticky stage the scroll turns. Without scroll timelines, or under reduced
    motion, the script writes --h (0 hero, 1 tunnel) on the hands, --out on the band and --inn on the pieces (each only
@@ -76,9 +76,11 @@
    line to install. It lifts away as the dial arrives. */
 .hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: last baseline; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
 .zero-stage:not([data-hero]) .hero-band { pointer-events: none; }
-/* The lockup is about 4em wide: it fills its six columns and no more. The column beside it starts on the page's axis,
-   straight under the zero, and its last line stands on the lockup's baseline. */
-.hero-mark { grid-column: 1 / 7; --H: max(64px, min(calc(38cqi / 4), calc((100svh - 560px) / 1.1), 168px)); margin-block-end: -0.04em; }
+/* The lockup is 2.75em wide and 1.8em tall to its baseline: it keeps to its six columns and to a height the zero can
+   spare. The column beside it starts on the page's axis, straight under the zero, and its last line stands on the
+   lockup's baseline; the band stands high enough off the floor for the descenders. */
+.hero-band { --H: max(56px, min(calc((100vw - 2 * var(--pad)) * 0.1), calc((100svh - 520px) / 1.9), 132px)); bottom: max(32px, calc(var(--H) * 0.338 + 12px)); }
+.hero-mark { grid-column: 1 / 7; }
 .hero-side { grid-column: 7 / -1; display: grid; justify-items: start; align-content: end; padding-bottom: var(--ot-space-1); }
 .hero-count { max-width: 60ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
 .hero-cta { margin-block: var(--ot-space-3) var(--ot-space-5); }
@@ -191,7 +193,8 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
   /* Over the band, under the zero, and never under the bar (on a phone held sideways the band leaves little room). */
   .zero .hero-skip { top: max(calc(-46px - var(--ot-hairline)), calc(var(--bar) + 22px + 20px + 100% - 100svh)); }
   .hero-mark, .hero-side { grid-column: 1; }
-  .hero-mark { --H: min(calc(100cqi / 4.1), 120px); }
+  .hero-band { --H: min(calc((100vw - 2 * var(--pad)) * 0.22), 96px); }
+  .hero-mark .wm-lockup { margin-block-end: 0; }
   .hero-cta { margin-block: 0 var(--ot-space-4); }
   .hero-cta .cta { font-size: var(--ot-mp); }
   .hero-count { display: none; }

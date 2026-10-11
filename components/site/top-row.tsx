@@ -8,7 +8,7 @@ import { ThemeControls } from "@/components/site/theme-controls"
 import { Search, type SearchGroup } from "@/components/site/search"
 import { tempo } from "@/lib/site/tempo"
 import { FeedbackLink } from "@/components/site/reporting/launcher"
-import { WordmarkCompact } from "@/components/site/wordmark"
+import { Lockup } from "@/components/site/wordmark"
 
 type Place = { num: string; name: string }
 
@@ -32,7 +32,7 @@ export function TopRow({ places, groups }: { places: Record<string, Place>; grou
   return (
     <header className="bar">
       <Link className="bar-mark" href="/" prefetch={false} aria-label="0nlyType, home">
-        <WordmarkCompact />
+        <Lockup />
       </Link>
       <p className="bar-now" ref={now} aria-live="polite">
         <span className="bar-num">{place.num}</span> <span>{place.name}</span>

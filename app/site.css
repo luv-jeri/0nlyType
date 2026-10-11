@@ -54,25 +54,16 @@ body { overflow-x: clip; }
   box-shadow: inset 0 calc(-1 * var(--ot-hairline)) 0 var(--ot-rule);
   font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-ink);
 }
-.bar-mark { justify-self: start; display: inline-flex; align-items: center; gap: var(--ot-space-3); color: inherit; text-decoration: none; }
-.bar-mark .wm-mark { font-size: var(--ot-mf); }
-.bar-mark .wm-word { font-size: var(--ot-mp); }
-.bar-mark .wm-type { transition: translate var(--ot-moderato) var(--ot-exhale); }
-.bar-mark .wm-word { transition: opacity var(--ot-allegro) var(--ot-breath); }
-.bar-mark:hover .wm-type { translate: 0.06em 0; }
+.bar-mark { justify-self: start; display: inline-flex; align-items: center; color: inherit; text-decoration: none; transition: opacity var(--ot-allegro) var(--ot-breath); }
+.bar-mark .wm-lockup { width: auto; height: 2.75rem; }
 .bar-mark:focus-visible { outline: var(--ot-hairline) solid var(--ot-ink); outline-offset: 6px; }
-.bar-mark:active .wm-word { opacity: 0.7; }
+.bar-mark:active { opacity: 0.7; }
 
-/* ── the name (components/site/wordmark.tsx): fixed families, whatever pair the page is set in; the zero is dotted in ink ── */
-.wm-nly, .wm-zero { font-family: "Archivo", var(--ot-voice); font-variation-settings: normal; }
-.wm-nly { font-weight: 900; font-stretch: 62%; letter-spacing: -0.01em; }
-.wm-zero { position: relative; font-weight: 800; font-stretch: 100%; margin-inline-end: 0.02em; }
-.wm-zero::after { content: ""; position: absolute; left: 50%; top: 0.528em; width: var(--zd, 0.11em); height: var(--zd, 0.11em); translate: -50% -50%; border-radius: 50%; background: currentColor; }
-.wm-type { font-family: "Bodoni Moda", var(--ot-expression); font-style: italic; font-weight: 400; letter-spacing: 0; }
-.wm-word { display: inline-flex; align-items: baseline; line-height: 1; white-space: nowrap; direction: ltr; }
-.wm-word .wm-type { font-size: 1.12em; margin-inline-start: 0.04em; }
-.wm-mark { position: relative; flex: none; display: inline-block; width: 0.62em; height: 1em; line-height: 1; direction: ltr; }
-.wm-mark .wm-zero { position: absolute; left: 0; top: -0.14em; margin: 0; font-size: 1.36em; line-height: 1.088; }
+/* ── the name (components/site/wordmark.tsx): drawn from its outlines, so it is the same whatever pair the page is set
+   in; only the creed inside "Type" is text, in the italic it is set in ── */
+.wm-lockup { display: block; flex: none; overflow: visible; direction: ltr; }
+.wm-creed { font-family: "Bodoni Moda", var(--ot-expression); font-style: italic; font-weight: 700; font-variation-settings: normal; }
+.wm-stop { fill: var(--wm-stop, currentColor); }
 .bar-now { display: flex; gap: var(--ot-space-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bar-num { color: var(--ot-pencil); }
 .bar-end { justify-self: end; display: flex; align-items: baseline; gap: var(--ot-space-5); }
@@ -256,12 +247,9 @@ body { overflow-x: clip; }
   .doc-props tr > td:nth-child(3):not(:empty)::before { content: "Default "; font-size: var(--ot-pp); color: var(--ot-pencil); }
 }
 
-/* Phones: the row keeps every word by tightening its gaps. Under 375px that is not enough, and the mark stands alone,
-   as it does at 32px (the link keeps its name). */
-@media (max-width: 374px) { .bar-mark .wm-word { display: none; } }
+/* Phones: the row keeps every word by tightening its gaps. */
 @media (max-width: 430px) {
   .bar { column-gap: var(--ot-space-4); }
-  .bar-mark { gap: var(--ot-space-2); }
   .bar-end, .bar-controls { gap: var(--ot-space-3); }
   .bar .ot-btn { min-block-size: 44px; }
 }
