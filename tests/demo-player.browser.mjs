@@ -127,15 +127,20 @@ const demoState = (page, selector) => page.evaluate((sel) => { const el = docume
 
 /** After Stop, whatever was already under way (a dial's spring finishing its last move) may settle, for a few seconds;
  * then the example must be still, and stay still for a second. One that is still moving after the cap is not stopped. */
-async function fallsQuiet(page) {
-  const count = () => page.evaluate(() => window.__autoplay.mutations.length + window.__autoplay.synthetic.length)
-  let last = await count(), still = 0
+async function fallsQuiet(page, selector) {
+  // A CSS transition changes no DOM while it travels. Its final cleanup can arrive after 600ms of quiet DOM.
+  const snapshot = () => page.evaluate((sel) => ({
+    count: window.__autoplay.mutations.length + window.__autoplay.synthetic.length,
+    moving: document.querySelector(sel)?.getAnimations({ subtree: true }).some((a) =>
+      (a.pending || a.playState === "running") && Number.isFinite(a.effect?.getComputedTiming().endTime)),
+  }), selector)
+  let last = (await snapshot()).count, still = 0
   for (let waited = 0; still < 2; waited += 300) {
     if (waited >= 5000) throw new Error(`still moving ${Math.round(waited / 100) / 10}s after Stop`)
     await page.waitForTimeout(300)
-    const now = await count()
-    still = now === last ? still + 1 : 0
-    last = now
+    const now = await snapshot()
+    still = now.count === last && !now.moving ? still + 1 : 0
+    last = now.count
   }
   await mark(page)
   await page.waitForTimeout(1000)
@@ -275,7 +280,7 @@ async function one(context, item) {
     assert.equal((await demoState(page, example)).state, "stopped")
     // After Stop: let any settling finish, then nothing may move, and a real control must still answer.
     if (!exempt) {
-      await fallsQuiet(page)
+      await fallsQuiet(page, example)
     }
     await answers(page, example)
     assert.ok(errors.length === 0, `page error: ${errors[0]}`)
@@ -328,6 +333,19 @@ async function selfTest(browser) {
       if (!cover && caught) problems.push(`self-test: the real-control probe failed on ${name}: ${caught.message}`)
     } catch (error) { problems.push(`self-test (${name}): ${error.message.split("\n")[0]}`) } finally { await page.close() }
   }
+  // A last committed move may settle after Stop. Quiet DOM alone must not mistake its completion for autoplay.
+  const finishing = await context.newPage()
+  try {
+    await finishing.route("**/fixture", (route) => route.fulfill({ contentType: "text/html", body: html("", false) }))
+    await finishing.addInitScript(watchAutoplay, { root: '[data-demo-item="fixture"]', ignore: null })
+    await finishing.goto("http://fixture.test/fixture")
+    await finishing.evaluate(() => {
+      const t = document.getElementById("t")
+      t.animate([{ opacity: 1 }, { opacity: 0.5 }], { duration: 1000 }).finished.then(() => { t.textContent = "landed" })
+    })
+    await fallsQuiet(finishing, '[data-demo-item="fixture"]')
+    assert.equal(await finishing.locator("#t").textContent(), "landed")
+  } catch (error) { problems.push(`self-test (a finishing transition): ${error.message}`) } finally { await finishing.close() }
   await context.close()
   return problems
 }

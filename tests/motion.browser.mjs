@@ -59,7 +59,11 @@ async function fresh(options = {}, init) {
 const log = (page) => page.evaluate(() => window.__overture)
 // Polled on a timer, not on animation frames: a page that has not painted yet (WebKit holds its first paint while
 // scripts are pending) gets no frames, and the overture's clock does not need any.
-const started = (page, timeout = 10000) => page.waitForFunction(() => window.__overture?.starts.length > 0, null, { timeout, polling: 50 })
+// The inline clock precedes the hero markup. Document commit alone does not mean its button has been parsed.
+const started = async (page, timeout = 10000) => {
+  await page.waitForFunction(() => window.__overture?.starts.length > 0, null, { timeout, polling: 50 })
+  await page.locator(".hero-skip").waitFor({ state: "visible", timeout })
+}
 const ended = (page, timeout = 6000) => page.waitForFunction(() => window.__overture.ends.length > 0, null, { timeout, polling: 50 })
 // Tab to Skip intro. Safari and WebKit skip buttons on Tab unless the system says otherwise; Option+Tab visits every
 // control there, so the keyboard path is walked with the key each engine uses.
@@ -89,14 +93,16 @@ const settles = async (page) => {
 
 async function check(name, fn) {
   ran++
-  try { await fn() } catch (error) { failures.push(`${name}: ${error.message.split("\n")[0]}`) }
+  // Keep assertion details: console-error arrays and Playwright's call log are otherwise lost in CI.
+  try { await fn() } catch (error) { failures.push(`${name}: ${error.message}`) }
 }
 
 // ── the first visit ──
 await check("first visit: plays, ends by the deadline, records itself once", async () => {
   const { context, errors } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  // load may occur after the fixed deadline. Observe the HTML clock as soon as the document commits.
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   assert.ok(await page.locator(".hero-skip").isVisible(), "Skip intro should be visible while it plays")
   await ended(page)
@@ -136,7 +142,7 @@ await check("later visits arrive settled: reload, another tab, back", async () =
 await check("Escape ends it", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.keyboard.press("Escape")
   await ended(page, 500)
@@ -147,7 +153,7 @@ await check("Escape ends it", async () => {
 await check("a press ends it", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.mouse.click(700, 520)
   await ended(page, 500)
@@ -157,7 +163,7 @@ await check("a press ends it", async () => {
 await check("the wheel ends it", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.mouse.move(700, 520)
   await page.mouse.wheel(0, 120)
@@ -168,7 +174,7 @@ await check("the wheel ends it", async () => {
 await check("Skip intro is reachable by keyboard and hands focus on to the first action", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   assert.ok(await tabToSkip(page), "Tab never reached Skip intro")
   assert.equal((await log(page)).ends.length, 0, "Tab alone must not end the overture")
@@ -181,7 +187,7 @@ await check("Skip intro is reachable by keyboard and hands focus on to the first
 await check("Skip intro by pointer", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.locator(".hero-skip").click()
   await ended(page, 500)
@@ -191,7 +197,7 @@ await check("Skip intro by pointer", async () => {
 await check("Skip intro mirrors in right to left and stays on screen", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   const place = () => page.evaluate(() => { const r = document.querySelector(".hero-skip").getBoundingClientRect(); return { left: r.left, right: r.right, width: innerWidth } })
   const ltr = await place()
@@ -333,7 +339,7 @@ await never("a link to a part of the page: arrives settled", {}, null, { route: 
 await check("reduced motion asked for mid-way ends it", async () => {
   const { context } = await fresh()
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.emulateMedia({ reducedMotion: "reduce" })
   await ended(page, 500)
@@ -378,7 +384,7 @@ await check("the home page logs no error at 375, first visit and after", async (
 await check("667px, coarse pointer: plays, ends at the deadline, no sideways overflow", async () => {
   const { context, errors } = await fresh(phone(667, 375))
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   if (engine !== "firefox") assert.equal(await page.evaluate(() => matchMedia("(pointer: coarse)").matches), true, "the context should have a coarse pointer")
   assert.ok(await page.locator(".hero-skip").isVisible(), "Skip intro should be visible while it plays")
@@ -395,7 +401,7 @@ await check("667px, coarse pointer: plays, ends at the deadline, no sideways ove
 await check("667px, coarse pointer: a tap on the page ends it", async () => {
   const { context } = await fresh(phone(667, 375))
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   await page.touchscreen.tap(333, 120)
   await ended(page, 500)
@@ -406,7 +412,7 @@ await check("667px, coarse pointer: a tap on the page ends it", async () => {
 await check("667px, coarse pointer: a tap on Skip intro ends it, and it is big enough to hit", async () => {
   const { context } = await fresh(phone(667, 375))
   const page = await context.newPage()
-  await page.goto(site.url("/"))
+  await page.goto(site.url("/"), { waitUntil: "commit" })
   await started(page)
   const box = await page.locator(".hero-skip").boundingBox()
   assert.ok(box && box.height >= 40 && box.width >= 40, `Skip intro is ${Math.round(box?.width ?? 0)}x${Math.round(box?.height ?? 0)}px`)
