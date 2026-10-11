@@ -280,8 +280,44 @@ export function* setHand(lib: Lib, h: Hands, grid: Uint8Array, side: 0 | 1, p: P
 
 // A settled hand is drawn once into a bitmap; a pointer's frame copies it and sets again only what the pointer changes:
 // the letters under the loupe and the phrase being read. The letters of each phrase are listed once per layout.
-const rested = new WeakMap<Hand, HTMLCanvasElement>()
+// The bitmap fills as the hand rises: the letters land in order of their reach, and each is set into it once, as it
+// lands, so a frame of the rise copies the bitmap and sets only the letters still on their way, and the settled hand
+// is already drawn when the rise ends. Set every frame, the whole hand held a slow machine's page through the overture.
+type Rest = { cv: HTMLCanvasElement; order: Uint32Array; done: number; t: number }
+const rested = new WeakMap<Hand, Rest>()
 const members = new WeakMap<Hand, Map<number, number[]>>()
+
+function restOf(canvas: HTMLCanvasElement, hand: Hand) {
+  let rest = rested.get(hand)
+  if (!rest) {
+    const cv = document.createElement("canvas")
+    cv.width = canvas.width
+    cv.height = canvas.height
+    const order = Uint32Array.from({ length: hand.n }, (_, i) => i).sort((a, b) => hand.reach[a] - hand.reach[b])
+    rested.set(hand, (rest = { cv, order, done: 0, t: -Infinity }))
+  }
+  return rest
+}
+
+/** Sets into the bitmap every letter that has landed by `t` (all of them at Infinity), once each. */
+function land(rest: Rest, hand: Hand, t: number, spread: number, rise: number) {
+  const g = rest.cv.getContext("2d")!
+  // A clock that runs back, as when the overture is played again, starts the bitmap over.
+  if (t < rest.t) {
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.clearRect(0, 0, rest.cv.width, rest.cv.height)
+    rest.done = 0
+  }
+  rest.t = t
+  g.setTransform(hand.res, 0, 0, hand.res, 0, 0)
+  while (rest.done < hand.n) {
+    const i = rest.order[rest.done]
+    if (hand.reach[i] * spread + rise > t) break
+    letter(g, hand, i, hand.x[i], hand.y[i], 1, hand.alpha[i], 0)
+    rest.done++
+  }
+  g.globalAlpha = 1
+}
 
 function letter(ctx: CanvasRenderingContext2D, hand: Hand, i: number, x: number, y: number, k: number, a: number, lit: number) {
   const r = hand.res
@@ -307,11 +343,16 @@ export function drawHand(canvas: HTMLCanvasElement, hand: Hand, t = Infinity, sp
   const r = hand.res
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  const held = restOf(canvas, hand)
+  land(held, hand, t, spread, rise)
+  const rest = held.cv
   if (t !== Infinity) {
+    ctx.drawImage(rest, 0, 0)
     ctx.setTransform(r, 0, 0, r, 0, 0)
-    for (let i = 0; i < hand.n; i++) {
-      const u = Math.min(1, Math.max(0, (t - hand.reach[i] * spread) / rise))
-      if (u <= 0) continue
+    // The letters on their way: landed ones are in the bitmap, and the order is by reach, so they start where it stops.
+    for (let k = held.done; k < hand.n; k++) {
+      const i = held.order[k], u = (t - hand.reach[i] * spread) / rise
+      if (u <= 0) break
       const o = 1 - (1 - u) ** 3
       letter(ctx, hand, i, hand.x[i], hand.y[i] + (1 - o) * 4, 1, hand.alpha[i] * o, 0)
     }
@@ -319,16 +360,6 @@ export function drawHand(canvas: HTMLCanvasElement, hand: Hand, t = Infinity, sp
     return
   }
 
-  let rest = rested.get(hand)
-  if (!rest) {
-    rest = document.createElement("canvas")
-    rest.width = canvas.width
-    rest.height = canvas.height
-    const g = rest.getContext("2d")!
-    g.setTransform(r, 0, 0, r, 0, 0)
-    for (let i = 0; i < hand.n; i++) letter(g, hand, i, hand.x[i], hand.y[i], 1, hand.alpha[i], 0)
-    rested.set(hand, rest)
-  }
   const T = touch, lens = !!T && T.s > 0, R = T?.r ?? 0
   // The rest of the hand, stepped back while a phrase is read, with a hole where the loupe is.
   ctx.globalAlpha = T ? 1 - 0.4 * T.dim : 1

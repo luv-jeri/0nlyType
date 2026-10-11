@@ -838,13 +838,24 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       if (reduce || !overtureActive()) return settle()
       rising = true
       const start = performance.now() - Math.max(0, RUN - overtureLeft())
+      // On a machine slow enough that a frame of the rise takes most of a frame, the next is set only after as long
+      // again has passed, so the rise never holds more than half the page's time and the keys and presses that end the
+      // overture still find it free. A fast machine sets every frame.
+      let free = 0
       const frame = (now: number) => {
         const t = now - start
         if (t >= RUN || !overtureActive()) return settle()
+        if (performance.now() < free) {
+          rise = requestAnimationFrame(frame)
+          return
+        }
         const e = (1 - Math.min(1, t / RUN)) ** 3
         canvases[0].style.transform = `translateX(${(-e * shift).toFixed(1)}px)`
         canvases[1].style.transform = `translateX(${(e * shift).toFixed(1)}px)`
+        const at = performance.now()
         paint(t)
+        const took = performance.now() - at
+        free = took > 12 ? performance.now() + took : 0
         rise = requestAnimationFrame(frame)
       }
       rise = requestAnimationFrame(frame)
@@ -1111,7 +1122,9 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     }
     motion.addEventListener("change", onMotion)
     const offOverture = onOvertureEnd(() => {
-      play()
+      // The hands settle on the next frame, not in the end itself, so the key or press that ended it is answered first.
+      cancelAnimationFrame(rise)
+      rise = requestAnimationFrame(() => play())
       key = ""
       wake()
     })
