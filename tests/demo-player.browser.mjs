@@ -51,16 +51,24 @@ function watchAutoplay({ root: rootSelector, ignore }) {
     const el = node.nodeType === 1 ? node : node.parentElement
     return el ? `${el.localName}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""}` : "?"
   }
+  // The root is found the moment its element is parsed, before its children are. On a busy machine the parser yields
+  // in between, and its filling of the root (additions with nothing removed) would read as movement. So records taken
+  // while the document is still loading skip those; a script replacing text or nodes still counts.
+  const record = (records, parsing) => {
+    for (const r of records) {
+      if (parsing && r.type === "childList" && r.removedNodes.length === 0) continue
+      if (r.type === "attributes" && own(r.attributeName)) continue
+      const el = r.target.nodeType === 1 ? r.target : r.target.parentElement
+      if (ignore && el && el.closest(ignore)) continue
+      w.mutations.push({ at: performance.now(), kind: r.type, target: label(r.target), attribute: r.attributeName })
+    }
+  }
   const observe = (root) => {
     w.rooted = true
-    new MutationObserver((records) => {
-      for (const r of records) {
-        if (r.type === "attributes" && own(r.attributeName)) continue
-        const el = r.target.nodeType === 1 ? r.target : r.target.parentElement
-        if (ignore && el && el.closest(ignore)) continue
-        w.mutations.push({ at: performance.now(), kind: r.type, target: label(r.target), attribute: r.attributeName })
-      }
-    }).observe(root, { attributes: true, childList: true, characterData: true, subtree: true })
+    const observer = new MutationObserver((records) => record(records, document.readyState === "loading"))
+    observer.observe(root, { attributes: true, childList: true, characterData: true, subtree: true })
+    // readystatechange fires as parsing ends, before the observer's callback; take the parser's last records here.
+    if (document.readyState === "loading") document.addEventListener("readystatechange", () => record(observer.takeRecords(), true), { once: true })
   }
   const find = () => { const root = document.querySelector(rootSelector); if (root && !w.rooted) observe(root); return w.rooted }
   if (!find()) {
