@@ -10,7 +10,8 @@ import { SET } from "@/components/site/wordmark-set"
 // a mask is painted black or white by name: masks inherit fill, and the ink is white at night. Its box is its ink, and
 // 1em is H, so the font size sets it.
 
-/** The lockup itself. `written` false draws "Type" solid, for sizes where the creed would only be grain. */
+/** The lockup itself. `written` false keeps the bands of "Type" but leaves out the creed's words, for sizes where they
+ *  would only be grain. */
 export function Lockup({ written = true, className }: { written?: boolean; className?: string }) {
   const id = `wm${useId().replace(/[^\w-]/g, "")}`
   const cut = `${id}cut`, bands = `${id}bands`
@@ -22,19 +23,17 @@ export function Lockup({ written = true, className }: { written?: boolean; class
           <rect width={w} height={h} fill="#fff" />
           <path d={paths.type + paths.stop} fill="#000" stroke="#000" strokeWidth={type.rim} strokeLinejoin="round" />
         </mask>
-        {written && (
-          <mask id={bands} maskUnits="userSpaceOnUse" x="0" y="0" width={w} height={h}>
-            <rect width={w} height={h} fill="#fff" />
-            {lines.map(([x, y, bw], i) => <rect key={i} x={x} y={y} width={bw} height={lh} fill="#000" />)}
-          </mask>
-        )}
+        <mask id={bands} maskUnits="userSpaceOnUse" x="0" y="0" width={w} height={h}>
+          <rect width={w} height={h} fill="#fff" />
+          {lines.map(([x, y, bw], i) => <rect key={i} x={x} y={y} width={bw} height={lh} fill="#000" />)}
+        </mask>
       </defs>
       <g className="wm-nly" mask={`url(#${cut})`}>
         <path d={paths.nly} />
         <circle cx={nly.dot[0]} cy={nly.dot[1]} r={nly.dot[2]} />
       </g>
       <g className="wm-type">
-        <path d={paths.type} mask={written ? `url(#${bands})` : undefined} />
+        <path d={paths.type} mask={`url(#${bands})`} />
         {written && (
           <g className="wm-creed" fontSize={fs}>
             {lines.map(([x, y, , text, fit], i) => (

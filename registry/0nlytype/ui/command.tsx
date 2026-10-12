@@ -4,6 +4,7 @@ import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 
+import { useComposedRefs } from "@/registry/0nlytype/lib/refs"
 import { cn } from "@/registry/0nlytype/lib/utils"
 import { Scrollbar } from "@/registry/0nlytype/ui/scrollbar"
 
@@ -14,6 +15,16 @@ const SearchSetter = React.createContext<(search: string) => void>(() => {})
 // ponytail: substring, not cmdk's fuzzy score, so the highlighter can mark exactly what matched.
 const contains = (value: string, search: string, keywords?: string[]) =>
   [value, ...(keywords ?? [])].join(" ").toLowerCase().includes(search.trim().toLowerCase()) ? 1 : 0
+
+// cmdk brings the chosen row (and its group's heading) into view whenever the choice changes, including as it mounts,
+// which scrolls the page to a palette that opens with a row chosen. It now does so only while you're in the palette.
+function scrollOnlyWhileIn(node: HTMLElement | null) {
+  if (!node) return
+  node.scrollIntoView = (arg?: boolean | ScrollIntoViewOptions) => {
+    if (node.closest("[cmdk-root]")?.contains(document.activeElement)) Element.prototype.scrollIntoView.call(node, arg)
+  }
+}
+const headingOnlyWhileIn = (group: HTMLDivElement | null) => scrollOnlyWhileIn(group?.querySelector<HTMLElement>(":scope > [cmdk-group-heading]") ?? null)
 
 /** The highlighter: wraps each place the query appears in <mark>. */
 function marks(text: string, q: string): React.ReactNode {
@@ -99,8 +110,9 @@ function CommandEmpty({ className, children, ...props }: React.ComponentProps<ty
   )
 }
 
-function CommandGroup({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
-  return <CommandPrimitive.Group data-slot="command-group" className={cn("ot-command-group", className)} {...props} />
+function CommandGroup({ className, ref, ...props }: React.ComponentProps<typeof CommandPrimitive.Group>) {
+  const heading = useComposedRefs(headingOnlyWhileIn, ref)
+  return <CommandPrimitive.Group ref={heading} data-slot="command-group" className={cn("ot-command-group", className)} {...props} />
 }
 
 function CommandSeparator({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
@@ -108,10 +120,11 @@ function CommandSeparator({ className, ...props }: React.ComponentProps<typeof C
 }
 
 /** A row. Words in it are set as the name and marked where they match; other parts (CommandHint, CommandShortcut) sit at the end. */
-function CommandItem({ className, children, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
+function CommandItem({ className, children, ref, ...props }: React.ComponentProps<typeof CommandPrimitive.Item>) {
   const search = React.useContext(SearchContext)
+  const row = useComposedRefs(scrollOnlyWhileIn, ref)
   return (
-    <CommandPrimitive.Item data-slot="command-item" className={cn("ot-command-option", className)} {...props}>
+    <CommandPrimitive.Item ref={row} data-slot="command-item" className={cn("ot-command-option", className)} {...props}>
       {React.Children.map(children, (child) =>
         typeof child === "string" ? <span className="ot-command-name">{marked(child, search)}</span> : child,
       )}
