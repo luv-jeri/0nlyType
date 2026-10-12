@@ -32,7 +32,7 @@ export function TopRow({ places, groups }: { places: Record<string, Place>; grou
   return (
     <header className="bar">
       <Link className="bar-mark" href="/" prefetch={false} aria-label="0nlyType, home">
-        {/* 2.75rem tall, the creed would be set at half a pixel: grain, and 150 lines of text every page restyles. */}
+        {/* 2.75rem tall, the creed would be set at half a pixel: grain, and 150 lines of text every page restyles. Its bands stay. */}
         <Lockup written={false} />
       </Link>
       <p className="bar-now" ref={now} aria-live="polite">
