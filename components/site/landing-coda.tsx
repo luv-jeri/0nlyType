@@ -100,11 +100,21 @@ export function Coda() {
       // The full stop, by its offsets in the stage (a transform scales it as it lands, and offsets ignore transforms;
       // the stage is pinned, and offsets inside it ignore that too): its ink's centre from the face's own metrics,
       // since its box is the line, not the dot.
+      h2.style.marginInlineStart = ""
       let ex: HTMLElement | null = dot, sx = 0, sy = 0
       while (ex && ex !== host) { sx += ex.offsetLeft; sy += ex.offsetTop; ex = ex.offsetParent as HTMLElement | null }
       const pen = document.createElement("canvas").getContext("2d")!
       pen.font = tfont
       const m = pen.measureText(".")
+      // The pool sits in the middle of the window: the title moves along its line until its full stop is centred, as
+      // far as its longest line still fits. Right to left keeps the title where the grid sets it.
+      if (css.direction !== "rtl") {
+        const widest = Math.max(...[...h2.querySelectorAll<HTMLElement>(".coda-line")].map((l) => l.offsetWidth))
+        const want = C.width / 2 - (sx + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 - ox)
+        const shift = Math.round(Math.max(0, Math.min(h2.clientWidth - widest, want)))
+        h2.style.marginInlineStart = shift ? `${shift}px` : ""
+        sx += shift
+      }
       const base = sy + (dot.offsetHeight - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent
       const cx = sx + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 - ox
       const cy = base + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2 - oy
