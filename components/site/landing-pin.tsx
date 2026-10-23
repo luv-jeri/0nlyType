@@ -31,7 +31,7 @@ export function SectionPin() {
     const part = (c: string) => box.querySelector<HTMLElement>(`.sec-pin-${c}`)!
     const numEl = part("num"), titleEl = part("title"), sideEl = part("side")
     const root = document.documentElement, bar = document.querySelector<HTMLElement>(".bar")
-    const secs: Sec[] = [...document.querySelectorAll<HTMLElement>(".landing .sec")].flatMap((el) => {
+    const secs: Sec[] = [...document.querySelectorAll<HTMLElement>(".landing .sec:not([data-pin='off'])")].flatMap((el) => {
       const title = el.querySelector<HTMLElement>(":scope > .stave > .sec-title")
       const q = (c: string) => el.querySelector<HTMLElement>(`:scope > .sec-margin .sec-${c}`)
       return title ? [{ el, title, num: q("num"), name: q("name"), note: q("note") }] : []

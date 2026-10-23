@@ -23,6 +23,7 @@ export function Help() {
       title="Help build it."
       note="0nlyType is made by a small team, in the open. You don’t need to write code to shape what it becomes."
       className="help"
+      pin={false}
       wide={
         <ul className="help-poster">
           <li className="help-call" data-call="request">

@@ -15,11 +15,13 @@ type SecProps = {
   children?: React.ReactNode
   /** A row under the title that spans the page's twelve columns, at the same gap as the body. */
   wide?: React.ReactNode
+  /** False keeps the title in the page as you read on: its head never takes the bar (components/site/landing-pin.tsx). */
+  pin?: boolean
 }
 
-export function Sec({ id, num, name, title, note, className, children, wide }: SecProps) {
+export function Sec({ id, num, name, title, note, className, children, wide, pin = true }: SecProps) {
   return (
-    <section className={className ? `sec ${className}` : "sec"} aria-labelledby={id}>
+    <section className={className ? `sec ${className}` : "sec"} aria-labelledby={id} data-pin={pin ? undefined : "off"}>
       <div className="sec-margin margin">
         <div className="sec-label">
           <p className="sec-num" aria-hidden="true">
