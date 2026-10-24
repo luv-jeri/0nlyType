@@ -93,6 +93,21 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
     // A rail is absolute: its host must be a positioned box (unless it already is: a dialog is fixed).
     const pin = !page && getComputedStyle(host).position === "static"
     const hadPrevent = host.hasAttribute("data-lenis-prevent")
+    // The layout is read when it can change (a resize, new content); a scroll only moves which mark you're in, from the
+    // offset the scroll event read while the page was still laid out. Scrolling reads no layout.
+    let geo: { shown: number; all: number; max: number; offsets: (number | null)[]; fit: number } | null = null
+    let at = 0
+    const place = () => {
+      if (!geo) return
+      const { shown, all, max, offsets, fit } = geo
+      // The mark for the section in the middle of the view is the one you're in.
+      const middle = at + shown / 2
+      let now = -1
+      offsets.forEach((y, i) => { if (y !== null && y <= middle) now = i })
+      marks.forEach((mark, i) => mark.toggleAttribute("data-now", i === now))
+      if (leafRow) leaves(shown, all, max, fit, at)
+    }
+    const step = () => place
     // The thumb's top travels (1 − view) of the rail, so a mark sits where the thumb's top
     // will be when its section reaches the top. A section too near the end to reach the top sits as far on,
     // inside the thumb's last stretch, where it will be in the view: the last few marks never land on one another.
@@ -105,12 +120,10 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
         const s = target(i)
         return s ? offset(s) : null
       })
-      // The mark for the section in the middle of the view is the one you're in.
-      const at = top(), middle = at + shown / 2
-      let now = -1
-      offsets.forEach((y, i) => { if (y !== null && y <= middle) now = i })
       const fit = leafRow ? Math.max(1, Math.floor(el.clientHeight / LEAF)) : 1
+      at = top()
       return () => {
+        geo = { shown, all, max, offsets, fit }
         el.style.setProperty("--view", String(view))
         el.style.setProperty("--max", `${max}px`)
         el.style.setProperty("--dir", direction) // a horizontal rail travels the other way in right-to-left
@@ -120,9 +133,8 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
         marks.forEach((mark, i) => {
           const y = offsets[i]
           if (y !== null) mark.style.setProperty("--at", String(max > 0 ? (y / max) * (1 - view) : 0))
-          mark.toggleAttribute("data-now", i === now)
         })
-        if (leafRow) leaves(shown, all, max, fit, at)
+        place()
         el.setAttribute("data-ready", "")
         host.setAttribute("data-scrollbar-host", pin ? "pin" : "")
       }
@@ -154,15 +166,37 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
     const resize = new ResizeObserver(soon)
     resize.observe(el)
     // Content that redraws changes what there is to scroll without resizing the box.
-    const mutation = new MutationObserver(soon)
+    const content = new Set<Element>()
+    const watchContent = () => {
+      const children = [...host.children].filter((child) => child.getAttribute("data-slot") !== "scrollbar")
+      content.forEach((child) => {
+        if (children.includes(child)) return
+        resize.unobserve(child)
+        content.delete(child)
+      })
+      children.forEach((child) => {
+        if (content.has(child)) return
+        resize.observe(child)
+        content.add(child)
+      })
+    }
+    const mutation = new MutationObserver(() => {
+      watchContent()
+      soon()
+    })
     if (page) {
       resize.observe(document.body)
       addEventListener("resize", soon)
     } else {
       resize.observe(host)
-      mutation.observe(host, { childList: true, subtree: true, characterData: true })
+      watchContent()
+      mutation.observe(host, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["open"] })
     }
-    if (marks.length || leafRow) scrolled.addEventListener("scroll", soon, { passive: true })
+    const onScroll = () => {
+      at = top()
+      queueMeasurement(step)
+    }
+    if (marks.length || leafRow) scrolled.addEventListener("scroll", onScroll, { passive: true })
     soon()
 
     const scrollToY = (y: number, instant: boolean) => {
@@ -208,11 +242,12 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
 
     return () => {
       measurements.delete(measure)
+      measurements.delete(step)
       if (!measurements.size) { cancelAnimationFrame(measurementFrame); measurementFrame = 0 }
       resize.disconnect()
       mutation.disconnect()
       removeEventListener("resize", soon)
-      scrolled.removeEventListener("scroll", soon)
+      scrolled.removeEventListener("scroll", onScroll)
       el.removeEventListener("pointerdown", onPointerDown)
       el.removeAttribute("data-ready")
       host.removeAttribute("data-scrollbar-host")

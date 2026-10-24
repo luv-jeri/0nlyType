@@ -23,22 +23,55 @@ const PAIRS = [
   { value: "salon", note: "Bricolage Grotesque, Cormorant", words: "Bricolage and Cormorant" },
 ]
 
+// A pair's faces arrive only when the page first asks for them, so a new pair would open with the old letters and
+// change again under the reader once its fonts landed. Pointing at the pairs fetches them; choosing one waits a moment
+// for its faces before the page turns.
+const WAIT = 400
+/** The pair's two faces as font strings: the voice upright, the expression in its italic. */
+function faces(pair = "parma") {
+  const note = PAIRS.find((p) => p.value === pair)?.note
+  if (!note) return []
+  const [voice, expression] = note.split(", ")
+  return [`400 1em "${voice}"`, `italic 400 1em "${expression}"`]
+}
+/** Starts fetching every pair's faces, so choosing one later need not wait. */
+function warmPairs() {
+  for (const p of PAIRS) for (const f of faces(p.value)) document.fonts.load(f).catch(() => {})
+}
+
 // The choice lives on <html>; everything reads it from there, so a head script, the page and every control agree.
+// A choice still waiting for its faces is shown at once, so the control answers the press while the page waits.
 const ATTRS = ["data-mode", "data-scheme", "data-key", "data-pair"]
+let wanted: AppearanceValue | null = null
+const waiting = new Set<() => void>()
 function subscribe(changed: () => void) {
   const watch = new MutationObserver(changed)
   watch.observe(document.documentElement, { attributes: true, attributeFilter: ATTRS })
-  return () => watch.disconnect()
+  waiting.add(changed)
+  return () => {
+    watch.disconnect()
+    waiting.delete(changed)
+  }
 }
-const snapshot = () => ATTRS.map((a) => document.documentElement.getAttribute(a) ?? "").join(" ")
+function want(next: AppearanceValue | null) {
+  wanted = next
+  for (const changed of waiting) changed()
+}
+const snapshot = () => wanted
+  ? [wanted.mode, wanted.scheme, wanted.key, wanted.pair].map((v) => v ?? "").join(" ")
+  : ATTRS.map((a) => document.documentElement.getAttribute(a) ?? "").join(" ")
 const parse = (s: string): AppearanceValue => {
   const [mode, scheme, key, pair] = s.split(" ").map((v) => v || undefined)
   return { mode, scheme, key, pair }
 }
 
+// A second change made while one waits builds on it (the hook reads the waiting choice), and only the last is drawn.
+let turn = 0
+
 /**
  * Put a choice on <html> and keep it. The new page opens as a circle from the control that changed it: the one given,
- * else the focused one. Reduced motion, or a browser without view transitions, changes it at once.
+ * else the focused one. Reduced motion, or a browser without view transitions, changes it at once. A new pair waits
+ * up to WAIT for its faces, so the page opens already set in them.
  */
 function applyAppearance(next: AppearanceValue, from?: Element | null) {
   const root = document.documentElement
@@ -57,15 +90,28 @@ function applyAppearance(next: AppearanceValue, from?: Element | null) {
       if (v && !(k === "scheme" && v === "cotton") && !(k === "pair" && v === "parma")) root.dataset[k] = v
       else delete root.dataset[k]
     }
+    if (wanted === next) want(null)
   }
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches
   // A control can ask for its own scene change (the mode toggle's data-scene): it becomes the transition's type.
   const scene = at?.getAttribute("data-scene")
-  if (still || !("startViewTransition" in document)) apply()
-  else if (scene) {
-    try { document.startViewTransition({ update: apply, types: [scene] }) }
-    catch { document.startViewTransition(apply) } // ponytail: browsers without types get the house circle
-  } else document.startViewTransition(apply)
+  const mine = ++turn
+  const go = () => {
+    if (mine !== turn) return
+    if (still || !("startViewTransition" in document)) apply()
+    else if (scene) {
+      try { document.startViewTransition({ update: apply, types: [scene] }) }
+      catch { document.startViewTransition(apply) } // ponytail: browsers without types get the house circle
+    } else document.startViewTransition(apply)
+  }
+  // Faces already here (or a pair the page has no faces for) turn the page at once.
+  const missing = faces(next.pair).filter((f) => !document.fonts.check(f))
+  if (!missing.length) go()
+  else {
+    want(next)
+    const loaded = Promise.all(missing.map((f) => document.fonts.load(f))).catch(() => {})
+    void Promise.race([loaded, new Promise((done) => setTimeout(done, WAIT))]).then(go)
+  }
   try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify(next)) } catch {} // private mode: the choice lasts the visit
 }
 
@@ -128,7 +174,7 @@ function Appearance({ value, onValueChange, className, ...props }: AppearancePro
           </Pick>
           {KEYS.map((k) => <Pick key={k} value={k}>{k}</Pick>)}
         </Picks>
-        <Picks id={`${id}-pair`} {...here("pair")} legend="Pair" value={now.pair ?? "parma"} onValueChange={(v) => change({ pair: v })}>
+        <Picks id={`${id}-pair`} {...here("pair")} onFocus={() => { setAt("pair"); warmPairs() }} onPointerEnter={warmPairs} legend="Pair" value={now.pair ?? "parma"} onValueChange={(v) => change({ pair: v })}>
           {PAIRS.map((p) => (
             <Pick key={p.value} value={p.value}>
               <PickTitle>{p.value}</PickTitle>
@@ -141,4 +187,4 @@ function Appearance({ value, onValueChange, className, ...props }: AppearancePro
   )
 }
 
-export { Appearance, useAppearance, applyAppearance, APPEARANCE_KEY, SCHEMES, KEYS, PAIRS, type AppearanceProps, type AppearanceValue }
+export { Appearance, useAppearance, applyAppearance, warmPairs, APPEARANCE_KEY, SCHEMES, KEYS, PAIRS, type AppearanceProps, type AppearanceValue }

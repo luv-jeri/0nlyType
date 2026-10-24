@@ -12,6 +12,8 @@
     "dev": "node scripts/copy-specimen.mjs && next dev",
     "build": "node --import tsx scripts/build-registry.mjs && node scripts/copy-specimen.mjs && next build && npm run package:site",
     "registry:build": "node --import tsx scripts/build-registry.mjs",
+    "og:build": "node --import tsx scripts/build-og.mjs",
+    "wordmark:set": "node scripts/set-wordmark.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "node scripts/lint-css.mjs && eslint --max-warnings=0 .",
     "test": "node --import tsx --test tests/*.test.mjs",
@@ -71,6 +73,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.7",
     "fake-indexeddb": "6.2.5",
+    "fontkit": "^2.0.4",
     "lucide-static": "1.54.0",
     "miniflare": "5.20260926.1-alpha",
     "modern-screenshot": "4.7.0",
@@ -79,6 +82,7 @@
     "tailwindcss": "4.3.3",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
+    "wawoff2": "^2.0.1",
     "wrangler": "4.144.0"
   }
 }

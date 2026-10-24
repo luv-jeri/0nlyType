@@ -66,39 +66,63 @@ function ReadingTrail({ sections, variant = "contents", label = "On this page", 
   React.useEffect(() => {
     if (!el || pinned) return
     const ids = JSON.parse(key) as string[]
-    let frame = 0, last = -2
-    const measure = () => {
-      const doc = document.documentElement
-      const max = doc.scrollHeight - innerHeight
-      const tops = ids.map((id) => {
-        const s = document.getElementById(id)
-        return s ? s.getBoundingClientRect().top + scrollY : Infinity
-      })
-      const r = max < 1 ? ids.map((_, i) => (i ? 1 : 0)) : reaches(tops, max)
-      const p = max < 1 ? 0 : clamp(scrollY / max)
+    // The sections' places are read when the layout can change (a resize, the fonts arriving); a scroll only moves
+    // where you are among them, from the offset the scroll event read while the page was still laid out. Scrolling
+    // reads no layout, and the trail re-renders only when the section you're in changes.
+    let frame = 0, dirty = true, last = -2, y = scrollY, max = 0, read = "", placed = ""
+    let r: number[] = []
+    const update = () => {
+      const p = max < 1 ? 0 : clamp(y / max)
       let now = -1
       r.forEach((v, i) => { if (v <= p + 1e-4) now = i })
       const end = r[now + 1] ?? 1
-      el.style.setProperty("--ot-trail-read", now < 0 ? "0" : end > r[now] ? clamp((p - r[now]) / (end - r[now])).toFixed(3) : "1")
+      const share = now < 0 ? "0" : end > r[now] ? clamp((p - r[now]) / (end - r[now])).toFixed(3) : "1"
+      if (share !== read) el.style.setProperty("--ot-trail-read", (read = share))
       const folios = r.map((v) => Math.round(v * 100))
       if (last !== -2 && last !== now) setTurned(true)
       last = now
-      setPlace((was) => (was.now === now && was.folios.join() === folios.join() ? was : { now, folios }))
+      const k = `${now}:${folios.join()}`
+      if (k !== placed) {
+        placed = k
+        setPlace({ now, folios })
+      }
+    }
+    const measure = () => {
+      const doc = document.documentElement
+      y = scrollY
+      max = doc.scrollHeight - innerHeight
+      const tops = ids.map((id) => {
+        const s = document.getElementById(id)
+        return s ? s.getBoundingClientRect().top + y : Infinity
+      })
+      r = max < 1 ? ids.map((_, i) => (i ? 1 : 0)) : reaches(tops, max)
+      update()
+    }
+    const run = () => {
+      frame = 0
+      if (!dirty) return update()
+      dirty = false
+      measure()
     }
     const soon = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(measure)
+      dirty = true
+      if (!frame) frame = requestAnimationFrame(run)
+    }
+    const onScroll = () => {
+      y = scrollY
+      if (!frame) frame = requestAnimationFrame(run)
     }
     const resize = new ResizeObserver(soon)
     resize.observe(document.body)
-    addEventListener("scroll", soon, { passive: true })
+    addEventListener("scroll", onScroll, { passive: true })
     addEventListener("resize", soon)
     document.fonts?.ready.then(soon)
+    dirty = false
     measure()
     return () => {
       cancelAnimationFrame(frame)
       resize.disconnect()
-      removeEventListener("scroll", soon)
+      removeEventListener("scroll", onScroll)
       removeEventListener("resize", soon)
     }
   }, [el, key, pinned])

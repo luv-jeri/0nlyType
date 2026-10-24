@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 
+import { pageMeta } from "@/lib/site/meta"
 import { Measure } from "@/registry/0nlytype/ui/measure"
 import { Prose } from "@/registry/0nlytype/ui/typography"
 import { sectionHTML } from "@/lib/site/design-md"
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Principles",
   description: "The five rules every 0nlyType item follows.",
-}
+})
 
 export default function Principles() {
   return (

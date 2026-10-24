@@ -3,33 +3,19 @@
 import { siteURL } from "@/lib/site/config.mjs"
 import * as React from "react"
 
-import { KEYS, PAIRS, SCHEMES, useTheme } from "@/components/site/theme-controls"
-import { Button } from "@/registry/0nlytype/ui/button"
-import { Checkbox, CheckboxGroup } from "@/registry/0nlytype/ui/checkbox"
-import { Input } from "@/registry/0nlytype/ui/field"
+import { KEYS, PAIRS, SCHEMES, useTheme, warmPairs } from "@/components/site/theme-controls"
 import { ModeToggle } from "@/registry/0nlytype/ui/mode-toggle"
 import { Select } from "@/registry/0nlytype/ui/select"
+import { CommandLine } from "@/registry/0nlytype/ui/command-line"
+import { afterOverture } from "@/lib/site/overture.mjs"
 
 // The home page's small instruments: the ones that answer a hand. Everything else on the page is a server component.
 
-const LEFT_OUT = ["Icons", "Boxes", "Shadows", "Gradients", "Monospace", "A second colour"]
-
-/** Silence is structure: what 0nlyType leaves out, already struck through. Unstrike one to see it matters. */
-export function LeftOut() {
-  return (
-    <CheckboxGroup
-      tally
-      className="left-out"
-      legend={<span className="ot-sr">What 0nlyType leaves out</span>}
-      done={(count, total) => (count === total ? "left out, and not missed." : "left out.")}
-    >
-      {LEFT_OUT.map((word) => (
-        <Checkbox key={word} defaultChecked>
-          {word}
-        </Checkbox>
-      ))}
-    </CheckboxGroup>
-  )
+/** Keep the command readable in the HTML; the offscreen runner's measured controls wait for the intro. */
+export function LandingCommand({ command, ...props }: React.ComponentProps<typeof CommandLine>) {
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => afterOverture(() => setReady(true)), [])
+  return <CommandLine {...props} runner={ready} command={ready ? command : `npx ${command}`} />
 }
 
 /** One note of colour: the whole page, retuned from one sentence. */
@@ -50,7 +36,7 @@ export function TuneSentence() {
       </span>{" "}
       set it in{" "}
       <span className="tune-bind">
-        <Select aria-label="Typefaces" value={theme.pair ?? "parma"} onChange={(e) => set({ pair: e.target.value }, e.currentTarget)}>
+        <Select aria-label="Typefaces" onFocus={warmPairs} onPointerEnter={warmPairs} value={theme.pair ?? "parma"} onChange={(e) => set({ pair: e.target.value }, e.currentTarget)}>
           {PAIRS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.words}
@@ -79,6 +65,9 @@ export function TuneSentence() {
   )
 }
 
+// A URL may break after any of its slashes, where a reader expects it to, rather than mid-word.
+const slashes = (s: string) => s.split("/").map((part, i, all) => (i < all.length - 1 ? <React.Fragment key={i}>{part}/<wbr /></React.Fragment> : part))
+
 /** The install line as one press: the whole command, the reader's part in italic; pressing copies it. */
 export function CopyCommand({ command, emphasis }: { command: string; emphasis?: string }) {
   const [copied, setCopied] = React.useState(false)
@@ -100,10 +89,10 @@ export function CopyCommand({ command, emphasis }: { command: string; emphasis?:
       <button type="button" className="copy-cmd" data-copied={copied || undefined} onClick={copy}>
         <code className="copy-cmd-text" dir="ltr">
           {at < 0 || !emphasis ? (
-            command
+            slashes(command)
           ) : (
             <>
-              {command.slice(0, at)}
+              {slashes(command.slice(0, at))}
               <i>{emphasis}</i>
               {command.slice(at + emphasis.length)}
             </>
@@ -117,47 +106,6 @@ export function CopyCommand({ command, emphasis }: { command: string; emphasis?:
         {copied ? "Copied to the clipboard." : ""}
       </span>
     </>
-  )
-}
-
-const PROMPT = (thing: string) =>
-  `Read docs/0nlytype/AGENTS.md, docs/0nlytype/INTENT.md, docs/0nlytype/DESIGN-core.md and the relevant component contracts. Confirm which paths you loaded. Build ${thing} with 0nlyType. Use an installed 0nlyType component as precedent. Run the completion checklist and report evidence.`
-
-/** Ask for it: you write what you want in the blank, in your italic, and copy a prompt that already knows the rules. */
-export function AskFor() {
-  const [what, setWhat] = React.useState("")
-  const [copied, setCopied] = React.useState(false)
-  const timer = React.useRef(0)
-  React.useEffect(() => () => clearTimeout(timer.current), [])
-  const thing = what.trim() || "a pricing page"
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(PROMPT(thing))
-    } catch {
-      return
-    }
-    setCopied(true)
-    clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setCopied(false), 2000)
-  }
-  return (
-    <div className="ask">
-      <label className="ask-line">
-        Build me{" "}
-        <span className="ask-fill">
-          <Input className="ask-what" value={what} placeholder="a pricing page" autoComplete="off" spellCheck={false} maxLength={48} onChange={(e) => setWhat(e.target.value)} />
-        </span>{" "}
-        in 0nlyType.
-      </label>
-      <div className="ask-foot">
-        <Button variant="bracket" onClick={copy}>
-          {copied ? "Copied" : "Copy the prompt"}
-        </Button>
-        <span className="ot-sr" aria-live="polite">
-          {copied ? "The prompt is on the clipboard." : ""}
-        </span>
-      </div>
-    </div>
   )
 }
 

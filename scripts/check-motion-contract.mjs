@@ -1,7 +1,9 @@
 // Holds the motion rules to the source, before the build. Motion that starts by itself is a failure here, not a note.
 //   scripted demos: every one waits for the person (one explicit start, nothing synthesised by discovery)
-//   the home overture: one key, one deadline under three seconds, title and field gated by the same attribute
-//   docs titles and shared toy links: nothing moves on its own
+//   the home overture: one key, one deadline under three seconds; the dot gated by the attribute, the hands' letters
+//   on the same clock in the script, both inside the deadline
+//   the landing's scroll motion: driven by the scroll itself, settled without scroll timelines or with reduced motion
+//   docs titles: nothing moves on its own
 // The browser half (tests/motion.browser.mjs, tests/demo-player.browser.mjs) proves it on the packaged site.
 import { readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
@@ -33,7 +35,7 @@ if (starts.length !== 1 || !/demonstrate:\s*\(\)\s*=>\s*\{\s*void start\(\)/.tes
 const discover = player.slice(player.indexOf("const discover"), player.indexOf("const hands"))
 if (!discover.includes("choreography.compose")) fail("scripted demos", "discover() no longer reads the choreography; this check cannot see what it does")
 if (/\bstart\(|\bquiet\(|\.click\(|dispatchEvent|\.focus\(/.test(discover)) fail("scripted demos", "discover() must only look: no start, click, focus or event")
-for (const file of ["app/docs/[item]/demo-example.tsx", "components/site/landing-index.tsx"]) {
+for (const file of ["app/docs/[item]/demo-example.tsx"]) {
   const source = read(file)
   if (!/Demonstrate/.test(source) || !/data-demo-control/.test(source)) fail("scripted demos", `${file} has no Demonstrate control`)
 }
@@ -43,26 +45,57 @@ if (!(OVERTURE_DEADLINE > 0 && OVERTURE_DEADLINE < 3000)) fail("the home overtur
 const tokens = read("registry/0nlytype/styles/tokens.css")
 const ms = (token) => Number(tokens.match(new RegExp(`${token}:\\s*(\\d+)ms`))?.[1])
 const landing = read("app/landing.css")
-const exhale = landing.match(/html\[data-overture-at\] \.hero-line\[data-line="quiet"\] \{ animation: hero-exhale var\(--ot-adagio\) [^ ]+ calc\((\d+) \* var\(--ot-arpeggio\)\)/)
-if (!exhale) fail("the home overture", "the headline's exhale must be gated by html[data-overture-at] and keep its adagio, delay and arpeggio form")
+// The sections after 01 keep their rules in their own files (app/landing-<section>.css); the scroll rules hold across all of them.
+const sections = readdirSync("app").filter((f) => /^landing-.+\.css$/.test(f)).map((f) => read(`app/${f}`)).join("\n")
+// Every overture rule in landing.css: gated by the attribute, under no-preference, on the tokens, inside the deadline.
+const block = landing.match(/@media \(prefers-reduced-motion: no-preference\) \{\n((?:  html\[data-overture-at\][^\n]*\n)+)\}/)
+if (!block) fail("the home overture", "landing.css must keep the overture's rules together, each gated by html[data-overture-at], under prefers-reduced-motion: no-preference")
 else {
-  const title = ms("--ot-adagio") + Number(exhale[1]) * ms("--ot-arpeggio")
-  if (!(title <= OVERTURE_DEADLINE)) fail("the home overture", `the headline takes ${title}ms, past the ${OVERTURE_DEADLINE}ms deadline`)
+  const rules = block[1].trim().split("\n")
+  const parts = { "zero-light": "the dot" }
+  for (const [name, what] of Object.entries(parts)) if (!rules.some((r) => r.includes(`animation: ${name} `))) fail("the home overture", `${what} (${name}) no longer play inside the overture`)
+  const token = (expr) => expr.replace(/var\((--ot-[a-z]+)\)/g, (_, t) => String(ms(t))).replace(/var\(--k\)/g, "1").replace(/ - var\(--late, 0ms\)/g, "").replace(/ms/g, "")
+  for (const rule of rules) {
+    const m = rule.match(/animation: [a-z-]+ var\((--ot-[a-z]+)\) var\(--ot-[a-z]+\) both; animation-delay: calc\((.+)\); \}$/)
+    if (!m) { fail("the home overture", `not on the motion tokens, or no late-start offset: ${rule.trim()}`); continue }
+    // The longest path: the last letter's delay (--k at 1) plus its duration.
+    const took = Function(`return (${token(m[2])}) + ${ms(m[1])}`)()
+    if (!(took <= OVERTURE_DEADLINE)) fail("the home overture", `${rule.trim().slice(0, 60)}... ends at ${took}ms, past the ${OVERTURE_DEADLINE}ms deadline`)
+  }
 }
-if (/^\.hero-line\[data-line="quiet"\] \{[^}]*animation/m.test(landing)) fail("the home overture", "the quiet line must not animate outside the overture: later visits arrive settled")
 if (OVERTURE_ATTR !== "data-overture-at") fail("the home overture", "css and lifecycle disagree on the attribute")
-const noise = read("components/site/landing-noise.tsx")
-if (!/overtureActive\(\)/.test(noise) || !/onOvertureEnd\(/.test(noise)) fail("the home overture", "the Noise field must arrive only inside the overture and settle when it ends")
+if (/^\.zero-hands[^{]*\{[^}]*animation/m.test(landing)) fail("the home overture", "the hands must not animate outside the overture: later visits arrive settled")
+const zero = read("components/site/landing-zero.tsx")
+if (!/overtureActive\(\)/.test(zero) || !/overtureLeft\(\)/.test(zero)) fail("the home overture", "the zero must read how much of the overture is left, so a late start skips what has passed")
+// The hands are drawn on canvases: their rise is a clock in the script, inside the deadline, and settled without it.
+const run = zero.match(/const RUN = (\d+) \+ (\d+)/)
+if (!run || Number(run[1]) + Number(run[2]) > OVERTURE_DEADLINE) fail("the home overture", `the hands' rise (RUN) must end inside the ${OVERTURE_DEADLINE}ms deadline`)
+// Without the overture the hands still enter, once a load (owner 2026-10-11), on the same RUN: never again on a resize.
+if (!/if \(reduce \|\| \(own && \(entered \|\| scrollY > 4\)\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion, and enter at most once a load without the overture")
 // Storage: one key, written by the script in the page, nowhere else.
 const keyUses = ["components", "app", "lib", "registry"].flatMap((dir) => sources(dir)).filter((file) => read(file).includes(OVERTURE_KEY) || read(file).includes("overture-seen"))
 if (keyUses.length !== 1 || keyUses[0] !== "lib/site/overture.mjs") fail("the home overture", `the overture key belongs only in lib/site/overture.mjs (found ${keyUses.join(", ") || "nowhere"})`)
 
-// ── docs titles and shared toy links ──
+// ── the landing's scroll motion: the scroll drives it, and it is settled without it ──
+const scrollDriven = [...(landing + "\n" + sections).matchAll(/@supports \(animation-timeline: view\(\)\) \{\n  @media \(prefers-reduced-motion: no-preference\) \{\n([\s\S]*?)\n  \}\n\}/g)].map((m) => m[1])
+// 02: the pictures' letters land in each word on the held run's own timeline, and the strike follows on the same one.
+if (!scrollDriven.some((b) => /\.leaves-run \{[^}]*view-timeline: --leaves/.test(b) && /\.leaves-strike::after \{[^}]*animation-timeline: --leaves/.test(b))) fail("the landing's scroll motion", "the strikes in 02 must be drawn by the held run's --leaves scroll timeline, under @supports and no-preference")
+if (!scrollDriven.some((b) => /\.sec-title[^{]*\{[^}]*animation: sec-rise[^}]*animation-timeline: view\(\)/.test(b))) fail("the landing's scroll motion", "the sections' one reveal must be a view() timeline, under @supports and no-preference")
+// Outside those blocks no rule may name a timeline: without scroll timelines, the page as written is the fallback.
+let outside = landing + "\n" + sections
+for (let at = outside.indexOf("@supports (animation-timeline: view())"); at >= 0; at = outside.indexOf("@supports (animation-timeline: view())")) {
+  let depth = 0, end = outside.indexOf("{", at)
+  for (; end < outside.length; end++) {
+    if (outside[end] === "{") depth++
+    else if (outside[end] === "}" && --depth === 0) break
+  }
+  outside = outside.slice(0, at) + outside.slice(end + 1)
+}
+if (/animation-timeline|view-timeline/.test(outside)) fail("the landing's scroll motion", "a scroll timeline sits outside @supports (animation-timeline: view()), where the settled page would not be the fallback")
+
+// ── docs titles ──
 const site = read("app/site.css")
 if (/\.doc-title[^{]*\{[^}]*animation/.test(site) || /@keyframes site-settle/.test(site)) fail("docs titles", "a docs page title must stay still")
-const toy = read("components/site/landing-toy.tsx")
-const shared = toy.slice(toy.indexOf("Opened from a shared link"), toy.indexOf("return (\n    <div\n      ref={root}"))
-if (!shared || /setQuiet|setTimeout\([^)]*,\s*\d{3,}/.test(shared)) fail("shared toy links", "a shared link must arrive settled, with no timer and no noise")
 
 // ── the clock belongs to the inline script; the component only listens ──
 const overtureScript = read("lib/site/overture.mjs")
@@ -79,4 +112,4 @@ if (!/playwright install[^\n]*chromium[^\n]*firefox[^\n]*webkit/.test(ci)) fail(
 for (const file of ["tests/motion.browser.mjs", "tests/demo-player.browser.mjs"]) if (/\.skip\(|test\.skip|if \(!installed/.test(read(file))) fail("browser engines", `${file} must not skip an engine`)
 
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Motion contract holds: ${scripted.length} scripted demos wait for Demonstrate, the overture plays once under ${OVERTURE_DEADLINE}ms, docs titles and shared toy links are still.`)
+console.log(`Motion contract holds: ${scripted.length} scripted demos wait for Demonstrate, the overture plays once under ${OVERTURE_DEADLINE}ms, the landing's scroll motion settles without the scroll, and docs titles are still.`)

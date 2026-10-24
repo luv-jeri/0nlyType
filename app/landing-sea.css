@@ -1,0 +1,27 @@
+/* ── 03 tune: one sentence floating on a sea of type (components/site/landing-sea.tsx). The sea runs to the window's
+   edges under the title; the canvas has its height from here before the script runs, and the sentence floats over
+   it on the stave, in the clear water the rows part around. ── */
+.sea { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; }
+.sea > * { grid-row: 1; }
+/* Centred and wider than its column, it bleeds to both edges of the window; the page clips the overflow. A finger
+   dragged sideways stirs the water; up and down still scrolls the page. */
+.sea-canvas { grid-column: 1 / -1; justify-self: center; display: block; width: 100vw; height: clamp(600px, 92svh, 900px); touch-action: pan-y; }
+.sea-float { grid-column: 4 / -1; align-self: start; position: relative; margin-top: clamp(200px, 28svh, 290px); pointer-events: none; }
+.sea-float .tune-sentence { pointer-events: auto; }
+
+/* ── one sentence retunes the page: its words are the settings ── */
+.tune-sentence { max-width: 22em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: 1.3; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); text-wrap: pretty; }
+.tune-sentence .ot-select, .tune-sentence .ot-switch { font-size: inherit; line-height: inherit; color: inherit; }
+.tune-key select { color: var(--ot-accent); }
+.tune-bind { white-space: nowrap; }
+/* The colour is the one accent here; the arrows that say a word can change are pencil, and ink when you point. */
+.tune-sentence :is(.ot-select-box, .ot-mode .ot-mode-art)::after { color: var(--ot-pencil); transition: color var(--ot-allegro) var(--ot-breath); }
+.tune-sentence :is(.ot-select, .ot-mode):is(:hover, :focus-within) :is(.ot-select-box, .ot-mode-art)::after { color: var(--ot-ink); }
+@media (max-width: 860px) {
+  .sea-float { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .tune-sentence { font-size: min(var(--ot-mf), 7.2vw); }
+  .sea-canvas { height: clamp(620px, 96svh, 760px); }
+  .sea-float { margin-top: clamp(200px, 30svh, 260px); }
+}

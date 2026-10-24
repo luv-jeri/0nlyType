@@ -50,19 +50,31 @@
   .ot-btn[data-variant="bracket"]:active:not(:disabled, [aria-disabled="true"])::before { translate: calc(0.12em * var(--dir)) 0; transition-duration: var(--ot-allegro); }
   .ot-btn[data-variant="bracket"]:active:not(:disabled, [aria-disabled="true"])::after { translate: calc(-0.12em * var(--dir)) 0; transition-duration: var(--ot-allegro); }
 
+  /* The line is two strokes, so every change is a transition and can turn back from wherever it is: the hairline
+     (::before) leaves to the inline end, then the stroke (::after) draws from the inline start. Leaving rewinds them:
+     the stroke goes back to the start and the hairline returns behind it. */
   .ot-btn[data-variant="quiet"] {
-    --at: calc(100% - var(--py) + 0.14em); padding-inline: 0.1em; /* the line stands just under the words, inside the shared box */
-    background: linear-gradient(currentColor, currentColor) no-repeat 0 var(--at) / 100% var(--ot-hairline);
+    /* The line stands just under the words, inside the shared box: half the box, half the 1.2 line, then 0.14em. Measured
+       from the middle, it stays under the words when the box is taller (a key cap beside the label, a 44px touch target). */
+    --at: calc(50% + 0.74em); padding-inline: 0.1em;
+    transition: translate var(--ot-allegro) var(--ot-exhale);
   }
-  .ot-btn[data-variant="quiet"]:is(:hover, [data-force~="hover"]):not(:disabled, [aria-disabled="true"]) {
-    animation: ot-redraw var(--ot-andante) var(--ot-breath) both;
+  .ot-btn[data-variant="quiet"]::before, .ot-btn[data-variant="quiet"]::after {
+    content: ""; position: absolute; inset-inline: 0; top: var(--at); pointer-events: none; background: currentColor;
   }
-  @keyframes ot-redraw {
-    0%   { background-position: 100% var(--at); background-size: 100% var(--ot-hairline); }
-    45%  { background-position: 100% var(--at); background-size: 0% var(--ot-hairline); }
-    55%  { background-position: 0 var(--at);    background-size: 0% var(--ot-stroke); }
-    100% { background-position: 0 var(--at);    background-size: 100% var(--ot-stroke); }
+  .ot-btn[data-variant="quiet"]::before {
+    height: var(--ot-hairline); transform-origin: calc(50% + 50% * var(--dir)) 0;
+    transition: scale var(--ot-moderato) var(--ot-breath);
   }
+  .ot-btn[data-variant="quiet"]::after {
+    height: var(--ot-stroke); scale: 0 1; transform-origin: calc(50% - 50% * var(--dir)) 0;
+    transition: scale var(--ot-allegro) var(--ot-breath);
+  }
+  .ot-btn[data-variant="quiet"]:is(:hover, [data-force~="hover"]):not(:disabled, [aria-disabled="true"])::before { scale: 0 1; }
+  .ot-btn[data-variant="quiet"]:is(:hover, [data-force~="hover"]):not(:disabled, [aria-disabled="true"])::after {
+    scale: 1 1; transition-duration: var(--ot-moderato); transition-delay: var(--ot-moderato);
+  }
+  .ot-btn[data-variant="quiet"]:is(:active, [data-force~="press"]):not(:disabled, [aria-disabled="true"]) { translate: 0 1px; }
 
   /* ── the heroes ── each its own personality, all type-led; each keeps the box it rests in */
   .ot-btn:is([data-variant="crescendo"], [data-variant="stave"], [data-variant="ink"]) { font-size: var(--ot-mp); }
@@ -207,5 +219,6 @@
     .ot-btn[data-variant="crescendo"]::before { forced-color-adjust: none; background: ButtonText; }
     .ot-btn[data-variant="repeat"]::before, .ot-btn[data-variant="repeat"]::after, .ot-btn[data-variant="repeat"] > .ot-btn-label::before { forced-color-adjust: none; color: ButtonText; }
     .ot-btn[data-variant="ink"]:is(:hover, :focus-visible, [data-force~="hover"]) { color: HighlightText; }
+    .ot-btn[data-variant="quiet"]::before, .ot-btn[data-variant="quiet"]::after { forced-color-adjust: none; background: ButtonText; }
   }
 }

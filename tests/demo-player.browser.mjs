@@ -51,16 +51,24 @@ function watchAutoplay({ root: rootSelector, ignore }) {
     const el = node.nodeType === 1 ? node : node.parentElement
     return el ? `${el.localName}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""}` : "?"
   }
+  // The root is found the moment its element is parsed, before its children are. On a busy machine the parser yields
+  // in between, and its filling of the root (additions with nothing removed) would read as movement. So records taken
+  // while the document is still loading skip those; a script replacing text or nodes still counts.
+  const record = (records, parsing) => {
+    for (const r of records) {
+      if (parsing && r.type === "childList" && r.removedNodes.length === 0) continue
+      if (r.type === "attributes" && own(r.attributeName)) continue
+      const el = r.target.nodeType === 1 ? r.target : r.target.parentElement
+      if (ignore && el && el.closest(ignore)) continue
+      w.mutations.push({ at: performance.now(), kind: r.type, target: label(r.target), attribute: r.attributeName })
+    }
+  }
   const observe = (root) => {
     w.rooted = true
-    new MutationObserver((records) => {
-      for (const r of records) {
-        if (r.type === "attributes" && own(r.attributeName)) continue
-        const el = r.target.nodeType === 1 ? r.target : r.target.parentElement
-        if (ignore && el && el.closest(ignore)) continue
-        w.mutations.push({ at: performance.now(), kind: r.type, target: label(r.target), attribute: r.attributeName })
-      }
-    }).observe(root, { attributes: true, childList: true, characterData: true, subtree: true })
+    const observer = new MutationObserver((records) => record(records, document.readyState === "loading"))
+    observer.observe(root, { attributes: true, childList: true, characterData: true, subtree: true })
+    // readystatechange fires as parsing ends, before the observer's callback; take the parser's last records here.
+    if (document.readyState === "loading") document.addEventListener("readystatechange", () => record(observer.takeRecords(), true), { once: true })
   }
   const find = () => { const root = document.querySelector(rootSelector); if (root && !w.rooted) observe(root); return w.rooted }
   if (!find()) {
@@ -119,7 +127,7 @@ const only = process.env.DEMO_ONLY?.split(",")
 const items = only ?? (engine === "chromium" || process.env.MOTION_FULL ? scripted : sample)
 
 /** The control's label follows the published state by a render; wait for it rather than reading it the instant the state changes. */
-const labelBecomes = (page, text) => page.waitForFunction((want) => document.querySelector(".doc-demo-controls button, .pieces-actions [data-demo-control]")?.textContent?.trim() === want, text, { timeout: 2000, polling: 50 })
+const labelBecomes = (page, text) => page.waitForFunction((want) => document.querySelector(".doc-demo-controls button")?.textContent?.trim() === want, text, { timeout: 2000, polling: 50 })
   .catch(async () => { throw new Error(`the control should read "${text}" but reads "${(await page.locator(".doc-demo-controls button").first().textContent().catch(() => "")).trim()}"`) })
 
 /** The state the player publishes on the example, and whether a performance has begun. */
@@ -127,15 +135,20 @@ const demoState = (page, selector) => page.evaluate((sel) => { const el = docume
 
 /** After Stop, whatever was already under way (a dial's spring finishing its last move) may settle, for a few seconds;
  * then the example must be still, and stay still for a second. One that is still moving after the cap is not stopped. */
-async function fallsQuiet(page) {
-  const count = () => page.evaluate(() => window.__autoplay.mutations.length + window.__autoplay.synthetic.length)
-  let last = await count(), still = 0
+async function fallsQuiet(page, selector) {
+  // A CSS transition changes no DOM while it travels. Its final cleanup can arrive after 600ms of quiet DOM.
+  const snapshot = () => page.evaluate((sel) => ({
+    count: window.__autoplay.mutations.length + window.__autoplay.synthetic.length,
+    moving: document.querySelector(sel)?.getAnimations({ subtree: true }).some((a) =>
+      (a.pending || a.playState === "running") && Number.isFinite(a.effect?.getComputedTiming().endTime)),
+  }), selector)
+  let last = (await snapshot()).count, still = 0
   for (let waited = 0; still < 2; waited += 300) {
     if (waited >= 5000) throw new Error(`still moving ${Math.round(waited / 100) / 10}s after Stop`)
     await page.waitForTimeout(300)
-    const now = await count()
-    still = now === last ? still + 1 : 0
-    last = now
+    const now = await snapshot()
+    still = now.count === last && !now.moving ? still + 1 : 0
+    last = now.count
   }
   await mark(page)
   await page.waitForTimeout(1000)
@@ -173,7 +186,7 @@ const scrollables = (page, rootSelector) => page.evaluate((sel) => [...document.
  * player fails. Examples with no control of their own (reacting to the pointer, or scrolling) are swept by a real
  * pointer and wheel instead. */
 async function answers(page, rootSelector) {
-  const candidates = page.locator(`${rootSelector} :is(label:has(input), button, [role="tab"], [role="slider"], [role="separator"], input:not(label input):not([type="hidden"]), select, textarea, summary):not([data-demo-control])`)
+  const candidates = page.locator(`${rootSelector} :is(label:has(input), button, [role="tab"], [role="slider"], [role="separator"], input:not(label input):not([type="hidden"]), select, textarea, summary, figure.ot-melody[tabindex="0"]):not([data-demo-control])`)
   const count = Math.min(await candidates.count(), 8)
   let tried = 0
   for (let i = 0; i < count; i++) {
@@ -198,6 +211,11 @@ async function answers(page, rootSelector) {
             const text = await control.evaluate((node) => { const now = node.selectedOptions[0]?.text.trim(); return [...node.options].map((o) => o.text.trim()).find((t) => t && t !== now) ?? "" })
             if (text) await page.keyboard.type(text)
           }
+        }
+        // Melody is a focusable figure: its documented control is Enter, not a button or a wide pointer target.
+        else if (await control.evaluate((node) => node.matches("figure.ot-melody[tabindex='0']"))) {
+          await control.focus()
+          await page.keyboard.press("Enter")
         }
         else await control.click({ timeout: 1000, force: true, position })
         if (await control.evaluate((node) => node.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea'))) await page.keyboard.type("1")
@@ -275,7 +293,7 @@ async function one(context, item) {
     assert.equal((await demoState(page, example)).state, "stopped")
     // After Stop: let any settling finish, then nothing may move, and a real control must still answer.
     if (!exempt) {
-      await fallsQuiet(page)
+      await fallsQuiet(page, example)
     }
     await answers(page, example)
     assert.ok(errors.length === 0, `page error: ${errors[0]}`)
@@ -328,6 +346,19 @@ async function selfTest(browser) {
       if (!cover && caught) problems.push(`self-test: the real-control probe failed on ${name}: ${caught.message}`)
     } catch (error) { problems.push(`self-test (${name}): ${error.message.split("\n")[0]}`) } finally { await page.close() }
   }
+  // A last committed move may settle after Stop. Quiet DOM alone must not mistake its completion for autoplay.
+  const finishing = await context.newPage()
+  try {
+    await finishing.route("**/fixture", (route) => route.fulfill({ contentType: "text/html", body: html("", false) }))
+    await finishing.addInitScript(watchAutoplay, { root: '[data-demo-item="fixture"]', ignore: null })
+    await finishing.goto("http://fixture.test/fixture")
+    await finishing.evaluate(() => {
+      const t = document.getElementById("t")
+      t.animate([{ opacity: 1 }, { opacity: 0.5 }], { duration: 1000 }).finished.then(() => { t.textContent = "landed" })
+    })
+    await fallsQuiet(finishing, '[data-demo-item="fixture"]')
+    assert.equal(await finishing.locator("#t").textContent(), "landed")
+  } catch (error) { problems.push(`self-test (a finishing transition): ${error.message}`) } finally { await finishing.close() }
   await context.close()
   return problems
 }
@@ -381,37 +412,7 @@ if (!only) {
 }
 await context.close()
 
-// The landing's stage.
-if (!only) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
-  await ctx.addInitScript((key) => { try { localStorage.setItem(key, "1") } catch {} }, "0nlytype-overture-seen")
-  const page = await ctx.newPage()
-  await page.addInitScript(watchAutoplay, { root: ".pieces-preview", ignore: null })
-  try {
-    await page.goto(site.url("/"))
-    await page.locator(".pieces-stage").scrollIntoViewIfNeeded()
-    await page.waitForSelector(".pieces-preview > *", { timeout: 15000 })
-    // Move to a scripted piece by focusing its name (focus is how a keyboard reader picks).
-    const name = scripted.includes("accordion") ? "accordion" : scripted[0]
-    await page.locator(`a.pieces-name[href$="/docs/${name}/"]`).focus()
-    const control = page.locator(".pieces-actions [data-demo-control]")
-    await control.waitFor({ timeout: 5000 })
-    await page.waitForFunction(() => { const b = document.querySelector(".pieces-actions [data-demo-control]"); return b && !b.disabled }, null, { timeout: 15000 })
-    await settled(page)
-    for (let i = 0; i < 8; i++) {
-      const { state } = await demoState(page, ".pieces-preview")
-      assert.ok(!["playing", "finished", "stopped"].includes(state), `the landing stage started by itself (${state})`)
-      await page.waitForTimeout(250)
-    }
-    await assertQuiet(page, "on the landing stage before Demonstrate was pressed")
-    await control.click()
-    await page.waitForFunction(() => document.querySelector(".pieces-preview")?.dataset.demoState === "playing", null, { timeout: 5000 })
-    await control.click()
-    await page.waitForFunction(() => document.querySelector(".pieces-preview")?.dataset.demoState === "stopped", null, { timeout: 2000 })
-  } catch (error) { failures.push(`landing stage: ${error.message.split("\n")[0]}`) } finally { await ctx.close() }
-}
-
 await browser.close()
 await site.close()
 if (failures.length) { console.error(failures.map((f) => `- ${f}`).join("\n")); process.exit(1) }
-console.log(`Demo player browser check passed in ${engine}: ${items.length} of ${scripted.length} scripted demos stay quiet until Demonstrate, are seen to run, fall quiet on Stop and hand a real control back; the detector catches every injected autoplay${only ? "" : "; keyboard, right to left, forced colours and the landing stage hold"}.`)
+console.log(`Demo player browser check passed in ${engine}: ${items.length} of ${scripted.length} scripted demos stay quiet until Demonstrate, are seen to run, fall quiet on Stop and hand a real control back; the detector catches every injected autoplay${only ? "" : "; keyboard, right to left and forced colours hold"}.`)

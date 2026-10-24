@@ -2,15 +2,13 @@
 // that fails to launch, fails here; this runner has no way to skip one.
 //   tests/motion.browser.mjs        the overture lifecycle, shared toy links and docs titles: every engine, day and nocturne
 //   tests/demo-player.browser.mjs   the scripted demos: all of them in Chromium, one of every script kind in the others
-// The three engines run side by side (each engine's own runs one after another), which keeps the whole check to a few
-// minutes; the overture cases measure a 2s deadline with margin, and the check is meant to be run on an otherwise quiet
-// machine.
+// The landing checks measure a 2s wall-clock deadline: engines take turns so another browser's canvas or demo
+// cannot consume that window on a shared CI runner. Once every landing check finishes, demo suites run side by side.
 import { spawn } from "node:child_process"
 
 const ENGINES = ["chromium", "firefox", "webkit"]
 const plan = (engine) => [
   ...["light", "dark"].map((scheme) => ({ file: "tests/motion.browser.mjs", engine, scheme })),
-  { file: "tests/demo-player.browser.mjs", engine },
 ]
 
 const run = (job) => new Promise((resolve) => {
@@ -29,11 +27,11 @@ const run = (job) => new Promise((resolve) => {
   child.on("error", (error) => { output += String(error); done(1) })
 })
 
-const results = (await Promise.all(ENGINES.map(async (engine) => {
-  const own = []
-  for (const job of plan(engine)) own.push(await run(job))
-  return own
-}))).flat()
+const results = []
+for (const engine of ENGINES) {
+  for (const job of plan(engine)) results.push(await run(job))
+}
+results.push(...await Promise.all(ENGINES.map((engine) => run({ file: "tests/demo-player.browser.mjs", engine }))))
 
 const failed = results.filter((r) => !r.ok)
 if (failed.length) { console.error(`\nMotion checks failed in:\n${failed.map((r) => `- ${r.label}`).join("\n")}`); process.exit(1) }

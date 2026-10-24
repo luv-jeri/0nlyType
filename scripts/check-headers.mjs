@@ -90,6 +90,8 @@ function walk(dir) {
     if (entry.isDirectory()) {
       if (!entry.name.startsWith("_") && entry.name !== "r" && entry.name !== "404") walk(file)
     } else if (entry.name === "index.html") {
+      // A page that asks not to be indexed (the lab) stays out of the sitemap.
+      if (/<meta name="robots" content="[^"]*noindex/.test(readFileSync(file, "utf8"))) continue
       pages.push("/" + path.relative(uiRoot, dir).split(path.sep).join("/") + (dir === uiRoot ? "" : "/"))
     }
   }
@@ -148,8 +150,28 @@ try {
     if (url === "/specimen/") continue // Original HTML has no Next metadata.
     assert(html.includes(`<link rel="canonical" href="${origin + url}"`), `Wrong canonical: ${url}`)
     assert(html.includes(`<meta property="og:url" content="${origin + url}"`), `Wrong Open Graph URL: ${url}`)
-    for (const tag of ["<title>", 'name="description"', 'property="og:title"', 'property="og:description"', 'property="og:type" content="website"', 'name="twitter:card" content="summary"', 'name="twitter:title"', 'name="twitter:description"']) assert(html.includes(tag), `${url}: missing ${tag}`)
+    for (const tag of ["<title>", 'name="description"', 'property="og:title"', 'property="og:description"', 'property="og:type" content="website"', `property="og:image" content="${origin}/og.png"`, 'name="twitter:card" content="summary_large_image"', 'name="twitter:title"', 'name="twitter:description"', `name="twitter:image" content="${origin}/og.png"`]) assert(html.includes(tag), `${url}: missing ${tag}`)
+    // Each page's share card carries its own title and description, not the home page's.
+    const meta = (attr, name) => html.match(new RegExp(`<meta ${attr}="${name}" content="([^"]*)"`))?.[1]
+    const title = html.match(/<title>([^<]*)<\/title>/)[1]
+    assert.equal(meta("property", "og:title"), title, `${url}: og:title differs from the title`)
+    assert.equal(meta("name", "twitter:title"), title, `${url}: twitter:title differs from the title`)
+    assert.equal(meta("property", "og:description"), meta("name", "description"), `${url}: og:description differs from the description`)
+    // Copy is plain: no long dash in the title, the description or anything the page shows.
+    assert(!/\u2014/.test(title + meta("name", "description")), `${url}: the title or description has a long dash`)
+    const shown = html.replace(/<(script|style)\b[\s\S]*?<\/\1>/g, "").replace(/<[^>]+>/g, " ")
+    assert(!/\u2014|&mdash;|&#8212;/.test(shown), `${url}: the page shows a long dash: ${shown.match(/.{0,40}(\u2014|&mdash;|&#8212;).{0,40}/)?.[0]}`)
+    // The home page and every item page describe themselves for search, and the description parses.
+    if (url === "/" || /^\/docs\/[^/]+\/$/.test(url) && !["install", "build-with-ai", "principles", "tokens"].includes(url.split("/")[2])) {
+      const ld = html.match(/<script type="application\/ld\+json">([^<]*)<\/script>/)
+      assert(ld, `${url}: missing structured data`)
+      const types = JSON.parse(ld[1])["@graph"].map((node) => node["@type"])
+      assert.deepEqual(types, url === "/" ? ["WebSite", "SoftwareSourceCode"] : ["TechArticle", "BreadcrumbList"], `${url}: structured data`)
+    }
   }
+  const og = await fetchPage("/og.png")
+  assert.equal(og.status, 200)
+  assert.equal(og.headers.get("content-type"), "image/png")
   const registry = await fetchPage("/r/button.json", { headers: { origin: "https://ui.shadcn.com" } })
   assert.equal(registry.status, 200)
   checkSecurity(registry)

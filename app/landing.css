@@ -1,49 +1,362 @@
 /* The home page. Everything it draws is a 0nlyType item or plain type; this file only places and tunes them.
-   It arrives as noise and turns it down, then opens the whole library before anything else. */
+   Two hands set in letters reach toward a zero made of every piece's name; the zero turns into the index; then the
+   numbered sections, one pattern each (".sec"); then the coda. */
 
-/* On a very wide screen the page keeps the site's measured width (site.css) and the hero's noise alone runs to the edges. */
-.landing { overflow-x: clip; } /* the coda's echoes and the noise may run off the edge; the page never scrolls sideways */
+.landing { overflow-x: clip; } /* the hands run off the edges; the page never scrolls sideways */
+/* No paragraph on the page ends on a word alone; headings balance where they are set (.sec-title, .coda-title). */
+:where(.landing) p { text-wrap: pretty; }
+/* The sections' canvases place every line and letter themselves, mirrored by script in right to left; drawn in the
+   page's direction, each would end at its point instead of starting there. */
+.landing canvas { direction: ltr; }
+/* One accent in view: every section here brings its own (the tunnel's mark, the key in 03, the poster's highlight,
+   the coda's full stop), so on this page the rail's number is set in ink and the section's accent stays the one. */
+html:has(main.landing) .page-rail .ot-trail-head .ot-trail-num { color: var(--ot-ink); }
 
-/* ── the hero: "All type. No noise." after "It has to be design." ── */
-.hero { grid-column: 1 / -1; position: relative; isolation: isolate; container-type: inline-size; min-height: 100svh; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; padding-block: calc(var(--bar) + var(--ot-space-7)) var(--ot-space-8); }
-.hero-noise { position: absolute; z-index: -1; inset-block: 0; left: 50%; width: 100vw; height: 100%; translate: -50% 0; pointer-events: none; color: var(--ot-ink); }
-/* The headline: one size for both lines, set so the widest (the quiet line, at its widest) fills the width. */
-.hero-title { margin-top: var(--ot-space-6); margin-inline-start: -0.04em; font-size: min(16.2cqi, 38svh); line-height: 0.8; letter-spacing: -0.035em; color: var(--ot-ink); }
-.hero-line { display: block; white-space: nowrap; }
-.hero-line[data-line="loud"] { font-weight: 850; font-stretch: 62%; letter-spacing: -0.02em; }
-/* The quiet line rests at its quietest. On a browser's first visit only (landing-overture sets data-overture-at on <html>
-   before the hero paints) it arrives as loud as the first and exhales, 8 steps then 1400ms: done by 1.7s, inside the
-   overture's 2s deadline. Ending the overture removes the attribute, which settles the line at once. */
-.hero-line[data-line="quiet"] { font-weight: 200; font-stretch: 112%; }
-html[data-overture-at] .hero-line[data-line="quiet"] { animation: hero-exhale var(--ot-adagio) var(--ot-exhale) calc(8 * var(--ot-arpeggio)) both; }
-@keyframes hero-exhale { from { font-weight: 850; font-stretch: 62%; letter-spacing: -0.02em; } }
-/* Skip intro: a real control for as long as the overture plays, and nothing after. It sits at the end of the headline's
-   block, on the stave of the first row, clear of the bar. */
-.hero .hero-skip { display: none; position: absolute; inset-block-start: calc(var(--bar) + var(--ot-space-3)); inset-inline-end: 0; min-block-size: 44px; font-size: var(--ot-pp); }
-html[data-overture-at] .hero .hero-skip { display: inline-flex; }
-@media (prefers-reduced-motion: reduce) { html[data-overture-at] .hero-line[data-line="quiet"] { animation: none; } html[data-overture-at] .hero .hero-skip { display: none; } }
-.hero-stop { justify-self: end; color: var(--ot-accent); font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; }
-.hero-line[data-line="quiet"] .hero-word { display: inline-grid; }
-.hero-line[data-line="quiet"] .hero-word > *, .hero-line[data-line="quiet"] .hero-word::after { grid-area: 1 / 1; }
-.hero-line[data-line="quiet"] .hero-word::after { content: attr(data-text); font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; visibility: hidden; }
-.hero-gap { font-weight: 200; font-stretch: 112%; letter-spacing: -0.035em; }
-/* The ink takes no room of its own: the reserve alone sizes the box, so however wide a word is mid-breath, nothing after it moves. */
-.hero-line[data-line="quiet"] .hero-ink { width: 0; white-space: nowrap; }
-.hero-base { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
-.hero-foot { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); row-gap: var(--ot-space-6); align-items: end; margin-top: var(--ot-space-7); }
-.hero-promise { grid-column: 1 / 6; font-size: clamp(var(--ot-mp), 2.1cqi, 52px); line-height: 1.25; letter-spacing: -0.01em; font-weight: 400; color: var(--ot-ink); text-wrap: balance; }
-.hero-promise-quiet { color: var(--ot-graphite); }
-/* Two rows, read across: the reading beside the call, the promise beside the line that installs it. */
-.hero-level { grid-column: 1 / 6; grid-row: 1; display: grid; justify-items: start; row-gap: var(--ot-space-2); }
-.hero-meter { font-size: clamp(var(--ot-f), 5.4cqi, 150px); line-height: 1.1; font-weight: 200; font-stretch: 112%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ot-ink); }
-.hero-meter-def { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
-.hero-promise { grid-row: 2; }
-.hero-cta { grid-column: 7 / -1; grid-row: 1; }
-.hero-install { grid-column: 7 / -1; grid-row: 2; }
+/* ── the large lockup: "0nly" over "Type.", the italic written in the creed (components/site/wordmark.tsx). 1em is H.
+   Its box is its ink; the descenders of "Type" hang 0.338em under the baseline, outside the heading, so the heading
+   ends on the baseline and whatever stands beside it lines up there. ── */
+.wm-set { width: max-content; margin: 0; font-size: var(--H, 1em); line-height: 1; color: var(--ot-ink); }
+.wm-set .wm-lockup { margin-block-end: -0.338em; }
+
+/* ── hero and 01 (landing-zero): one sticky stage the scroll turns. Without scroll timelines, or under reduced
+   motion, the script writes --h (0 hero, 1 tunnel) on the hands, --out on the band and --inn on the pieces (each only
+   where it is read, so a frame restyles only them); the tunnel it turns by transforms and opacity alone. Nothing here
+   reads layout. The section's height is the intro plus one notch per piece. ── */
+.zero { --pitch: 24px; grid-column: 1 / -1; position: relative; height: calc(175svh + var(--n) * var(--pitch) + 80px); }
+.zero-at { position: absolute; inset-inline: 0; top: calc(75svh + 20px); height: 1px; scroll-margin-top: 0; pointer-events: none; }
+/* The stage bleeds to the window's edges by a negative margin on both sides: with one only, a right to left page
+   ignores it (an over-full box gives way on its left there) and the whole stage slides off the axis by the page's margin.
+   It clips rather than hides: a hidden overflow can still be scrolled, and a live piece in the preview that brings
+   itself into view would slide the whole stage up and leave it there. */
+.zero-stage { --pad: max(var(--ot-margin), calc((100vw - var(--site-max)) / 2)); position: sticky; top: 0; width: 100vw; height: 100vh; height: 100svh; margin-inline: calc(50% - 50vw); overflow: clip; direction: ltr; }
+.zero-hands, .zero-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.zero-hands { pointer-events: none; }
+.zero-ring { cursor: default; will-change: opacity; }
+.zero-ring[data-pointing] { cursor: pointer; }
+
+/* The ring: names between the two ellipses, the chosen one in ink and heavy, its neighbours in graphite. */
+.zero-ring .nm { font-family: var(--ot-voice); fill: var(--ot-pencil); font-weight: 460; dominant-baseline: central; transition: fill var(--ot-allegro); }
+.zero-ring .nm[data-near] { fill: var(--ot-graphite); }
+.zero-ring .nm[data-hover] { fill: var(--ot-ink); font-weight: 640; }
+.zero-ring .nm[data-sel] { fill: var(--ot-ink); font-weight: 760; }
+.zero-ring .faint { fill: none; stroke: var(--ot-rule); stroke-width: var(--ot-hairline); }
+.zero-ring .dot { fill: var(--ot-rule-strong); }
+.zero-ring .dot[data-sel] { fill: var(--ot-ink); }
+.zero-ring .index-dot, .zero-ring .mk-dot { fill: var(--ot-accent); }
+.zero-ring .mk-o { fill: var(--ot-ink); }
+.zero-ring .call-line { stroke: var(--ot-pencil); stroke-width: var(--ot-hairline); }
+.zero-ring .call-dot { fill: var(--ot-pencil); }
+.zero-ring .call-name { font-family: var(--ot-voice); font-size: 22px; font-weight: 560; letter-spacing: -0.01em; fill: var(--ot-ink); }
+.zero-ring .call-meta { font-family: var(--ot-voice); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--ot-pencil); }
+
+/* The tunnel (01): one ring of names per movement, each its own layer, so a turn moves painted type and never
+   repaints it. Every name is set letter by letter, the same letters that stand in the zero as the scroll opens it
+   (each set on its middle, so a letter turns about itself). The script sizes and places the disc once per layout and
+   writes only transforms and tone. The names are set in graphite; the read one in ink and heavier; what a ring's
+   names leave is a dashed hairline. While a ring's names travel they are drawn on one canvas over the rings instead,
+   from a sheet the script draws once per layout, in the same face (semi-condensed, 87.5%, the one width canvas and
+   CSS share), and handed back where they land. */
+.zero-tunnel { position: absolute; inset: 0; pointer-events: none; }
+.tunnel-spin { position: absolute; will-change: transform; }
+.tunnel-disc { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; }
+.tunnel-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 50%; will-change: transform, opacity; opacity: 0; }
+.tunnel-ring text { font-family: var(--ot-voice); font-stretch: 87.5%; font-weight: 420; dominant-baseline: central; text-anchor: middle; }
+.tunnel-ring .nm { fill: var(--ot-graphite); transition: fill var(--ot-allegro) var(--ot-exhale); }
+.tunnel-ring .nm.on { fill: var(--ot-ink); font-weight: 560; }
+.zero-stage[data-dial] .tunnel-ring text { pointer-events: auto; cursor: pointer; }
+.tunnel-ring .nm:hover { fill: var(--ot-ink); }
+.tunnel-ring .rule { fill: none; stroke: var(--ot-graphite); opacity: 0; }
+.tunnel-sprites { position: absolute; left: -10%; top: -10%; width: 120%; height: 120%; pointer-events: none; }
+/* The one accent in view: the index, on the read ring's near edge. */
+.tunnel-dot { position: absolute; left: 0; top: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--ot-accent); opacity: 0; will-change: transform, opacity; }
+
+/* The hands (L2, after A): three weights by the fresco's tone, the light tone in pencil so the modelling reads and
+   the two darker in ink, where the weight is the shading. As the scroll leaves the hero, each letter falls on its own
+   seeded path, the fingertips last. */
+/* The hands are two canvases the script sizes and places once per layout (components/site/hands.ts draws them). As
+   the scroll opens the zero they step out to the sides and off, whole, fading only on their way out, before the names
+   reach them; without scroll timelines, or with reduced motion, they follow --h, which the script writes. */
+.zero-hands canvas { position: absolute; display: block; --away: calc(min(1, var(--h, 0) * 5)); opacity: calc(1 - max(0, var(--away) * 2 - 1)); }
+/* Until the script gives a hand its box it takes none, so it appears where it stands instead of jumping there from a
+   default 300 by 150 at the corner (a layout shift of 0.15). */
+.zero-hands canvas:not([style]) { display: none; }
+.zero-hands .hand-a { translate: calc(var(--away) * -42vw) 0; }
+.zero-hands .hand-g { translate: calc(var(--away) * 42vw) 0; }
+
+/* The band: the lockup, and beside it one column on the lockup's baseline: what it is, the way into the docs, and one
+   line to install. It lifts away as the dial arrives. */
+.hero-band { position: absolute; left: var(--pad); right: var(--pad); bottom: 32px; container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); align-items: last baseline; padding-top: var(--ot-space-5); border-top: var(--ot-hairline) solid var(--ot-rule); opacity: calc(1 - var(--out, 0)); transform: translateY(calc(var(--out, 0) * -30px)); }
+.zero-stage:not([data-hero]) .hero-band { pointer-events: none; }
+/* The lockup is 2.75em wide and 1.8em tall to its baseline: it keeps to its six columns and to a height the zero can
+   spare. The column beside it starts on the page's axis, straight under the zero, and its last line stands on the
+   lockup's baseline; the band stands high enough off the floor for the descenders. */
+.hero-band { --H: max(56px, min(calc((100vw - 2 * var(--pad)) * 0.1), calc((100svh - 520px) / 1.9), 132px)); bottom: max(32px, calc(var(--H) * 0.338 + 12px)); }
+.hero-mark { grid-column: 1 / 7; }
+.hero-side { grid-column: 7 / -1; display: grid; justify-items: start; align-content: end; padding-bottom: var(--ot-space-1); }
+.hero-count { max-width: 60ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
+/* The way into the docs (landing-docs.tsx): a field of the pieces' names with "Read docs" left blank in it, whose
+   letters rearrange into the words when it is pointed at. The words stand in plain type until the field is set, and
+   stay the link's name after; the canvas draws the motion itself, and settles at once under reduced motion. */
+.hero-docs { position: relative; display: block; block-size: 100%; min-block-size: 112px; color: var(--ot-ink); text-decoration: none; }
+.hd-words { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--ot-voice); font-size: var(--ot-mf); font-weight: 800; line-height: 1; transition: opacity var(--ot-moderato) var(--ot-breath); }
+.hero-docs[data-laid] .hd-words { opacity: 0; }
+.hd-field { position: absolute; inset: 0; width: 100%; height: 100%; }
+@media (prefers-reduced-motion: reduce) { .hd-words { transition: none; } }
+/* Set as a sheet: the band is ruled into boxes, one thing to each, closed by hairlines and nothing else. The lockup,
+   larger here, has a box fitted to it, two rows tall; beside it the count, a giant thin figure with its line beside it,
+   over the way into the docs; under them all the install line runs the band's width with its ( Copy ). The column
+   beside the lockup is no longer a box of its own: its three boxes take their places in the band's grid. */
+@media (min-width: 761px) {
+  .hero-band { --H: max(56px, min(calc((100vw - 2 * var(--pad)) * 0.135), calc((100svh - 96px) / 6.5), 184px)); bottom: 32px; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: 1fr 1fr auto; column-gap: 0; align-items: stretch; padding-top: 0; border-top: 0; border-inline-end: var(--ot-hairline) solid var(--ot-rule); border-block-end: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-side { display: contents; }
+  .hero-mark, .hero-count, .hero-cta, .hero-install { min-width: 0; margin: 0; border-block-start: var(--ot-hairline) solid var(--ot-rule); border-inline-start: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-mark { grid-column: 1; grid-row: 1 / -1; display: flex; align-items: flex-end; width: auto; padding: var(--ot-space-4); overflow: clip; }
+  .hero-mark .wm-lockup { margin-block-end: 0; }
+  .hero-count, .hero-cta, .hero-install { container-type: inline-size; display: grid; padding: var(--ot-space-4); }
+  .hero-count { grid-column: 2; grid-row: 1; max-width: none; grid-template-columns: auto minmax(0, 1fr); align-items: end; column-gap: var(--ot-space-4); }
+  .hero-n { display: block; font-size: calc(var(--H) * 0.78); line-height: 0.78; font-weight: 200; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: var(--ot-ink); }
+  .hero-what { display: block; max-width: 24ch; }
+  .hero-cta { grid-column: 2; grid-row: 2; padding: 0; }
+  .hero-install { grid-column: 2; grid-row: 3; align-content: end; padding-block: var(--ot-space-3); }
+}
+/* Too narrow for the count's line beside its figure: the line goes under it. */
+.hero-install .copy-cmd { padding-block: 0; }
+.hero-install .copy-cmd-text { font-size: var(--ot-pp); }
+/* The proof's marks: the picture is a plate, trimmed at its corners and registered on the page's axis, the line the
+   zero stands on and the column beside the lockup starts from. The hands bleed past the trim, as a print does. */
+.hero-plate { --c: var(--ot-rule-strong); --l: 14px; --t: var(--ot-hairline); position: absolute; inset-inline: 0; bottom: calc(100% + 20px); height: var(--plate, 0px); pointer-events: none; background-repeat: no-repeat; background-image:
+  linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+  linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c));
+  background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%, 50% 0, 50% 100%;
+  background-size: var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--l) var(--t), var(--t) var(--l), var(--t) var(--l), var(--t) var(--l); }
+/* Skip intro, while the overture plays, stands on the page's axis from the first paint, before the script has run:
+   in the zero's counter, the middle of the room between the bar and the band. It is placed from the band, so 100% is
+   the band's height and the band's top is the screen less its bottom inset and that height. The script then sets it
+   to the pixel. */
+.zero .hero-skip { display: none; position: absolute; left: 50%; top: calc((var(--bar) - 100svh + 32px + 100% - var(--ot-hairline)) / 2); transform: translate(-50%, -50%); align-self: start; justify-self: start; min-block-size: 44px; font-size: var(--ot-pp); }
+html[data-overture-at] .zero .hero-skip { display: inline-flex; }
+
+/* After the turn: the heading and the reading in the column the tunnel's near edge points to, the movements and the
+   ways past it along the floor. */
+.pieces-part { position: absolute; inset: 0; opacity: var(--inn, 0); pointer-events: none; }
+/* The part lies over the tunnel; only its own words take the pointer, so the names stay pointable. */
+.zero-stage[data-dial] :is(.pieces-head, .readout, .pieces-foot) { pointer-events: auto; }
+.pieces-head, .readout, .pieces-keys { position: absolute; left: 62vw; right: var(--pad); }
+.pieces-head { top: calc(var(--bar) + 7svh); }
+.pieces-title { margin: 0; font-size: clamp(56px, 6.2vw, 96px); line-height: 0.86; letter-spacing: -0.035em; font-weight: 800; font-stretch: 72%; color: var(--ot-ink); }
+/* The reading changes over a part at a time (the script animates it): each part is a box one copy tall, the leaving
+   copy laid over the arriving one, so the page under it never moves. */
+.ro-swap { position: relative; display: block; overflow: hidden; }
+.ro-swap > span { display: block; }
+.ro-swap > .out { position: absolute; left: 0; top: 0; width: 100%; }
+.readout { top: 54svh; }
+.ro-row { display: flex; align-items: flex-start; gap: var(--ot-space-5); margin-top: var(--ot-space-5); }
+/* The number turns over like a counter, each digit on its own wheel, the leading zeros in pencil. */
+.ro-num { display: flex; flex: none; height: 1em; overflow: hidden; font-size: clamp(84px, 8vw, 124px); line-height: 1; letter-spacing: -0.04em; font-weight: 700; font-stretch: 80%; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
+.ro-dg { display: block; height: 1em; overflow: hidden; }
+.ro-dg i { display: flex; flex-direction: column; font-style: normal; transition: transform var(--ot-andante) var(--ot-exhale), color var(--ot-moderato) var(--ot-exhale); }
+.ro-dg b { display: block; height: 1em; font-weight: inherit; }
+.ro-dg[data-lead] i { color: var(--ot-pencil); font-weight: 200; }
+.ro-body { min-width: 0; padding-top: 6px; }
+.ro-name { height: 1.15em; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.15; letter-spacing: -0.01em; font-weight: 600; white-space: nowrap; color: var(--ot-ink); }
+/* The description keeps one height, five lines, whatever it says, so nothing under it moves as it changes. */
+.ro-desc { height: 7.5em; max-width: 38ch; margin-top: var(--ot-space-2); font-size: 15px; line-height: 1.5; color: var(--ot-graphite); }
+.ro-desc > span { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; text-wrap: pretty; }
+.ro-cmd { margin-top: var(--ot-space-5); padding-top: var(--ot-space-4); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.ro-cmd .copy-cmd-text { font-size: var(--ot-pp); }
+.ro-cmd .copy-cmd-text i { display: inline-block; }
+/* The floor: the movements, the read one in ink and underlined, then the ways past the index. */
+.pieces-foot { position: absolute; left: var(--pad); right: var(--pad); bottom: 24px; display: flex; justify-content: space-between; align-items: baseline; gap: var(--ot-space-5); }
+.pieces-groups { display: flex; flex-wrap: wrap; gap: 0 22px; }
+.pieces-group { position: relative; margin: 0; padding: var(--ot-space-1) 0 6px; border: 0; background: none; font: inherit; font-size: 11.5px; line-height: 1.2; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ot-pencil); cursor: pointer; transition: color var(--ot-moderato) var(--ot-exhale); }
+.pieces-group::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--ot-hairline); background: var(--ot-ink); transform: scaleX(0); transform-origin: 0 50%; transition: transform var(--ot-andante) var(--ot-exhale); }
+.pieces-group:is(:hover, :focus-visible) { color: var(--ot-graphite); }
+.pieces-group[aria-current] { color: var(--ot-ink); }
+.pieces-group[aria-current]::after { transform: scaleX(1); }
+.pieces-skip { display: flex; flex: none; gap: var(--ot-space-5); font-size: var(--ot-pp); }
+.pieces-keys { bottom: 72px; font-size: var(--ot-pp); color: var(--ot-pencil); opacity: 0; transition: opacity var(--ot-allegro); }
+.zero-stage[data-keys] .pieces-keys { opacity: 1; }
+/* Where the floor is too short for every movement's name, it keeps their numerals; the names stay for screen readers. */
+@media (max-width: 1200px) { .pieces-group-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
+/* On a short screen the description keeps to four lines, so the install line never meets the floor. */
+@media (max-height: 780px) and (min-width: 761px) { .ro-desc { height: 6em; } .ro-desc > span { -webkit-line-clamp: 4; } .pieces-keys { display: none; } }
+/* Set as a sheet: the column is one box, with no rules, in parts one under another. The heading; the piece being read,
+   live, in the room left (landing-preview.tsx); the number beside the name and its description; and the install line
+   across the foot. The reading's changing parts never carry padding of their own, so the copy leaving lies exactly over the copy
+   arriving. On a phone, or a screen too short for it, the parts stand apart as before. */
+.pieces-sheet { display: contents; }
+.pt-preview { display: none; }
+@media (min-width: 761px) and (min-height: 481px) {
+  .pieces-sheet { position: absolute; left: 62vw; right: var(--pad); top: calc(var(--bar) + 4svh); bottom: 100px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; }
+  .zero-stage[data-dial] .pieces-sheet { pointer-events: auto; }
+  .pieces-head, .readout { display: contents; }
+  .pieces-title { margin: 0; padding: var(--ot-space-4); font-size: min(clamp(40px, 4.4vw, 72px), 7svh); }
+  /* The preview is the docs example in the room: laid out at the room's width (an example's own max-w still holds)
+     and in one column, its demos that fit kept whole, the rest left out. The script sets its size (--pt-k) and how far
+     down the room it sits (--pt-y): drawn from its top edge, it is centred by arithmetic, since a grid does not centre
+     an item taller than its room. It is a picture of the piece, so it takes no press, and its accent is drawn in ink:
+     the ring's dot is the one accent in view. */
+  .pt-preview { display: grid; align-items: start; justify-items: center; min-height: 0; overflow: clip; margin: 0 var(--ot-space-4); --ot-accent: var(--ot-ink); }
+  .pt-preview-body.doc-example { display: grid; justify-items: center; align-content: start; width: 100%; padding: 0; transform-origin: 50% 0; scale: var(--pt-k, 1); translate: 0 var(--pt-y, 0px); }
+  .pt-preview-body > * { width: 100%; }
+  .pt-preview-body > .grid { grid-template-columns: minmax(0, 1fr); }
+  .pt-preview-body { overflow: clip; }
+  .pt-preview-body [data-pt-out] { visibility: hidden; }
+  /* As the reading moves on, the piece sinks back and fades; the next rises into its place once it has loaded. No
+     blur: WebKit's Linux compositor crashes the page compositing a filter over a whole live example. */
+  @media (prefers-reduced-motion: no-preference) {
+    .pt-preview-body[data-leaving] { opacity: 0; translate: 0 calc(var(--pt-y, 0px) - 6px); transition: opacity var(--ot-moderato) var(--ot-breath), translate var(--ot-moderato) var(--ot-breath); }
+    .pt-preview-body > * { animation: pt-arrive var(--ot-andante) var(--ot-exhale) both; }
+  }
+  .ro-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0; margin: 0; }
+  .ro-num { margin: var(--ot-space-4); font-size: min(clamp(84px, 8vw, 124px), 14svh); }
+  .ro-body { padding: var(--ot-space-4); }
+  .ro-cmd { margin: 0; padding: var(--ot-space-3) var(--ot-space-4); border-top: 0; }
+  /* The install line always sets Copy under the command, on one line sized so the longest command (navigation-menu's,
+     32.7em) fits the column: a longer name never changes the sheet's foot, and the room above stays still. */
+  .ro-cmd { container-type: inline-size; }
+  .ro-cmd .copy-cmd { flex-direction: column; align-items: flex-start; }
+  .ro-cmd .copy-cmd-text { font-size: min(var(--ot-pp), 100cqi / 33.5); white-space: nowrap; }
+}
+@media (min-width: 761px) and (max-height: 780px) { .pieces-sheet { bottom: 64px; } }
+@keyframes pt-arrive { from { opacity: 0; translate: 0 8px; } }
+/* Where scroll timelines run, the scroll itself draws the stage around the zero's opening, so a frame restyles only
+   what moves: the band lifts away over the first 12svh, and the reading arrives once the rings have formed, between
+   64.5svh and 75svh. The hands use the names' own progress, so a late canvas layout cannot restart their departure. The numbers
+   match the script's (--h is the scroll over 75svh), which writes them itself without scroll timelines or with
+   reduced motion. The names themselves the script moves either way, by transforms alone. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .zero { view-timeline: --zero block; view-timeline-inset: 0px; }
+    .hero-band { animation: zero-lift linear both; animation-timeline: --zero; animation-range: contain 0px contain 12svh; }
+    .pieces-part { animation: zero-arrive var(--ot-breath) both; animation-timeline: --zero; animation-range: contain 64.5svh contain 75svh; }
+  }
+}
+@keyframes zero-lift { to { opacity: 0; transform: translateY(-30px); } }
+@keyframes zero-arrive { from { opacity: 0; } to { opacity: 1; } }
+
+/* The list is for keyboards and screen readers: hidden from sight, never from them. The focused name is the readout. */
+.pieces-list { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; list-style: none; }
+.zero-stage[data-keys] .ro-name { text-decoration: underline var(--ot-stroke) var(--ot-ink); text-underline-offset: 0.12em; }
+
+/* The overture (P4): the hands' letters come up from the fingertips back and the hands close the gap (drawn by the
+   script on a clock, 1220ms), then the dot lights, inside the 2000ms deadline; a late start skips what has passed. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-overture-at] .zero-ring :is(.index-dot, .mk-dot) { animation: zero-light var(--ot-moderato) var(--ot-exhale) both; animation-delay: calc(var(--ot-adagio) - var(--late, 0ms)); }
+}
+@keyframes zero-light { from { fill: var(--ot-ink); } }
+/* The name arrives once a load, with the hands: "0nly" rises into its place, the paper cut for "Type." already open in
+   it; "Type." is written in from the left behind an edge slanted as the italic is; the full stop lands last. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-mark :is(.wm-nly, .wm-type, .wm-stop) { transform-box: fill-box; }
+  .hero-mark .wm-nly { animation: wm-rise var(--ot-adagio) var(--ot-exhale) both; }
+  .hero-mark .wm-type { animation: wm-write 900ms var(--ot-breath) 350ms both; }
+  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-andante) var(--ot-spiccato) 1150ms both; }
+}
+@keyframes wm-rise { from { opacity: 0; transform: translateY(14%); } }
+@keyframes wm-write { from { clip-path: polygon(0 0, 0 0, -30% 100%, -30% 100%); } to { clip-path: polygon(0 0, 130% 0, 100% 100%, -30% 100%); } }
+@keyframes wm-land { from { opacity: 0; transform: scale(0.2); } }
+@media (prefers-reduced-motion: reduce) { html[data-overture-at] .zero .hero-skip { display: none; } }
+
+/* A phone held sideways: the band would take all but a strip of the plate, and the hands would be drawn too small to
+   read. The install line steps out of the band (04 sets it large, a few screens on) so the picture keeps its room. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hero-install { display: none; }
+}
+@media (max-width: 760px) {
+  .zero { --pitch: 20px; }
+  .hero-band { bottom: 20px; grid-template-columns: 1fr; row-gap: var(--ot-space-4); padding-top: var(--ot-space-4); }
+  .hero-plate { --l: 10px; }
+  /* Over the band, under the zero, and never under the bar (on a phone held sideways the band leaves little room). */
+  .zero .hero-skip { top: max(calc(-46px - var(--ot-hairline)), calc(var(--bar) + 22px + 20px + 100% - 100svh)); }
+  .hero-mark, .hero-side { grid-column: 1; }
+  .hero-band { --H: min(calc((100vw - 2 * var(--pad)) * 0.22), 96px); }
+  .hero-mark .wm-lockup { margin-block-end: 0; }
+  /* The boxes stack: the lockup, then the way into the docs over the install line, ruled as on the wide page, one
+     hairline between each. The boxes close the band, so it needs no rule of its own over them. */
+  .hero-band { row-gap: 0; padding-top: 0; border-top: 0; }
+  .hero-mark { width: auto; padding: var(--ot-space-3); border: var(--ot-hairline) solid var(--ot-rule); border-bottom: 0; overflow: clip; }
+  .hero-side { justify-items: stretch; border: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-cta { padding: 0; }
+  .hero-install { padding: var(--ot-space-3); border-top: var(--ot-hairline) solid var(--ot-rule); }
+  .hero-count { display: none; }
+  /* The tunnel takes the room between the heading and the reading, so both are placed here and the script measures
+     them: the heading under the bar, the reading over the floor. */
+  .pieces-head { left: var(--pad); right: calc(var(--pad) + 24px); top: calc(var(--bar) + var(--ot-space-3)); } /* clear of the rail's label */
+  .pieces-title { font-size: 40px; }
+  .readout { left: var(--pad); right: var(--pad); top: auto; bottom: 92px; }
+  .ro-row { gap: var(--ot-space-4); margin-top: var(--ot-space-2); }
+  .ro-num { font-size: 56px; }
+  .ro-body { padding-top: 2px; }
+  .ro-name { font-size: var(--ot-mp); }
+  .ro-desc { height: 4.2em; max-width: none; margin-top: var(--ot-space-1); font-size: 13px; line-height: 1.4; }
+  .ro-desc > span { -webkit-line-clamp: 3; }
+  .ro-cmd { margin-top: var(--ot-space-3); padding-top: var(--ot-space-2); }
+  .ro-cmd .copy-cmd-text { font-size: 11px; }
+  .pieces-foot { bottom: 12px; flex-direction: column; align-items: stretch; gap: var(--ot-space-1); }
+  .pieces-groups { justify-content: space-between; gap: 0; }
+  .pieces-group { min-width: 32px; min-height: 32px; font-size: 11px; }
+  .pieces-skip { justify-content: space-between; }
+  .pieces-keys { display: none; }
+}
+/* A phone held sideways: stacked, the boxes would stand taller than the screen leaves under the bar, so they stand side
+   by side, the lockup and the way into the docs, one row under the hands. */
+@media (max-width: 760px) and (max-height: 480px) and (orientation: landscape) {
+  .hero-band { --H: min(calc((100vw - 2 * var(--pad)) * 0.07), 40px); grid-template-columns: max-content minmax(0, 1fr); align-items: stretch; }
+  .hero-mark { grid-column: 1; border-bottom: var(--ot-hairline) solid var(--ot-rule); border-inline-end: 0; }
+  .hero-side { grid-column: 2; align-content: stretch; }
+  .hero-docs { min-block-size: 80px; }
+}
+/* A phone held sideways: the tunnel takes the left half (the script places it), the heading and the reading the right,
+   the floor one row. */
+@media (max-width: 760px) and (orientation: landscape) {
+  .pieces-head, .readout { left: 50%; right: calc(var(--pad) + 24px); }
+  .pieces-head { top: calc(var(--bar) + var(--ot-space-2)); }
+  .pieces-title { font-size: 24px; line-height: 1; }
+  .pieces-title br { display: none; }
+  .readout { bottom: 52px; }
+  .ro-num { font-size: 44px; }
+  .ro-name { font-size: 18px; }
+  .ro-desc { height: 2.8em; font-size: 12px; }
+  .ro-desc > span { -webkit-line-clamp: 2; }
+  .pieces-foot { bottom: 6px; flex-direction: row; align-items: baseline; gap: var(--ot-space-4); }
+  .pieces-groups { flex: 1; }
+}
+
+/* ── the numbered sections: a hairline, the corner labels in the margin, the title and body on the stave (P1) ── */
+.sec { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; padding-block: var(--ot-space-7) var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
+.sec-margin { display: grid; justify-items: start; align-content: start; row-gap: var(--ot-space-3); }
+.sec-label { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
+.sec-num { font-size: clamp(var(--ot-ff), calc(8.4 * var(--site-vw)), 150px); line-height: 0.8; letter-spacing: -0.04em; font-weight: 200; font-variant-numeric: tabular-nums lining-nums; color: var(--ot-ink); }
+.sec-name { margin-top: var(--ot-space-3); font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; color: var(--ot-ink); }
+.sec-note { margin-top: var(--ot-space-3); max-width: 28ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
+.sec-title { max-width: 16em; padding-top: 0.04em; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 120px); line-height: var(--ot-ff-lh); letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-ink); text-wrap: balance; }
+.sec-body { margin-top: var(--ot-space-7); display: grid; justify-items: start; row-gap: var(--ot-space-7); }
+.sec-body > * { max-width: 100%; }
+/* One entrance for every section, after the hero (P3): each part rises a few pixels out of the page as it comes into
+   view, driven by the scroll itself, so it is only ever as far along as you are. Nothing is hidden without scroll
+   timelines or with reduced motion: the settled state is the page as written. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    :is(.sec-label, .sec-note, .sec-title, .sec-body, .coda > *) { animation: sec-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 220px; }
+    .sec-title { animation-range: entry 20px entry 240px; }
+    .sec-body { animation-range: entry 40px entry 260px; }
+  }
+}
+@keyframes sec-rise { from { opacity: 0; translate: 0 var(--ot-space-4); } }
+/* Below the fold, a section's body is laid out only as it nears the screen (P6). Its title stays out of this, since
+   the page rail reads where each title is; the clip margin keeps focus rings at the body's edges whole. */
+.sec-body { content-visibility: auto; contain-intrinsic-size: auto 360px; overflow-clip-margin: var(--ot-space-4); }
+
+.leaves-kept { font-size: var(--ot-mf); line-height: var(--ot-mf-lh); letter-spacing: var(--ot-mf-tr); color: var(--ot-graphite); }
+.leaves-k { color: var(--ot-ink); }
+.leaves-sign { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
+
+/* ── a section that takes the page's full width under its title ── */
+.sec-wide { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; margin-top: var(--ot-space-7); }
 
 /* ── the big call to action: light type on a hairline; coming to it, a crescendo runs through the letters ── */
 .cta { display: inline-flex; align-items: baseline; padding-block: 0.08em 0.14em; font-size: var(--ot-f); line-height: 1.1; letter-spacing: -0.025em; font-weight: 250; color: var(--ot-ink); text-decoration: none; background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% var(--ot-hairline); transition: background-size var(--ot-moderato) var(--ot-breath); }
-.cta[data-size="l"] { font-size: clamp(var(--ot-f), 5.4cqi, 150px); }
 .cta-word { display: inline-grid; }
 .cta-word > *, .cta-word::after { grid-area: 1 / 1; white-space: pre; }
 .cta-word::after { content: attr(data-text); font-weight: 720; visibility: hidden; }
@@ -58,163 +371,31 @@ html[data-overture-at] .hero .hero-skip { display: inline-flex; }
 .copy-cmd { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--ot-space-4); row-gap: var(--ot-space-1); max-width: 100%; margin: 0; padding: var(--ot-space-2) 0; border: 0; background: none; font: inherit; color: var(--ot-ink); text-align: start; cursor: copy; }
 .copy-cmd-text { font-family: var(--ot-voice); font-stretch: 88%; font-size: var(--ot-mp); line-height: 1.35; color: var(--ot-graphite); overflow-wrap: anywhere; padding-bottom: 0.12em; background: linear-gradient(var(--ot-accent), var(--ot-accent)) no-repeat 0 100% / 0% var(--ot-stroke), linear-gradient(var(--ot-rule-strong), var(--ot-rule-strong)) no-repeat 0 100% / 100% var(--ot-hairline); transition: color var(--ot-allegro); }
 .copy-cmd-text i { font-family: var(--ot-expression); font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-ink); }
-.copy-cmd:hover .copy-cmd-text { color: var(--ot-ink); }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-text { color: var(--ot-ink); }
 .copy-cmd[data-copied] .copy-cmd-text { background-size: 100% var(--ot-stroke), 100% var(--ot-hairline); transition: background-size var(--ot-andante) var(--ot-exhale); }
 .copy-cmd-word { display: inline-grid; font-size: var(--ot-p); color: var(--ot-ink); }
 .copy-cmd-word > span, .copy-cmd-word::after { grid-area: 1 / 1; }
 .copy-cmd-word::after { content: "( " attr(data-text) " )"; visibility: hidden; }
 .copy-cmd-word > span::before { content: "("; margin-inline-end: 0.3em; display: inline-block; transition: translate var(--ot-allegro) var(--ot-spiccato); }
 .copy-cmd-word > span::after { content: ")"; margin-inline-start: 0.3em; display: inline-block; transition: translate var(--ot-allegro) var(--ot-spiccato); }
-.copy-cmd:hover .copy-cmd-word > span::before { translate: -0.12em 0; }
-.copy-cmd:hover .copy-cmd-word > span::after { translate: 0.12em 0; }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-word > span::before { translate: -0.12em 0; }
+.copy-cmd:is(:hover, :focus-visible) .copy-cmd-word > span::after { translate: 0.12em 0; }
+/* Pressed, the parentheses close on the word. */
+.copy-cmd:active .copy-cmd-word > span::before { translate: 0.08em 0; transition-duration: var(--ot-arpeggio); }
+.copy-cmd:active .copy-cmd-word > span::after { translate: -0.08em 0; transition-duration: var(--ot-arpeggio); }
 .copy-cmd[data-copied] .copy-cmd-word { color: var(--ot-accent); font-family: var(--ot-expression); font-style: italic; }
-
-/* ── passages: each hangs under its rule and keeps its silence for the end (DESIGN.md "Space, line, shape": 40, 60, 135) ── */
-.passage { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; padding-block: var(--ot-space-6) var(--ot-space-9); border-top: var(--ot-hairline) solid var(--ot-rule); }
-/* The first passage after the hero begins in silence alone. */
-.hero + .passage { border-top: 0; padding-top: var(--ot-space-8); }
-.passage-margin { display: grid; gap: var(--ot-space-4); padding-top: 0.55em; }
-.passage-mark { font-family: var(--ot-expression); font-style: italic; font-weight: 600; font-size: var(--ot-mf); line-height: 1; letter-spacing: -0.02em; color: var(--ot-pencil); }
-.passage-mark abbr { text-decoration: none; cursor: help; }
-.passage-note { max-width: 28ch; font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); text-wrap: pretty; }
-.passage-title { position: relative; max-width: 16em; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 150px); line-height: var(--ot-ff-lh); letter-spacing: var(--ot-ff-tr); font-weight: 300; color: var(--ot-ink); text-wrap: balance; }
-.passage-line { position: absolute; display: block; width: max-content; overflow: clip; pointer-events: none; line-height: 1; }
-.passage-line > span { display: block; white-space: pre; }
-.passage-body { margin-top: var(--ot-space-7); display: grid; justify-items: start; row-gap: var(--ot-space-7); }
-.passage-body > * { max-width: 100%; }
-.passage-wide { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; margin-top: var(--ot-space-7); }
-
-/* ── the pieces: every name as one wall of type, by movement; beside it, the stage ── */
-.pieces { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: start; }
-.pieces-lead { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; color: var(--ot-rule-strong); }
-.pieces-lead path { fill: none; stroke: currentColor; stroke-width: var(--ot-hairline); }
-.pieces-wall { grid-column: 1 / 6; display: grid; row-gap: var(--ot-space-4); font-size: clamp(var(--ot-mp), calc(2.05 * var(--site-vw)), 60px); line-height: 1.28; letter-spacing: -0.012em; font-weight: 300; color: var(--ot-pencil); }
-.pieces-movement { text-wrap: pretty; }
-/* A movement's name runs in ahead of its pieces, small, as a programme sets it. */
-.pieces-move { display: inline; margin-inline-end: 0.5em; font-size: var(--ot-pp); line-height: 1; letter-spacing: 0.01em; font-weight: 400; color: var(--ot-pencil); vertical-align: 0.9em; white-space: nowrap; }
-.pieces-num { font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1.15em); color: var(--ot-ink); }
-.pieces-names { display: inline; margin: 0; padding: 0; list-style: none; }
-.pieces-names > li { display: inline; }
-.pieces-name { position: relative; padding-inline-end: 0.45em; white-space: nowrap; color: inherit; text-decoration: none; transition: color var(--ot-allegro); }
-.pieces-name:hover, .pieces-name:focus-visible { color: var(--ot-ink); }
-.pieces-name[data-current] { color: var(--ot-ink); text-decoration: underline; text-decoration-thickness: var(--ot-hairline); text-underline-offset: 0.18em; }
-.pieces-name:focus-visible { outline: var(--ot-hairline) solid var(--ot-ink); outline-offset: 4px; }
-/* The one accent belongs to the name being read, next to its ink. */
-.pieces-name::after { content: ""; position: absolute; inset-inline-end: 0.04em; inset-block-start: 0.45em; width: var(--ot-dot); height: var(--ot-dot); border-radius: 50%; background: var(--ot-accent); scale: 0; transition: scale var(--ot-allegro) var(--ot-exhale); }
-.pieces-name[data-current]::after { scale: 1; }
-.pieces-n { margin-inline-start: 0.15em; font-size: 0.34em; letter-spacing: 0; font-variant-numeric: tabular-nums; vertical-align: 1.5em; line-height: 0; color: var(--ot-pencil); }
-
-.pieces-stage { grid-column: 6 / -1; position: sticky; top: calc(var(--bar) + var(--ot-space-6)); display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-4); }
-.pieces-where { display: flex; align-items: baseline; gap: var(--ot-space-4); font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
-.pieces-where::after { content: ""; order: 1; flex: 1; height: var(--ot-hairline); background: var(--ot-rule-strong); align-self: center; }
-.pieces-where > :last-child { order: 2; }
-.pieces-where-num { font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-ink); }
-.pieces-count { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; color: var(--ot-ink); }
-.pieces-of { color: var(--ot-pencil); }
-.pieces-title { overflow: clip; white-space: nowrap; font-size: clamp(var(--ot-mf), calc(3 * var(--site-vw)), 92px); line-height: 1.2; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
-.pieces-title > span { display: block; animation: pieces-cut var(--ot-allegro) var(--ot-exhale); }
-.pieces-where-name { display: inline-block; }
-@keyframes pieces-cut { from { transform: translateY(105%); } to { transform: translateY(0); } }
-/* The accent stays at the selected name. The specimens retain their full ink/pencil hierarchy. */
-.pieces-preview { --ot-accent: var(--ot-ink); --ot-mark: var(--ot-rule); --ot-on-mark: var(--ot-ink); --ot-signal: var(--ot-ink); --ot-andante: var(--ot-moderato); --ot-corner: var(--ot-space-3); position: relative; height: clamp(26rem, 58svh, 44rem); padding: var(--ot-space-4); overflow: clip; isolation: isolate; }
-.pieces-preview-scale { position: absolute; top: 50%; left: 50%; width: var(--preview-width); transform: translate(-50%, -50%) scale(var(--preview-scale, 0.5)); transform-origin: center; }
-.pieces-preview-demo { display: grid; justify-items: center; }
-.pieces-preview-demo > :is(.grid, .flex) { width: 100%; max-width: none; gap: var(--ot-space-5); }
-.pieces-preview-demo > .grid { grid-template-columns: repeat(var(--preview-columns), minmax(0, 1fr)); align-items: center; justify-items: stretch; }
-.pieces-preview-demo > .grid > * { min-width: 0; max-width: 100%; grid-column: auto; }
-.pieces-preview-demo > .grid > .grid { width: 100%; gap: var(--ot-space-3); margin-block: 0; }
-.pieces-preview-demo > .grid > p:not([class*="ot-"]) { grid-column: 1 / -1; }
-.pieces-preview-demo > .flex { justify-content: center; }
-.pieces-preview-demo > .grid > .flex { justify-content: center; gap: var(--ot-space-5); }
-.pieces-preview-scale[data-piece="calendar"] .pieces-preview-demo > .grid > .grid { align-self: start; }
-.pieces-preview-scale[data-piece="calendar"] .ot-month { --big: 90px; width: 100%; gap: var(--ot-space-4); }
-.pieces-preview-scale[data-piece="calendar"] .ot-month-head { row-gap: var(--ot-space-4); }
-.pieces-preview-scale[data-piece="button"] .pieces-preview-demo > .grid > .grid { justify-items: center; }
-.pieces-preview-scale[data-piece="button"] .ot-btn[data-variant="space"] { width: 100%; }
-.pieces-preview-scale[data-pinned] .pieces-preview-demo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ot-space-5); align-items: center; }
-.pieces-preview-scale[data-pinned] .state { width: 100%; min-width: 0; }
-.pieces-preview-demo .grid:is([class*="sm:grid-cols-2"], [class*="md:grid-cols-2"], [class*="lg:grid-cols-2"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-demo .grid:is([class*="sm:grid-cols-3"], [class*="md:grid-cols-3"]) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="sidebar"] .pieces-preview-demo > .grid { grid-template-columns: auto minmax(0, 1fr); }
-.pieces-preview-scale[data-piece="contour"] .pieces-preview-demo > .grid > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="tiling"] .pieces-preview-demo > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pieces-preview-scale[data-piece="agent-state"] .pieces-preview-demo > .grid { justify-items: center; }
-.pieces-preview-scale[data-piece="tabs"] .pieces-preview-demo > .grid > .grid:last-child { grid-column: 1 / -1; }
-.pieces-preview-scale[data-piece="steps"] .ot-steps[data-variant="rise"] { grid-auto-flow: column; }
-.pieces-preview-scale[data-piece="activity-feed"] .ot-feed-date { font-size: var(--ot-f); }
-.pieces-preview-scale[data-piece="waterfall"] { --ot-ffff: 120px; --ot-fff: 80px; --ot-ff: 60px; }
-.pieces-loading { color: var(--ot-pencil); font-size: var(--ot-p); }
-@media (prefers-reduced-motion: reduce) { .pieces-title > span { animation: none; } }
-@media (forced-colors: active) { .pieces-name[data-current]::after { background: Highlight; } }
-.pieces-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; height: calc(3 * var(--ot-p-lh) * var(--ot-p)); font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
-.pieces-actions { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--ot-space-6); row-gap: var(--ot-space-3); font-size: var(--ot-p); }
-.pieces-more { margin-top: var(--ot-space-6); font-size: var(--ot-p); line-height: var(--ot-p-lh); letter-spacing: 0; color: var(--ot-graphite); }
 
 /* Share: words on a hairline, like a link; it answers with "Link copied" in the accent. */
 .share { margin: 0; padding: 0 0 0.12em; border: 0; background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 100% var(--ot-hairline); font: inherit; color: var(--ot-ink); cursor: pointer; transition: background-size var(--ot-moderato) var(--ot-breath); }
 .share:hover { background-size: 100% var(--ot-stroke); }
 .share[data-copied] { color: var(--ot-accent); font-family: var(--ot-expression); font-style: italic; }
 
-/* ── less, on purpose: what 0nlyType leaves out, struck through ── */
-.left-out.ot-checklist { display: flex; flex-wrap: wrap; column-gap: 0.55em; row-gap: 0; font-size: clamp(var(--ot-ff), calc(5.2 * var(--site-vw)), 150px); line-height: 1.12; letter-spacing: var(--ot-ff-tr); }
-.left-out + .ot-tally { margin-top: var(--ot-space-6); font-size: var(--ot-mp); }
-
-/* ── one sentence retunes the page: its words are the settings ── */
-.tune-sentence { max-width: 22em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: 1.3; letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); text-wrap: pretty; }
-.tune-sentence .ot-select, .tune-sentence .ot-switch { font-size: inherit; line-height: inherit; color: inherit; }
-.tune-key select { color: var(--ot-accent); }
-.tune-bind { white-space: nowrap; }
-.tune-sentence :is(.ot-select-box, .ot-mode .ot-mode-art)::after { color: var(--ot-accent); }
-
-/* ── install, and ask ── */
-.install-line { width: min(100%, 48rem); }
-.install-then { font-size: var(--ot-mp); line-height: var(--ot-mp-lh); color: var(--ot-ink); }
-.install-links { font-size: var(--ot-p); }
-.ask-steps { display: grid; row-gap: var(--ot-space-7); width: 100%; margin: 0; padding: 0; list-style: none; counter-reset: ask; }
-.ask-steps > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); counter-increment: ask; }
-.ask-step { font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-ink); }
-.ask-step::before { content: counter(ask) "  "; white-space: pre; font-family: var(--ot-expression); font-style: italic; font-size: calc(var(--ot-expression-scale) * 1em); color: var(--ot-pencil); }
-/* Yours in italic: the blank is part of the sentence, at the sentence's size. */
-.ask { display: grid; justify-items: start; row-gap: var(--ot-space-5); }
-.ask-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3em; font-size: clamp(var(--ot-f), calc(3.6 * var(--site-vw)), 104px); line-height: var(--ot-f-lh); letter-spacing: var(--ot-f-tr); font-weight: 300; color: var(--ot-ink); }
-.ask-fill { display: inline-flex; max-width: 100%; }
-.ask .ask-what { width: auto; min-width: 4ch; max-width: 100%; field-sizing: content; padding-block: 0 0.08em; font-size: calc(var(--ot-expression-scale) * 1em); letter-spacing: 0; }
-.ask .ask-what::placeholder { font-size: 1em; font-family: var(--ot-expression); font-style: italic; }
-
-/* ── make some noise: your words, set huge, and the same words running loud around them ── */
-.toy { grid-column: 1 / -1; position: relative; isolation: isolate; container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr); row-gap: var(--ot-space-8); padding-block: var(--ot-space-7) var(--ot-space-6); }
-.toy-noise { position: absolute; z-index: -1; inset-block: 0; left: 50%; width: 100vw; height: 100%; translate: -50% 0; pointer-events: none; color: var(--ot-ink); }
-/* Yours in italic. Its box keeps room for the loudest setting, so turning it down never moves what's below. */
-.toy-say { display: grid; max-width: 13em; font-family: var(--ot-expression); font-style: italic; font-size: clamp(var(--ot-ff), 10cqi, 280px); line-height: 0.95; letter-spacing: -0.02em; font-weight: 400; color: var(--ot-ink); overflow-wrap: anywhere; text-wrap: balance; }
-.toy-say > span, .toy-say::after { grid-area: 1 / 1; }
-.toy-say::after { content: attr(data-text); font-weight: 800; visibility: hidden; }
-.toy-say > span { transition: font-weight var(--ot-adagio) var(--ot-exhale); }
-.toy:not([data-quiet]) .toy-say > span { font-weight: 800; transition-duration: var(--ot-allegro); }
-.toy-controls { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--ot-gutter); row-gap: var(--ot-space-6); align-items: end; }
-.toy-field { grid-column: 1 / 6; display: grid; row-gap: var(--ot-space-2); }
-.toy-label { font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-graphite); }
-.toy .toy-input { font-size: var(--ot-mp); }
-.toy-reading { grid-column: 6 / 9; justify-self: end; }
-.toy-meter { font-size: clamp(var(--ot-f), 4.4cqi, 120px); line-height: 1; font-weight: 200; font-stretch: 112%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ot-ink); }
-.toy-actions { grid-column: 9 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: end; column-gap: var(--ot-space-6); row-gap: var(--ot-space-3); font-size: var(--ot-p); }
-/* The pointer's pause in the noise, drawn: a hairline ring with one word in it. Inside the ring it is quiet, your
-   words too (landing-noise writes --x, --y and --r). While it shows, it is the pointer; over a control, the control's own. */
-.toy-ring { position: absolute; z-index: 1; top: 0; left: 0; width: calc(2 * var(--r, 0px)); aspect-ratio: 1; translate: calc(var(--x, 0px) - var(--r, 0px)) calc(var(--y, 0px) - var(--r, 0px)); display: grid; place-items: center; border: var(--ot-hairline) solid var(--ot-ink); border-radius: 50%; pointer-events: none; visibility: hidden; }
-.toy[data-ring] .toy-ring { visibility: visible; }
-.toy-ring-say { font-size: var(--ot-p); line-height: 1; white-space: nowrap; color: var(--ot-ink); }
-.toy-ring-stop, .places-stop { color: var(--ot-accent); }
-.toy[data-held] .toy-ring-say { visibility: hidden; }
-.toy[data-ring] .toy-say { mask-image: radial-gradient(circle var(--r) at var(--x) calc(var(--y) - var(--ot-space-7)), transparent 100%, #000 100%); }
-.toy[data-ring]:not([data-held]) { cursor: none; }
-.toy :is(.toy-controls, .places) { cursor: auto; }
-/* Pass it on: what happened, then where to send it, in words. In the noise the ring stops and opens, and they stand in it. */
+/* Pass it on: what happened, then where to send it, in words. */
 .places { font-size: var(--ot-p); line-height: 1.3; color: var(--ot-ink); transition: opacity var(--ot-moderato) var(--ot-exhale) var(--ot-allegro); }
 .places:not([data-open]) { visibility: hidden; opacity: 0; transition: none; }
 .places-list { margin: 0; padding: 0; list-style: none; }
 .places-more { margin: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-decoration: underline var(--ot-hairline) var(--ot-rule); text-underline-offset: 0.2em; }
 .places-more:is(:hover, :focus-visible) { text-decoration-color: currentColor; }
-.toy-places { --hold: clamp(8.5rem, 13cqi, 14rem); position: absolute; z-index: 1; top: 0; left: 0; width: calc(2 * var(--hold)); aspect-ratio: 1; translate: calc(var(--hx, 0px) - 50%) calc(var(--hy, 0px) - 50%); display: grid; place-content: center; justify-items: center; row-gap: var(--ot-space-3); text-align: center; }
-.toy-places .places-list { display: grid; justify-items: center; line-height: max(1.5em, 24px); }
 .places-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-2) var(--ot-space-4); max-width: 44ch; }
 .places-line .places-list { display: flex; flex-wrap: wrap; gap: var(--ot-space-2) var(--ot-space-4); }
 /* Help build it: the places take the note's place, and the cell keeps room for both, so opening moves nothing. */
@@ -224,50 +405,30 @@ html[data-overture-at] .hero .hero-skip { display: inline-flex; }
 .share-swap[data-open] > .help-note { visibility: hidden; }
 
 
-/* ── help build it: three calls, each with its reason ── */
-.help-list { display: grid; row-gap: var(--ot-space-7); margin: 0; padding: 0; list-style: none; }
-.help-list > li { display: grid; justify-items: start; row-gap: var(--ot-space-3); }
-.help-note { max-width: 44ch; font-size: var(--ot-p); line-height: var(--ot-p-lh); color: var(--ot-graphite); }
 
-/* ── the coda: the last call, then the echo into silence ── */
-.coda { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--ot-space-7); padding-block: var(--ot-space-9) var(--ot-space-8); }
-.coda > * { grid-column: 4 / -1; }
-.coda-title { max-width: 12em; font-size: clamp(var(--ot-ff), calc(7.4 * var(--site-vw)), 220px); line-height: 0.9; letter-spacing: -0.045em; font-weight: 250; color: var(--ot-ink); text-wrap: balance; }
-.coda-actions { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-6); }
-.landing .fine { margin-block: var(--ot-space-7) 0; font-family: var(--ot-expression); font-style: italic; font-size: var(--ot-mf); line-height: 1; color: var(--ot-graphite); }
+
 .landing-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ot-space-3) var(--ot-space-6); padding-block: var(--ot-space-6) var(--ot-space-7); border-top: var(--ot-hairline) solid var(--ot-rule); font-size: var(--ot-pp); line-height: var(--ot-pp-lh); color: var(--ot-pencil); }
 
-@media (max-width: 1100px) {
-  .hero-promise, .hero-level { grid-column: 1 / 7; }
-}
 @media (max-width: 860px) {
-  .passage > *, .coda > * { grid-column: 1 / -1; }
-  .passage-margin { margin-bottom: var(--ot-space-5); padding-top: 0; }
-  .passage { padding-block: var(--ot-space-5) var(--ot-space-8); }
-  .hero-foot > * { grid-column: 1 / -1; grid-row: auto; }
-  .toy-controls > * { grid-column: 1 / -1; justify-self: start; }
-  .toy-actions { justify-content: start; }
-  /* The stage stands at the top of the view and the wall scrolls under it; the name crossing the playhead plays. */
-  .pieces-lead { display: none; }
-  .pieces { grid-template-columns: minmax(0, 1fr); }
-  .pieces-stage { grid-column: 1; grid-row: 1; z-index: 2; top: var(--bar); margin-inline: calc(-1 * var(--ot-margin)); padding: var(--ot-space-4) var(--ot-margin) var(--ot-space-5); background: var(--ot-paper); box-shadow: inset 0 calc(-1 * var(--ot-hairline)) var(--ot-rule); row-gap: var(--ot-space-3); }
-  .pieces-wall { grid-column: 1; grid-row: 2; margin-top: var(--ot-space-7); padding-bottom: 30svh; font-size: var(--ot-mp); }
-  .pieces-preview { height: clamp(17rem, 40svh, 22rem); padding: var(--ot-space-3); }
-  .pieces-summary { -webkit-line-clamp: 2; height: calc(2 * var(--ot-p-lh) * var(--ot-pp)); font-size: var(--ot-pp); }
+  .sec > *, .coda > * { grid-column: 1 / -1; }
+  /* One column: the margin and the stave give their parts to the section's grid, so the note follows the title. */
+  .sec > :is(.sec-margin, .stave) { display: contents; }
+  .sec :is(.sec-label, .sec-title, .sec-note, .sec-body) { grid-column: 1 / -1; }
+  .sec-label { margin-bottom: var(--ot-space-6); grid-template-columns: auto 1fr; column-gap: var(--ot-space-4); align-items: last baseline; }
+  .sec-num { font-size: var(--ot-ff); }
+  .sec-name { margin-top: 0; }
+  .sec-title { order: 1; }
+  .sec-note { order: 2; max-width: 40ch; margin-top: var(--ot-space-4); font-size: var(--ot-p); line-height: var(--ot-p-lh); }
+  .sec-body { order: 3; }
+  .sec-wide { order: 4; }
+  .sec { padding-block: var(--ot-space-6) var(--ot-space-8); }
 }
-/* A phone: the headline stacks a word to a line, the way "Less / is / more." stands. */
-@container (max-width: 560px) {
-  .toy-places { font-size: var(--ot-pp); }
-  .hero-word { display: block; }
-  .hero-line[data-line="quiet"] .hero-word { display: grid; justify-content: start; }
-  .hero-title { font-size: min(26cqi, 22svh); line-height: 0.82; }
-  .cta[data-size="l"] { font-size: min(var(--ot-f), 14cqi); }
+@media (max-width: 760px) {
+  /* The page rail's label stands at the right edge on every width; on a phone the text keeps clear of it. */
+  .sec, .coda, .landing-foot { padding-inline-end: 28px; }
 }
 @media (max-width: 560px) {
-  .left-out.ot-checklist, .passage-title { font-size: var(--ot-f); line-height: var(--ot-f-lh); }
-  .tune-sentence, .ask-line { font-size: min(var(--ot-mf), 8vw); }
+  .sec-title { font-size: var(--ot-f); line-height: var(--ot-f-lh); }
   .cta { font-size: min(var(--ot-f), 12vw); }
-  .help-list .cta { font-size: min(var(--ot-f), 8.4vw); }
-  .coda-title { font-size: var(--ot-f); }
   .copy-cmd-text { font-size: var(--ot-p); }
 }
