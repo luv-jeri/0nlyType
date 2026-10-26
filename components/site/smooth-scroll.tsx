@@ -32,7 +32,7 @@ export function SmoothScroll() {
     const anchor = (event: MouseEvent) => {
       if (!scroller || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
       const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null
-      if (!link || link.hasAttribute("target") || link.hasAttribute("download")) return
+      if (!link || link.hasAttribute("target") || link.hasAttribute("download") || link.closest("[data-lenis-prevent]")) return
       const url = new URL(link.href, location.href)
       if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search || !url.hash) return
       let id: string
@@ -46,8 +46,8 @@ export function SmoothScroll() {
         target.focus({ preventScroll: true })
       } })
     }
-    // Capture before a framework link can start its own hash navigation. Until Lenis loads, leave it native.
-    document.addEventListener("click", anchor, true)
+    // React's root handlers run first, so components can preventDefault and keep ownership of their links.
+    document.addEventListener("click", anchor)
     const events = ["wheel", "pointerdown", "keydown"] as const
     events.forEach((event) => addEventListener(event, start, { passive: true }))
     const stop = () => {
@@ -62,7 +62,7 @@ export function SmoothScroll() {
     return () => {
       gone = true
       if (window.__otScrollTo === scrollPageTo) window.__otScrollTo = previousScrollTo
-      document.removeEventListener("click", anchor, true)
+      document.removeEventListener("click", anchor)
       events.forEach((event) => removeEventListener(event, start))
       still.removeEventListener("change", stop)
       scroller?.destroy()
