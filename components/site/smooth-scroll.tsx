@@ -24,9 +24,28 @@ export function SmoothScroll() {
       import("lenis").then(({ default: Lenis }) => {
         if (gone || still.matches) { requested = false; return }
         // Lenis 1.3.26 reads scroll-padding and scroll-margin itself; adding the old -96 offset would count it twice.
-        scroller = new Lenis({ autoRaf: true, anchors: true })
+        scroller = new Lenis({ autoRaf: true, anchors: false })
       }).catch(() => { requested = false })
     }
+    const anchor = (event: MouseEvent) => {
+      if (!scroller || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null
+      if (!link || link.hasAttribute("target") || link.hasAttribute("download")) return
+      const url = new URL(link.href, location.href)
+      if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search || !url.hash) return
+      let id: string
+      try { id = decodeURIComponent(url.hash.slice(1)) } catch { return }
+      const target = document.getElementById(id)
+      if (!target) return
+      event.preventDefault()
+      history.pushState(history.state, "", url.hash)
+      scroller.scrollTo(target, { onComplete: () => {
+        if (target.tabIndex < 0 && !target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1")
+        target.focus({ preventScroll: true })
+      } })
+    }
+    // Capture before a framework link can start its own hash navigation. Until Lenis loads, leave it native.
+    document.addEventListener("click", anchor, true)
     const events = ["wheel", "pointerdown", "keydown"] as const
     events.forEach((event) => addEventListener(event, start, { passive: true }))
     const stop = () => {
@@ -40,6 +59,7 @@ export function SmoothScroll() {
     still.addEventListener("change", stop)
     return () => {
       gone = true
+      document.removeEventListener("click", anchor, true)
       events.forEach((event) => removeEventListener(event, start))
       still.removeEventListener("change", stop)
       scroller?.destroy()
