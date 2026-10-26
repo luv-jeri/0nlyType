@@ -1,9 +1,8 @@
-"use client"
-
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/registry/0nlytype/lib/utils"
+import { PaginationBarcode } from "@/registry/0nlytype/ui/pagination-barcode"
 
 /** Numbers with a dot beneath each; the current page's dot is the accent. Pair it with paginationRange for long runs. */
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
@@ -19,30 +18,8 @@ type PaginationContentProps = React.ComponentProps<"ul"> & {
 }
 
 function PaginationContent({ className, variant = "numbers", ref, children, ...props }: PaginationContentProps) {
-  const list = React.useRef<HTMLUListElement>(null)
-  React.useImperativeHandle(ref, () => list.current!, [])
-
-  React.useEffect(() => {
-    if (variant !== "barcode") return
-    const nav = list.current?.closest("nav")
-    if (!nav) return
-    const reveal = () => {
-      const current = list.current?.querySelector<HTMLElement>('[aria-current="page"]')
-      if (!current) return
-      const target = current.getBoundingClientRect()
-      const left = nav.getBoundingClientRect().left + nav.clientLeft
-      const right = left + nav.clientWidth
-      // Move only this scroller horizontally, never the page or its ancestors.
-      const delta = target.left < left ? target.left - left : target.right > right ? target.right - right : 0
-      if (delta) nav.scrollBy({ left: delta, behavior: "instant" })
-    }
-    reveal()
-    const resize = new ResizeObserver(reveal)
-    resize.observe(nav)
-    return () => resize.disconnect()
-  }, [variant, children])
-
-  return <ul ref={list} data-slot="pagination-content" data-variant={variant} className={cn("ot-pager", className)} {...props}>{children}</ul>
+  const Comp = variant === "barcode" ? PaginationBarcode : "ul"
+  return <Comp ref={ref} data-slot="pagination-content" data-variant={variant} className={cn("ot-pager", className)} {...props}>{children}</Comp>
 }
 
 /**

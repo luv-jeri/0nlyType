@@ -627,6 +627,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "registry/0nlytype/ui/pagination-barcode.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "registry/0nlytype/styles/pagination.css",
           "type": "registry:file",
           "target": "styles/0nlytype/pagination.css"

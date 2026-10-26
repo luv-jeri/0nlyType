@@ -23,7 +23,7 @@ for (const item of items) {
   if (!contracts.get(item.contract)?.has(item.name))
     fail("every item has ui, content, example and a DESIGN.md contract", `${item.name}: DESIGN.md has no "### ${item.contract} (${item.name})" heading`)
 }
-const named = new Set(items.map((i) => i.name))
+const named = new Set(items.flatMap((i) => [i.name, ...(i.parts ?? [])]))
 for (const f of readdirSync(`${SOURCE}/ui`)) if (!named.has(path.basename(f, ".tsx")))
   fail("every item has ui, content, example and a DESIGN.md contract", `${SOURCE}/ui/${f} has no content/${path.basename(f, ".tsx")}.ts`)
 

@@ -70,7 +70,9 @@ const items = metas.map((m) => ({
   description: m.summary,
   registryDependencies: [url("0nlytype"), ...m.siblings.map(url)],
   ...(m.npm.length ? { dependencies: m.npm } : {}),
-  files: [{ path: m.ui, type: "registry:ui" }, ...(m.css ? [style(m.name)] : []),
+  files: [{ path: m.ui, type: "registry:ui" },
+    ...(m.parts ?? []).map((name) => ({ path: `${SOURCE}/ui/${name}.tsx`, type: "registry:ui" })),
+    ...(m.css ? [style(m.name)] : []),
     // The signs' drawings come from Lucide (ISC): the primitive every sign installs carries the notice.
     ...(m.name === "sign" ? [{ path: "ICON-NOTICES.md", type: "registry:file", target: "styles/0nlytype/ICON-NOTICES.md" }] : [])],
   ...(m.css ? { css: imports(m.name) } : {}),

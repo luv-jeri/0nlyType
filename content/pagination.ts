@@ -7,6 +7,7 @@ export default defineComponent({
   contract: "ot-pager",
   summary: "Numbers with a dot beneath each, weight falling away from the current page and its accent dot; or a folio, the page over its total; the neighbours, by name; every page as a barcode's line; or an alphabet set as one word.",
   underneath: "native",
+  parts: ["pagination-barcode"],
   props: [
     { name: "PaginationContent variant", type: '"numbers" | "folio" | "neighbours" | "barcode" | "thumb"', default: '"numbers"', description: "numbers: every page shown, a dot under each; on a phone the steps keep only their arrows. folio: the current page over the total, arrows either side. neighbours: the pages either side by name, at the two ends of the line, each hung on a hairline arrow. barcode: every page a hairline, behind you in ink, ahead in pencil, yours tall in the accent with its number above. thumb: letters instead of pages, the alphabet set as one heavy word with the current letter reversed out." },
     { name: "paginationRange(current, total, siblings?)", type: '(number | "gap")[]', default: "siblings 1", description: "The pages to show for a long run: the ends, the current page and its siblings, and \"gap\" where pages are left out. Always the same number of slots, so nothing beside the pager moves as you page." },

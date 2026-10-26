@@ -15,6 +15,8 @@ export type ComponentMeta = {
   props: Prop[]
   /** Siblings whose classes or keyframes this item's CSS relies on without importing them. */
   uses?: string[]
+  /** Additional UI modules installed as part of this item, without separate registry entries. */
+  parts?: string[]
 }
 
 export const defineComponent = (meta: ComponentMeta) => meta

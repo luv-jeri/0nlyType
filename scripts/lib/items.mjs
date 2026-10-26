@@ -55,13 +55,15 @@ export async function readItems(root = ".") {
     const ui = path.join(root, SOURCE, "ui", `${meta.name}.tsx`)
     const css = path.join(root, SOURCE, "styles", `${meta.name}.css`)
     if (!existsSync(ui)) throw new Error(`${meta.name}: missing ${ui}`)
-    const deps = deriveDeps(readFileSync(ui, "utf8"))
+    const parts = meta.parts ?? []
+    const deps = deriveDeps([ui, ...parts.map((name) => path.join(root, SOURCE, "ui", `${name}.tsx`))]
+      .map((file) => readFileSync(file, "utf8")).join("\n"))
     metas.push({
       ...meta,
       ui,
       css: existsSync(css) ? css : null,
       npm: deps.npm,
-      siblings: [...new Set([...deps.siblings, ...(meta.uses ?? [])])].sort(),
+      siblings: [...new Set([...deps.siblings, ...(meta.uses ?? [])])].filter((name) => !parts.includes(name)).sort(),
       order: fenceOrder.get(meta.contract) ?? Infinity,
     })
   }
