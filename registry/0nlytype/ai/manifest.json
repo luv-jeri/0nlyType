@@ -2,13 +2,13 @@
   "version": "0.1.0",
   "sources": {
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "e663208d8386c19fb1c2ab38db0ef09d50314349c54507c0f61b63a99972915e"
+    "DESIGN.md": "e11442d43b5d2cfcf6276bae9db5f20e80508a68388b0111cf93a2239ef80151"
   },
   "files": {
     "AGENTS.md": "4f0be791d303fa4f283e867f210ec3a4b48f041ecae6ead63ea4022414da030c",
     "docs/AGENTS.md": "021d8a0711100ab41843e12d00041488edbf2c5f5602b85600f5695fa3ef57ff",
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "e663208d8386c19fb1c2ab38db0ef09d50314349c54507c0f61b63a99972915e",
+    "DESIGN.md": "e11442d43b5d2cfcf6276bae9db5f20e80508a68388b0111cf93a2239ef80151",
     "DESIGN-core.md": "d8805567967b36896ffd3202e03c2e16cd9c3f838ba102b34c882e6a70b2195f",
     "components/link.md": "24eff267d16966dfffe3ab52d1db40a976ad7154129d0b2a074e44721c00e8fe",
     "components/meta.md": "ef5a3495f84051b5e075ed0b3637eccca3ce18cdf2ca99561b7b493851145ddf",
@@ -26,7 +26,7 @@
     "components/field.md": "7de39ced66ddb87b6dd9105d05dcdec7fe07f13d3bb91d091d543753efaa6a71",
     "components/select.md": "1ea63a9b9f9cdfd323c029b470220a1510be256cf328de2b137ea87936287704",
     "components/tabs.md": "e23f4ee8e411d1712f9d3d300ef5944cb2103eb8a4a8bbd9baa1d02f266a3f07",
-    "components/pagination.md": "a65ca036a17ab8a386ae45bbc9b4db6de81173e0d614a5055cabab0a260535e5",
+    "components/pagination.md": "5a8a5d49bb9a18c80d18015b1a18a571f7157ea59bb03012869c7dea7a29c6c2",
     "components/breadcrumb.md": "fdd464e1e615b16bec1e4f6ca53d46b5c6397d7262f5fd37be7c2487cf952e14",
     "components/accordion.md": "abd773c71f3147b684397648958b354b3f10901882d10ddadcd91906b5e4d3b9",
     "components/rows.md": "1805144dfede6874d14aec570a2d15e158da61ee21140d20820ad7a08b26b90a",

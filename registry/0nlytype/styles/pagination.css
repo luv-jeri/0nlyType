@@ -7,6 +7,7 @@
     position: relative; display: inline-block; padding: 0 7px var(--ot-space-3); color: var(--ot-pencil); text-decoration: none; cursor: pointer;
     font-weight: 200; transition: color var(--ot-allegro), font-weight var(--ot-moderato) var(--ot-breath);
   }
+  .ot-pager[data-variant="numbers"] :is(a[data-slot="pagination-link"], .ot-pager-step) { min-width: 24px; text-align: center; }
   .ot-pager a[data-slot="pagination-link"]::after {
     content: ""; position: absolute; inset-inline-start: 50%; inset-block-end: 0; translate: -50% 0;
     width: 3px; height: 3px; border-radius: 50%; background: var(--ot-rule-strong);
@@ -28,7 +29,7 @@
   :is([dir="rtl"], [dir="rtl"] *) [data-slot="pagination-previous"]::before { content: "→ " / ""; }
   :is([dir="rtl"], [dir="rtl"] *) [data-slot="pagination-next"]::after { content: " ←" / ""; }
   /* As wide as a two-digit page, so paging past a gap moves nothing beside it. */
-  .ot-pager-gap { display: inline-block; min-width: 2ch; padding: 0 0 var(--ot-space-3); text-align: center; color: var(--ot-pencil); font-weight: 200; }
+  .ot-pager-gap { display: inline-block; min-width: calc(2ch + 14px); padding: 0 7px var(--ot-space-3); text-align: center; color: var(--ot-pencil); font-weight: 200; }
 
   /* ── folio ── the current page over the total, as a book sets its folio: the number stands in ink on its accent dot,
      a leaning hairline, then the total small and upright, a little wide. The steps are arrows alone; their words stay for screen readers. */
@@ -45,7 +46,7 @@
   .ot-pager[data-variant="folio"] .ot-pager-step::before, .ot-pager[data-variant="folio"] .ot-pager-step::after { font-size: var(--ot-mp); }
   /* On a phone the numbers keep one line: a size down, closer, and the steps give up their words as the folio's do. */
   @media (max-width: 40rem) {
-    .ot-pager[data-variant="numbers"]:has([data-slot="pagination-link"]) { gap: var(--ot-space-3); font-size: var(--ot-p); line-height: var(--ot-p-lh); }
+    .ot-pager[data-variant="numbers"]:has([data-slot="pagination-link"]) { gap: var(--ot-space-1); font-size: var(--ot-p); line-height: var(--ot-p-lh); }
     .ot-pager[data-variant="numbers"]:has([data-slot="pagination-link"]) .ot-pager-step { font-size: 0; padding-inline: var(--ot-space-1); }
     .ot-pager[data-variant="numbers"]:has([data-slot="pagination-link"]) .ot-pager-step::before, .ot-pager[data-variant="numbers"]:has([data-slot="pagination-link"]) .ot-pager-step::after { font-size: var(--ot-p); }
   }
