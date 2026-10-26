@@ -1,9 +1,10 @@
 @layer components {
   /* ── ot-pager ── numbers; a dot under each, the current one in accent.
      The list is the pager; Previous and Next are words with a drawn arrow and no dot. */
-  .ot-pager { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--ot-space-5); font-size: var(--ot-mp); line-height: var(--ot-mp-lh); font-variant-numeric: tabular-nums; }
+  .ot-pager { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: calc(var(--ot-space-5) - 14px); font-size: var(--ot-mp); line-height: var(--ot-mp-lh); font-variant-numeric: tabular-nums; }
   .ot-pager a[data-slot="pagination-link"] {
-    position: relative; display: inline-block; padding: 0 0 var(--ot-space-3); color: var(--ot-pencil); text-decoration: none; cursor: pointer;
+    /* 7px either side takes a single figure to a 24px target (WCAG 2.5.8); the gap gives the same 14px back, so nothing moves. */
+    position: relative; display: inline-block; padding: 0 7px var(--ot-space-3); color: var(--ot-pencil); text-decoration: none; cursor: pointer;
     font-weight: 200; transition: color var(--ot-allegro), font-weight var(--ot-moderato) var(--ot-breath);
   }
   .ot-pager a[data-slot="pagination-link"]::after {
@@ -19,7 +20,7 @@
   .ot-pager a[data-slot="pagination-link"][aria-current="page"] { color: var(--ot-ink); font-weight: 600; }
   .ot-pager a[data-slot="pagination-link"][aria-current="page"]::after { width: 6px; height: 6px; background: var(--ot-accent); }
 
-  .ot-pager-step { display: inline-block; padding: 0 0 var(--ot-space-3); color: var(--ot-graphite); font-weight: 300; text-decoration: none; cursor: pointer; transition: color var(--ot-allegro); }
+  .ot-pager-step { display: inline-block; padding: 0 7px var(--ot-space-3); color: var(--ot-graphite); font-weight: 300; text-decoration: none; cursor: pointer; transition: color var(--ot-allegro); }
   a.ot-pager-step:is(:hover, [data-force~="hover"]) { color: var(--ot-ink); }
   .ot-pager-step[aria-disabled="true"] { color: var(--ot-rule-strong); cursor: default; }
   [data-slot="pagination-previous"]::before { content: "← " / ""; }

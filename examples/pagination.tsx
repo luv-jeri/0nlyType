@@ -46,7 +46,7 @@ function Numbers({ page, go, total }: Pager) {
         <PaginationItem><PaginationPrevious {...(page > 1 ? go(page - 1) : {})} /></PaginationItem>
         {paginationRange(page, total).map((n, i) => (
           <PaginationItem key={n === "gap" ? `gap-${i}` : n}>
-            {n === "gap" ? <PaginationEllipsis /> : <PaginationLink {...go(n)} aria-label={`Page ${n}`} isActive={n === page}>{pad(n)}</PaginationLink>}
+            {n === "gap" ? <PaginationEllipsis /> : <PaginationLink {...go(n)} aria-label={`Page ${pad(n)}`} isActive={n === page}>{pad(n)}</PaginationLink>}
           </PaginationItem>
         ))}
         <PaginationItem><PaginationNext {...(page < total ? go(page + 1) : {})} /></PaginationItem>
@@ -60,7 +60,7 @@ function Folio({ page, go, total }: Pager) {
     <Pagination aria-label="Pages, as a folio">
       <PaginationContent variant="folio">
         <PaginationItem><PaginationPrevious {...(page > 1 ? go(page - 1) : {})} /></PaginationItem>
-        <PaginationItem><PaginationLink {...go(page)} aria-label={`Page ${page} of ${total}`} isActive>{pad(page)}</PaginationLink></PaginationItem>
+        <PaginationItem><PaginationLink {...go(page)} aria-label={`Page ${pad(page)} of ${total}`} isActive>{pad(page)}</PaginationLink></PaginationItem>
         <PaginationItem aria-hidden="true">{pad(total)}</PaginationItem>
         <PaginationItem><PaginationNext {...(page < total ? go(page + 1) : {})} /></PaginationItem>
       </PaginationContent>
@@ -74,7 +74,7 @@ function Barcode({ page, go, total }: Pager) {
       <PaginationContent variant="barcode">
         <PaginationItem><PaginationPrevious {...(page > 1 ? go(page - 1) : {})} /></PaginationItem>
         {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
-          <PaginationItem key={n}><PaginationLink {...go(n)} aria-label={`Page ${n} of ${total}`} isActive={n === page}>{pad(n)}</PaginationLink></PaginationItem>
+          <PaginationItem key={n}><PaginationLink {...go(n)} aria-label={`Page ${pad(n)} of ${total}`} isActive={n === page}>{pad(n)}</PaginationLink></PaginationItem>
         ))}
         <PaginationItem><PaginationNext {...(page < total ? go(page + 1) : {})} /></PaginationItem>
       </PaginationContent>
@@ -166,7 +166,7 @@ function BarcodePointed() {
       <PaginationContent variant="barcode">
         <PaginationItem><PaginationPrevious href="?page=4" /></PaginationItem>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-          <PaginationItem key={n}><PaginationLink href={`?page=${n}`} aria-label={`Page ${n} of 12`} isActive={n === 5} data-force={n === 9 ? "hover" : undefined}>{pad(n)}</PaginationLink></PaginationItem>
+          <PaginationItem key={n}><PaginationLink href={`?page=${n}`} aria-label={`Page ${pad(n)} of 12`} isActive={n === 5} data-force={n === 9 ? "hover" : undefined}>{pad(n)}</PaginationLink></PaginationItem>
         ))}
         <PaginationItem><PaginationNext href="?page=6" /></PaginationItem>
       </PaginationContent>

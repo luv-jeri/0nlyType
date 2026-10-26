@@ -139,7 +139,7 @@ function PieChart({ data, label, unit, format = figures.format, variant = "ring"
         onBlur={(e) => !key.current?.contains(e.relatedTarget) && show(-1)}
       >
         {data.map((d, i) => (
-          <li key={d.label}>
+          <li key={d.label} role="none">
             <button
               type="button"
               tabIndex={i === Math.max(shown, 0) ? 0 : -1}

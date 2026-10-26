@@ -44,7 +44,7 @@ type PaginationLinkProps = React.ComponentProps<"a"> & {
   asChild?: boolean
 }
 
-/** A page number. Give it an aria-label ("Page 3"); the number alone is a poor name. */
+/** A page number. Give it an aria-label that holds the number as shown ("Page 03" for 03), so a voice command for what is seen still finds it; the number alone is a poor name. */
 function PaginationLink({ isActive = false, asChild = false, ...props }: PaginationLinkProps) {
   const Comp = asChild ? Slot : "a"
   return <Comp data-slot="pagination-link" aria-current={isActive ? "page" : undefined} {...props} />

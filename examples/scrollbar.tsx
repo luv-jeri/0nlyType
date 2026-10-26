@@ -28,11 +28,11 @@ export default function Example() {
     <div className="grid items-start gap-x-(--ot-space-8) gap-y-(--ot-space-7) md:grid-cols-2">
       <div className="relative h-56 overflow-auto md:col-span-2">
         <div className="grid max-w-xl gap-[var(--ot-space-4)] pe-[var(--ot-space-6)]">
-          <h4 id="overture" className="ot-label">Overture</h4>
+          <h3 id="overture" className="ot-label">Overture</h3>
           {lines.slice(0, 6).map((l) => <p key={l}>{l}</p>)}
-          <h4 id="notes" className="ot-label">Notes</h4>
+          <h3 id="notes" className="ot-label">Notes</h3>
           {lines.slice(6, 12).map((l) => <p key={l}>{l}</p>)}
-          <h4 id="close" className="ot-label">Close</h4>
+          <h3 id="close" className="ot-label">Close</h3>
           {lines.slice(12).map((l) => <p key={l}>{l}</p>)}
         </div>
         <Scrollbar sections={sections} />

@@ -2,13 +2,13 @@
   "version": "0.1.0",
   "sources": {
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "af400153df78adc6a06b5e09b9bf5e65a08dbb435a45cc0ef9995ec3dd756d0d"
+    "DESIGN.md": "32bfd87b1ae5831e6aba79bd4e12928be58f6e8961c9f4998f8c1c2dfede9b0e"
   },
   "files": {
     "AGENTS.md": "4f0be791d303fa4f283e867f210ec3a4b48f041ecae6ead63ea4022414da030c",
     "docs/AGENTS.md": "021d8a0711100ab41843e12d00041488edbf2c5f5602b85600f5695fa3ef57ff",
     "INTENT.md": "13d4bada5601047bcd37e2732582d49c8cf13c04a83700186d048d9927da96ff",
-    "DESIGN.md": "af400153df78adc6a06b5e09b9bf5e65a08dbb435a45cc0ef9995ec3dd756d0d",
+    "DESIGN.md": "32bfd87b1ae5831e6aba79bd4e12928be58f6e8961c9f4998f8c1c2dfede9b0e",
     "DESIGN-core.md": "930dd1a59fc21fecce0dbfb8ee31a0fbb1401599a2c0aff4b30631ac70293531",
     "components/link.md": "24eff267d16966dfffe3ab52d1db40a976ad7154129d0b2a074e44721c00e8fe",
     "components/meta.md": "ef5a3495f84051b5e075ed0b3637eccca3ce18cdf2ca99561b7b493851145ddf",
@@ -95,7 +95,7 @@
     "components/meter.md": "d6e3d7f19a0f4e814821533e093d7682abff9dfaf9614e07fb1d360bb1fc944d",
     "components/mode-toggle.md": "8585437bedb9fa15601f32b2cab4c85848edbe08aabe590f0daae8834333eece",
     "components/number-input.md": "e71ffba20cfb73d5369fc9772e152fd6efca3a732de14102df6615cef20363f7",
-    "components/pie-chart.md": "b5252ee9e70e7dbb3bb49bd68a1e71968198836c86946831935fdcc096619b19",
+    "components/pie-chart.md": "a25afb8116f3559d41be454e6a64f06a4e8c5c3294503e6249529fd78db4ec36",
     "components/radar-chart.md": "018a4224045d4c3ff20761fde86f763d01b37f84c9a565a73a37a45c296dee05",
     "components/radial-chart.md": "223040d486f2ac1af39ee1af645712d58c66ab05f646f0dfd9a02338f1aa7cb4",
     "components/reading-trail.md": "d39b5c3c10415b13b7bbb7c2cc534a119591e21d287119627dc24fd203a93f91",
