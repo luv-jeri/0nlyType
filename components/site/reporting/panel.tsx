@@ -18,7 +18,7 @@ export function ReportingPanel({ href, onClose }: ReportingPanelProps) {
   const [busy, setBusy] = React.useState(false)
   const dialog = React.useRef<HTMLDialogElement>(null)
   return createPortal(<Sheet open={!picking} alert={busy} onOpenChange={(open) => { if (!open && !picking && !busy) onClose() }}>
-    <SheetContent ref={dialog} className="ot-report-sheet" data-reporting-chrome data-picking={picking || undefined} onCancel={(event) => { if (busy) event.preventDefault() }}>
+    <SheetContent ref={dialog} className="ot-report-sheet" data-reporting-chrome data-lenis-prevent data-picking={picking || undefined} onCancel={(event) => { if (busy) event.preventDefault() }}>
       <SheetSpine>Feedback</SheetSpine>
       <header className="ot-report-sheet-head">
         <div className="ot-report-sheet-caption"><span>0nlyType / Feedback</span><Button variant="quiet" disabled={busy} onClick={onClose} aria-label="Close feedback">Close</Button></div>

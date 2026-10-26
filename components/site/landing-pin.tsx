@@ -2,6 +2,8 @@
 
 import * as React from "react"
 
+import { scrollPageTo } from "@/components/site/smooth-scroll"
+
 // A section's question stays with you while you read its answer. When a section's title reaches the bar, a copy of
 // it takes over in exactly the same place, size and face, and the scroll then shrinks it under the bar (never below a
 // size you cannot miss), the section's number beside it. The section's name and its note scroll on up under the
@@ -149,7 +151,7 @@ export function SectionPin() {
     const retune = () => { face = null; ask() }
     const back = () => {
       if (at < 0) return
-      secs[at].title.scrollIntoView({ block: "start", behavior: still.matches ? "auto" : "smooth" })
+      scrollPageTo(secs[at].title, still.matches)
     }
 
     read()

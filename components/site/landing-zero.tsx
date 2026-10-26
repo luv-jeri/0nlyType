@@ -5,6 +5,8 @@ import { OVERTURE_DEADLINE } from "@/lib/site/overture.mjs"
 import NextLink from "next/link"
 import * as React from "react"
 
+import { scrollPageTo } from "@/components/site/smooth-scroll"
+
 import { CopyCommand } from "@/components/site/landing"
 import { DocsField } from "@/components/site/landing-docs"
 import { PiecePreview } from "@/components/site/landing-preview"
@@ -1027,7 +1029,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       return { s, h: clamp(s / intro), raw }
     }
     const scrollToPiece = (i: number) => {
-      scrollTo({ top: top + intro + 20 + (i / (N - 1)) * N * pitch, behavior: reduce ? "auto" : "smooth" })
+      scrollPageTo(top + intro + 20 + (i / (N - 1)) * N * pitch, reduce)
     }
 
     let key = ""
@@ -1068,6 +1070,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       raf = 0
       const dt = last ? Math.min(0.032, (now - last) / 1000) : 1 / 60
       last = now
+      // Read after the scroll event asks for this frame, including Lenis's own page movement.
+      y = scrollY
       const T_ = target()
       h = reduce ? (T_.h >= 0.5 ? 1 : 0) : T_.h
       const s = clamp(Math.round(T_.raw), 0, N - 1)
@@ -1091,11 +1095,8 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const wake = () => {
       if (!raf && tunnelReady && !overtureActive()) raf = requestAnimationFrame(tick)
     }
-    // The scroll is read as it happens, while the page is still laid out, so no frame has to lay it out again to ask.
-    const onScroll = () => {
-      y = scrollY
-      wake()
-    }
+    // The event asks for a frame; tick reads the current scroll before it writes.
+    const onScroll = () => wake()
     const first = target()
     h = reduce ? (first.h >= 0.5 ? 1 : 0) : first.h
 
@@ -1274,7 +1275,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
           <span className="tunnel-dot" />
         </div>
 
-        <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollTo({ top: 0, behavior: "auto" })}>
+        <div ref={band} className="hero-band" onFocus={() => api.current.h() > 0 && scrollPageTo(0, true)}>
           <span className="hero-plate" aria-hidden="true" />
           <Wordmark id="hero-title" className="hero-mark" />
           <div className="hero-side">

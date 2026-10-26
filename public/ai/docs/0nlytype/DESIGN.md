@@ -1514,6 +1514,8 @@ A move serves more than one component only when it is the same idea on purpose. 
 
 ## Motion
 
+The owner brought Lenis smooth scrolling back to the site on 2026-10-27 because the landing's scroll-linked animations looked bad with native scrolling, reversing the 2026-10-10 decision. It loads only on the first wheel, pointer press or key event, outside the hero's initial load, and stays off under reduced motion. Scroll-linked pieces read the page in a frame asked for by the scroll event, after the scroller moves it. Anchors use the page's scroll-padding and each target's scroll-margin, with no second offset. Local scrollers and wheel controls keep their `data-lenis-prevent` and `data-lenis-prevent-wheel` marks.
+
 Three rules, then one articulation per component.
 
 1. **Pointing sketches, choosing inks.** A hover previews in pencil: a hairline strike, a ring, a lean. A commitment draws in ink or the accent.
