@@ -240,18 +240,18 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
 .zero-stage[data-keys] .ro-name { text-decoration: underline var(--ot-stroke) var(--ot-ink); text-underline-offset: 0.12em; }
 
 /* The overture (P4): the hands' letters come up from the fingertips back and the hands close the gap (drawn by the
-   script on a clock, 1220ms), then the dot lights, inside the 2000ms deadline; a late start skips what has passed. */
+   script on a clock, 350ms), then the dot lights, inside the 480ms deadline; a late start skips what has passed. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-overture-at] .zero-ring :is(.index-dot, .mk-dot) { animation: zero-light var(--ot-moderato) var(--ot-exhale) both; animation-delay: calc(var(--ot-adagio) - var(--late, 0ms)); }
+  html[data-overture-at] .zero-ring :is(.index-dot, .mk-dot) { animation: zero-light var(--ot-allegro) var(--ot-exhale) both; animation-delay: calc(var(--ot-moderato) - var(--late, 0ms)); }
 }
 @keyframes zero-light { from { fill: var(--ot-ink); } }
 /* The name arrives once a load, with the hands: "0nly" rises into its place, the paper cut for "Type." already open in
    it; "Type." is written in from the left behind an edge slanted as the italic is; the full stop lands last. */
 @media (prefers-reduced-motion: no-preference) {
   .hero-mark :is(.wm-nly, .wm-type, .wm-stop) { transform-box: fill-box; }
-  .hero-mark .wm-nly { animation: wm-rise var(--ot-adagio) var(--ot-exhale) both; }
-  .hero-mark .wm-type { animation: wm-write 900ms var(--ot-breath) 350ms both; }
-  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-andante) var(--ot-spiccato) 1150ms both; }
+  .hero-mark .wm-nly { animation: wm-rise var(--ot-moderato) var(--ot-exhale) both; }
+  .hero-mark .wm-type { animation: wm-write 300ms var(--ot-breath) 80ms both; }
+  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-allegro) var(--ot-spiccato) 320ms both; }
 }
 @keyframes wm-rise { from { opacity: 0; transform: translateY(14%); } }
 @keyframes wm-write { from { clip-path: polygon(0 0, 0 0, -30% 100%, -30% 100%); } to { clip-path: polygon(0 0, 130% 0, 100% 100%, -30% 100%); } }

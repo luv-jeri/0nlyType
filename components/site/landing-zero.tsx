@@ -63,6 +63,12 @@ type Ring = { k: number; r: number; fs: number; el: SVGSVGElement; face: SVGGEle
 type Spring = { x: number; v: number; to: number }
 type Tempo = { quick: number; mid: number; slow: number; step: number; breath: string; exhale: string }
 
+// The hands' layout engine and data are asked for as soon as this module runs, beside hydration rather than after it:
+// on a slow phone that is a round trip and their bytes off the hero's path.
+let handLoad: Promise<[typeof import("@chenglou/pretext"), typeof import("@/lib/site/hands")]> | undefined
+const loadHands = () => (handLoad ??= Promise.all([import("@chenglou/pretext"), import("@/lib/site/hands")]))
+if (typeof window !== "undefined") loadHands().catch(() => {})
+
 const NS = "http://www.w3.org/2000/svg"
 const TAU = Math.PI * 2
 const RAD = Math.PI / 180
@@ -767,14 +773,17 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const canvases = Array.from(handsEl.children) as HTMLCanvasElement[]
     // Adam's hand is what you ask for, in the italic; God's is what we hand back, in roman.
     const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
-    const handData = Promise.all([import("@chenglou/pretext"), import("@/lib/site/hands")])
+    const handData = loadHands()
     let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false, entered = overtureActive() || root.hasAttribute("data-overture-ended")
+    // The entrance's own clock starts when the hero mounts, not when the hands are set, so a slow layout spends the
+    // rise rather than adding to it: the hero is whole RUN after it mounted (owner 2026-10-26: within half a second).
+    const mountedAt = performance.now()
     let entranceAt: number | null = null
     const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
     // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
     let pieceOf: number[] = [], phraseOf = new Map<number, number>()
     const paint = (t = Infinity) => {
-      set.forEach((hand, i) => drawHand(canvases[i], hand, t, 700, 520, t === Infinity ? touch[i] : undefined))
+      set.forEach((hand, i) => drawHand(canvases[i], hand, t, 200, 150, t === Infinity ? touch[i] : undefined))
       // A canvas shows nothing a page can read, so the hands say what they show: drawn, and still rising or settled.
       handsEl.setAttribute("data-drawn", "")
       handsEl.toggleAttribute("data-rising", t !== Infinity)
@@ -849,7 +858,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     // Without the overture (a visitor who has seen it), the hands still enter so, once a load, on their own clock: the
     // first time they are set, never on a resize or a retune after. A key or a press does not cut this one short; the
     // hands take only as long to arrive as the overture would have given them.
-    const RUN = 700 + 520
+    const RUN = 200 + 150
     const play = (shift = 0) => {
       cancelAnimationFrame(rise)
       const settle = () => {
@@ -865,7 +874,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const own = !overtureActive()
       if (reduce || (own && (entered || scrollY > 4))) return settle()
       entered = rising = true
-      const start = entranceAt ??= own ? performance.now() : performance.now() - Math.max(0, RUN - overtureLeft())
+      const start = entranceAt ??= own ? mountedAt : performance.now() - Math.max(0, RUN - overtureLeft())
       // On a machine slow enough that a frame of the rise takes most of a frame, the next is set only after as long
       // again has passed, so the rise never holds more than half the page's time and the keys and presses that end the
       // overture still find it free. A fast machine sets every frame.
@@ -948,7 +957,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
         T.dim = toward(T.dim, T.lit >= 0 ? 1 : 0, 320, dt)
         if (`${T.x}${T.y}${T.s}${T.lit}${T.litA}${T.wasA}${T.dim}` !== was) {
           moving = true
-          drawHand(canvases[i], hand, Infinity, 700, 520, T)
+          drawHand(canvases[i], hand, Infinity, 200, 150, T)
         }
       })
       // The reach: as the pointer comes to the zero, each hand leans toward it.

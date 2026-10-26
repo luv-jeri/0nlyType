@@ -8,7 +8,7 @@ import { OVERTURE_ATTR, OVERTURE_DEADLINE, OVERTURE_END_EVENT, OVERTURE_KEY, OVE
 // real script text against a fake browser, so the storage design and the clock are held to what they say: one key, written before
 // the overture starts, and nothing played if storage, a hash, a scroll offset or reduced motion says not to.
 
-function browser({ store = {}, reduced = false, hash = "", scroll = 0, throwOn = null, focus = null } = {}) {
+function browser({ store = {}, reduced = false, hash = "", scroll = 0, throwOn = null, focus = null, now = 412.6 } = {}) {
   const attrs = {}
   const calls = { get: [], set: [] }
   const localStorage = {
@@ -38,7 +38,7 @@ function browser({ store = {}, reduced = false, hash = "", scroll = 0, throwOn =
     matchMedia: () => media,
     location: { hash },
     scrollY: scroll,
-    performance: { now: () => 412.6 },
+    performance: { now: () => now },
     document,
     CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init?.detail } },
     setTimeout: (fn, ms) => timers.push({ fn, ms }),
@@ -60,7 +60,15 @@ test("a first visit plays, and records itself before it starts", () => {
   const b = browser()
   b.run()
   assert.deepEqual(b.calls.set, [[OVERTURE_KEY, "1"]])
-  assert.equal(b.attrs[OVERTURE_ATTR], "413")
+  assert.equal(b.attrs[OVERTURE_ATTR], "0", "the clock counts from the navigation's start")
+})
+
+test("a page that arrives after the deadline arrives settled, and counts as seen", () => {
+  const b = browser({ now: OVERTURE_DEADLINE + 1 })
+  b.run()
+  assert.deepEqual(b.calls.set, [[OVERTURE_KEY, "1"]])
+  assert.equal(b.attrs[OVERTURE_ATTR], undefined)
+  assert.equal(b.timers.length, 0)
 })
 
 test("the second visit arrives settled, and writes nothing more", () => {
@@ -125,11 +133,11 @@ test("arriving at a hash, or part-way down, counts as seen and never plays", () 
 })
 
 // ── the clock: the script alone ends the overture, with no help from React ──
-test("the script sets its own deadline timer, at the deadline", () => {
+test("the script sets its own deadline timer, at the deadline counted from the navigation's start", () => {
   const b = browser()
   b.run()
   assert.equal(b.timers.length, 1)
-  assert.equal(b.timers[0].ms, OVERTURE_DEADLINE)
+  assert.equal(b.timers[0].ms, OVERTURE_DEADLINE - 412.6)
   b.timers[0].fn()
   assert.equal(b.attrs[OVERTURE_ATTR], undefined)
   assert.equal(b.events.length, 1)
