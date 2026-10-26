@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
-        <link rel="preload" href={sitePath("/fonts/archivo-normal-e3a28eade2.woff2")} as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link rel="preload" href={sitePath("/fonts/bodoni-moda-italic-b737328c13.woff2")} as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href={sitePath("/fonts/archivo-normal-c718edaef2.woff2")} as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href={sitePath("/fonts/bodoni-moda-italic-da16c6082f.woff2")} as="font" type="font/woff2" crossOrigin="anonymous" />
         <RegistryStyles />
       </head>
       <body>

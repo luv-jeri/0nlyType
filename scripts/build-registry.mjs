@@ -87,7 +87,14 @@ const signRegistryItems = signItems.map((s) => ({
   files: [{ path: s.file, type: "registry:ui", target: `components/ui/${s.name}.tsx` }],
 }))
 
-const fonts = siteFonts()
+const fonts = await siteFonts()
+// The layout preloads the default pair's core faces by name: a new cut of the fonts must carry its names there.
+const layoutSource = readFileSync("app/layout.tsx", "utf8")
+const preloaded = [...layoutSource.matchAll(/sitePath\("\/fonts\/([^"]+\.woff2)"\)/g)].map((m) => m[1])
+if (preloaded.sort().join() !== [...fonts.preload].sort().join()) {
+  console.error(`app/layout.tsx must preload the core fonts ${fonts.preload.join(", ")} (it preloads ${preloaded.join(", ") || "none"}).`)
+  process.exit(1)
+}
 const kit = buildAiKit({ items: metas, baseURL })
 const registry = { $schema: "https://ui.shadcn.com/schema/registry.json", name: "0nlytype", homepage: baseURL, items: [base, ...pairs, ...items, ...signRegistryItems, kit.item] }
 const out = check ? ".tmp/registry-check" : "."
@@ -223,6 +230,7 @@ if (check) {
   const stale = checkAiKit(kit)
   if (readFileSync("app/fonts.css", "utf8") !== fonts.css) stale.push("app/fonts.css")
   for (const [file, bytes] of fonts.files) if (!existsSync(`public/fonts/${file}`) || !readFileSync(`public/fonts/${file}`).equals(bytes)) stale.push(`public/fonts/${file}`)
+  for (const file of readdirSync("public/fonts")) if (file.endsWith(".woff2") && !fonts.files.has(file)) stale.push(`public/fonts/${file} (no longer used)`)
   const same = (a, b) => { try { return readFileSync(a, "utf8") === readFileSync(b, "utf8") } catch { return false } }
   if (!same(`${out}/registry.json`, "registry.json")) stale.push("registry.json")
   if (readFileSync("app/registry.css", "utf8") !== registryCSS) stale.push("app/registry.css")
@@ -248,6 +256,7 @@ if (check) {
 } else {
   writeFileSync("app/fonts.css", fonts.css)
   mkdirSync("public/fonts", { recursive: true })
+  for (const file of readdirSync("public/fonts")) if (file.endsWith(".woff2") && !fonts.files.has(file)) rmSync(`public/fonts/${file}`)
   for (const [file, bytes] of fonts.files) writeFileSync(`public/fonts/${file}`, bytes)
   writeFileSync("app/registry.css", registryCSS)
   mkdirSync("lib/site", { recursive: true })
