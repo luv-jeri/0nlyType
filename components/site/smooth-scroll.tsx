@@ -41,10 +41,9 @@ export function SmoothScroll() {
       if (!target) return
       event.preventDefault()
       history.pushState(history.state, "", url.hash)
-      scroller.scrollTo(target, { onComplete: () => {
-        if (target.tabIndex < 0 && !target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1")
-        target.focus({ preventScroll: true })
-      } })
+      if (target.tabIndex < 0 && !target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1")
+      target.focus({ preventScroll: true })
+      scroller.scrollTo(target)
     }
     // React's root handlers run first, so components can preventDefault and keep ownership of their links.
     document.addEventListener("click", anchor)
