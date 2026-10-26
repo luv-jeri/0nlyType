@@ -71,7 +71,9 @@ if (!/overtureActive\(\)/.test(zero) || !/overtureLeft\(\)/.test(zero)) fail("th
 const run = zero.match(/const RUN = (\d+) \+ (\d+)/)
 if (!run || Number(run[1]) + Number(run[2]) > OVERTURE_DEADLINE) fail("the home overture", `the hands' rise (RUN) must end inside the ${OVERTURE_DEADLINE}ms deadline`)
 // Without the overture the hands still enter, once a load (owner 2026-10-11), on the same RUN: never again on a resize.
-if (!/if \(reduce \|\| \(own && \(entered \|\| scrollY > 4\)\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion, and enter at most once a load without the overture")
+if (!/if \(reduce \|\| entranceRun === 0 \|\| \(own && \(entered \|\| scrollY > 4\)\)\) return settle\(\)/.test(zero)) fail("the home overture", "the hands must be drawn settled under reduced motion, and enter at most once a load without the overture")
+if (!zero.includes("Math.min(RUN, Math.max(0, OVERTURE_DEADLINE - mountedAt))") || !zero.includes("performance.now() >= OVERTURE_DEADLINE") || !zero.includes("const duration = entranceRun") || !zero.includes("const start = mountedAt")) fail("the home overture", "mount and layout must spend the remaining navigation budget")
+if (!landing.includes("html[data-hero-settled]") || !landing.includes("var(--hero-late, 0ms)")) fail("the home overture", "the CSS entrance must share the navigation deadline on every visit")
 // Storage: one key, written by the script in the page, nowhere else.
 const keyUses = ["components", "app", "lib", "registry"].flatMap((dir) => sources(dir)).filter((file) => read(file).includes(OVERTURE_KEY) || read(file).includes("overture-seen"))
 if (keyUses.length !== 1 || keyUses[0] !== "lib/site/overture.mjs") fail("the home overture", `the overture key belongs only in lib/site/overture.mjs (found ${keyUses.join(", ") || "nowhere"})`)

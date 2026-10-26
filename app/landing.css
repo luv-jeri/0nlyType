@@ -249,10 +249,12 @@ html[data-overture-at] .zero .hero-skip { display: inline-flex; }
    it; "Type." is written in from the left behind an edge slanted as the italic is; the full stop lands last. */
 @media (prefers-reduced-motion: no-preference) {
   .hero-mark :is(.wm-nly, .wm-type, .wm-stop) { transform-box: fill-box; }
-  .hero-mark .wm-nly { animation: wm-rise var(--ot-moderato) var(--ot-exhale) both; }
-  .hero-mark .wm-type { animation: wm-write 300ms var(--ot-breath) 80ms both; }
-  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-allegro) var(--ot-spiccato) 320ms both; }
+  .hero-mark .wm-nly { animation: wm-rise var(--ot-moderato) var(--ot-exhale) both; animation-delay: calc(0ms - var(--hero-late, 0ms)); }
+  .hero-mark .wm-type { animation: wm-write 300ms var(--ot-breath) both; animation-delay: calc(80ms - var(--hero-late, 0ms)); }
+  .hero-mark .wm-stop { transform-origin: 50% 50%; animation: wm-land var(--ot-allegro) var(--ot-spiccato) both; animation-delay: calc(320ms - var(--hero-late, 0ms)); }
 }
+/* Late HTML, CSS or hydration cannot restart the hero's entrance, including on repeat visits. */
+html[data-hero-settled] :is(.hero-mark .wm-nly, .hero-mark .wm-type, .hero-mark .wm-stop, .zero-ring .index-dot, .zero-ring .mk-dot) { animation: none; }
 @keyframes wm-rise { from { opacity: 0; transform: translateY(14%); } }
 @keyframes wm-write { from { clip-path: polygon(0 0, 0 0, -30% 100%, -30% 100%); } to { clip-path: polygon(0 0, 130% 0, 100% 100%, -30% 100%); } }
 @keyframes wm-land { from { opacity: 0; transform: scale(0.2); } }

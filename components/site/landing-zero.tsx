@@ -200,6 +200,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const sec = section.current, st = stage.current, ringSvg = ring.current, handsEl = hands.current, bandEl = band.current, partEl = part.current, tunnelEl = tunnel.current
     if (!sec || !st || !ringSvg || !handsEl || !bandEl || !partEl || !tunnelEl) return
     const root = document.documentElement
+    // Mount and layout spend the navigation budget; neither can start a fresh entrance after its deadline.
+    const mountedAt = performance.now()
+    const RUN = 200 + 150
+    const entranceRun = Math.min(RUN, Math.max(0, OVERTURE_DEADLINE - mountedAt))
     const motion = matchMedia("(prefers-reduced-motion: reduce)")
     let reduce = motion.matches
     const late = overtureActive() ? OVERTURE_DEADLINE - overtureLeft() : 0
@@ -777,10 +781,6 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     const streams = [ASKS.map((a) => `Build me ${a} in 0nlyType.`).join(" ") + " ", pieces.map((p) => `add ${p.name}`).join(" · ") + " · "]
     const handData = loadHands()
     let set: Hand[] = [], grid: Uint8Array | null = null, version = 0, rise = 0, rising = false, entered = overtureActive() || root.hasAttribute("data-overture-ended")
-    // The entrance's own clock starts when the hero mounts, not when the hands are set, so a slow layout spends the
-    // rise rather than adding to it: the hero is whole RUN after it mounted (owner 2026-10-26: within half a second).
-    const mountedAt = performance.now()
-    let entranceAt: number | null = null
     const touch: Touch[] = [0, 1].map(() => ({ x: 0, y: 0, r: 64, s: 0, grow: 0.6, lit: -1, litA: 0, was: -1, wasA: 0, dim: 0 }))
     // God's lines name pieces: "add calendar" is the calendar's phrase, both ways.
     let pieceOf: number[] = [], phraseOf = new Map<number, number>()
@@ -858,9 +858,7 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
     // The overture (P4): the letters come up out of the paper from the fingertips back, and the hands close the gap
     // to the zero. It is a clock on the frames, so a late start skips what has passed and it still ends in time.
     // Without the overture (a visitor who has seen it), the hands still enter so, once a load, on their own clock: the
-    // first time they are set, never on a resize or a retune after. A key or a press does not cut this one short; the
-    // hands take only as long to arrive as the overture would have given them.
-    const RUN = 200 + 150
+    // first time they are set, never on a resize or a retune after, using only the navigation budget left at mount.
     const play = (shift = 0) => {
       cancelAnimationFrame(rise)
       const settle = () => {
@@ -874,9 +872,10 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       // already playing for has had its entrance, even if it ended before the hands were set; a load that opens below
       // the top (a link to a part of the page, a restored scroll) arrives settled.
       const own = !overtureActive()
-      if (reduce || (own && (entered || scrollY > 4))) return settle()
+      if (reduce || entranceRun === 0 || (own && (entered || scrollY > 4))) return settle()
       entered = rising = true
-      const start = entranceAt ??= own ? mountedAt : performance.now() - Math.max(0, RUN - overtureLeft())
+      const duration = entranceRun
+      const start = mountedAt
       // On a machine slow enough that a frame of the rise takes most of a frame, the next is set only after as long
       // again has passed, so the rise never holds more than half the page's time and the keys and presses that end the
       // overture still find it free. A fast machine sets every frame.
@@ -884,16 +883,17 @@ export function LandingZero({ movements, count }: { movements: Movement[]; count
       const frame = () => {
         // A frame's timestamp precedes other callbacks in its batch. Read the clock after their work, not before it.
         const t = performance.now() - start
-        if (t >= RUN || (!own && !overtureActive())) return settle()
+        if (t >= duration || performance.now() >= OVERTURE_DEADLINE || (!own && !overtureActive())) return settle()
         if (performance.now() < free) {
           rise = requestAnimationFrame(frame)
           return
         }
-        const e = (1 - Math.min(1, t / RUN)) ** 3
+        const progress = t / duration
+        const e = (1 - Math.min(1, progress)) ** 3
         canvases[0].style.transform = `translateX(${(-e * shift).toFixed(1)}px)`
         canvases[1].style.transform = `translateX(${(e * shift).toFixed(1)}px)`
         const at = performance.now()
-        paint(t)
+        paint(progress * RUN)
         const took = performance.now() - at
         free = took > 12 ? performance.now() + took : 0
         rise = requestAnimationFrame(frame)

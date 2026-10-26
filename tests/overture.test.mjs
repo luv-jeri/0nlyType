@@ -26,7 +26,7 @@ function browser({ store = {}, reduced = false, hash = "", scroll = 0, throwOn =
   const media = { matches: reduced, ...target("media") }
   const document = {
     ...target("document"),
-    documentElement: { setAttribute: (name, value) => { attrs[name] = value }, removeAttribute: (name) => { delete attrs[name] }, hasAttribute: (name) => name in attrs },
+    documentElement: { setAttribute: (name, value) => { attrs[name] = value }, removeAttribute: (name) => { delete attrs[name] }, hasAttribute: (name) => name in attrs, style: { setProperty() {} } },
     querySelector: (selector) => selector === ".hero-skip" ? { id: "skip" } : { focus: () => focused.push("action") },
     activeElement: focus === "skip" ? { id: "skip" } : null,
     dispatchEvent: (event) => { events.push(event) },
@@ -68,6 +68,14 @@ test("a page that arrives after the deadline arrives settled, and counts as seen
   b.run()
   assert.deepEqual(b.calls.set, [[OVERTURE_KEY, "1"]])
   assert.equal(b.attrs[OVERTURE_ATTR], undefined)
+  assert.equal(b.attrs["data-hero-settled"], "")
+  assert.equal(b.timers.length, 0)
+})
+
+test("late repeat visits also suppress the CSS entrance", () => {
+  const b = browser({ now: OVERTURE_DEADLINE, store: { [OVERTURE_KEY]: "1" } })
+  b.run()
+  assert.equal(b.attrs["data-hero-settled"], "")
   assert.equal(b.timers.length, 0)
 })
 
@@ -136,9 +144,12 @@ test("arriving at a hash, or part-way down, counts as seen and never plays", () 
 test("the script sets its own deadline timer, at the deadline counted from the navigation's start", () => {
   const b = browser()
   b.run()
-  assert.equal(b.timers.length, 1)
+  assert.equal(b.timers.length, 2)
   assert.equal(b.timers[0].ms, OVERTURE_DEADLINE - 412.6)
   b.timers[0].fn()
+  assert.equal(b.attrs["data-hero-settled"], "")
+  assert.equal(b.timers[1].ms, OVERTURE_DEADLINE - 412.6)
+  b.timers[1].fn()
   assert.equal(b.attrs[OVERTURE_ATTR], undefined)
   assert.equal(b.events.length, 1)
   assert.equal(b.events[0].type, OVERTURE_END_EVENT)
@@ -242,16 +253,16 @@ test("ending twice is harmless: one event, and the timer is cleared", () => {
   const b = browser()
   b.run()
   b.fire("document", "keydown", { key: "a" })
-  b.timers[0].fn()
+  b.timers[1].fn()
   assert.equal(b.events.length, 1)
-  assert.equal(b.timers[0].cleared, true)
+  assert.equal(b.timers[1].cleared, true)
 })
 
-test("a refused or settled visit starts no clock at all", () => {
+test("a refused or settled visit starts no overture clock, only the CSS deadline when motion is allowed", () => {
   for (const options of [{ throwOn: "get" }, { throwOn: "set" }, { reduced: true }, { hash: "#x" }, { scroll: 99 }]) {
     const b = browser(options)
     b.run()
-    assert.equal(b.timers.length, 0)
+    assert.equal(b.timers.length, options.reduced ? 0 : 1)
     assert.equal(b.live(), 0)
   }
 })
