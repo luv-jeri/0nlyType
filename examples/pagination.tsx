@@ -162,7 +162,7 @@ export function States() {
 
 function BarcodePointed() {
   return (
-    <Pagination aria-label="Pages, as a barcode" className="w-56">
+    <Pagination aria-label="Pages, as a barcode" className="w-96 max-w-full">
       <PaginationContent variant="barcode">
         <PaginationItem><PaginationPrevious href="?page=4" /></PaginationItem>
         {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (

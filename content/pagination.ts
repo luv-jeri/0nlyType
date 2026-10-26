@@ -17,7 +17,7 @@ export default defineComponent({
     { name: "PaginationEllipsis", type: "span", description: "Pages left out. Read out as \"More pages\"." },
     { name: "folio: the total", type: "PaginationItem", description: "In a folio, the item after the current page holds the total as plain text, aria-hidden; the current page's aria-label says it (\"Page 7 of 24\")." },
     { name: "neighbours: the steps", type: "PaginationPrevious / PaginationNext", description: "Pass each neighbour's name; the direction is set small above it. Leave out a step with nowhere to go." },
-    { name: "barcode: the pages", type: "PaginationLink", description: "Pass every page, no gaps, each named \"Page 9 of 24\". Only the current number shows; pointing or focus shows another's in its place. Give the nav a width: the lines share it, up to 18px apart. Best to about 40 pages." },
+    { name: "barcode: the pages", type: "PaginationLink", description: "Pass every page, no gaps, each named \"Page 9 of 24\". Only the current number shows; pointing or focus shows another's in its place. Each line has a centred 24px target. Give the nav a width: longer runs scroll sideways inside it, keeping the current page in view without moving the page vertically. Best to about 40 pages." },
     { name: "thumb: the letters", type: "PaginationLink / PaginationItem", description: "A letter with entries is a PaginationLink (aria-label \"Letter M\"). A letter with none is a PaginationItem holding the bare letter, aria-hidden, so it stays in the word but isn't read out or reached. On a phone the word breaks 13 and 13." },
   ],
 })
