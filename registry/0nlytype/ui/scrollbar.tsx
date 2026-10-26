@@ -5,6 +5,13 @@ import * as React from "react"
 import { useComposedRefs } from "@/registry/0nlytype/lib/refs"
 import { cn } from "@/registry/0nlytype/lib/utils"
 
+declare global {
+  interface Window {
+    /** Optional page-scroll adapter: use immediate moves while the rail is dragged. Inner rails stay native. */
+    __otScrollTo?: (target: number, immediate: boolean) => void
+  }
+}
+
 type ScrollbarSection = {
   id: string
   /** The numeral on the mark: "II". */
@@ -202,6 +209,7 @@ function useScrollbar({ variant = "inner", axis = "y", min = 24, sections = [], 
     const scrollToY = (y: number, instant: boolean) => {
       const behavior = instant || reduced() ? "instant" : "smooth"
       if (across) host.scrollTo({ left: rtl() ? -y : y, behavior })
+      else if (page && window.__otScrollTo) window.__otScrollTo(y, behavior === "instant")
       else (page ? window : host).scrollTo({ top: y, behavior })
     }
     const onPointerDown = (e: PointerEvent) => {

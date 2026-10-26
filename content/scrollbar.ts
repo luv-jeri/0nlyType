@@ -12,6 +12,7 @@ export default defineComponent({
     { name: "axis", type: '"y" | "x"', default: '"y"', description: "x is the same rail along the bottom of a box that scrolls sideways (a wide table). Inner only." },
     { name: "min", type: "number", default: "24 (page: 40)", description: "The thumb is never shorter than this many pixels, so it can be held." },
     { name: "sections", type: "{ id, num, name }[]", description: "Marks on the rail that scroll to the element with that id. Point at the rail and their numbers arrive; point at a mark to read its name." },
+    { name: "window.__otScrollTo", type: "(target: number, immediate: boolean) => void", description: "Optional page-scroll adapter for a smooth scroller. Page marks and dragging call it instead of window.scrollTo; dragging passes immediate: true to stop active easing. Inner rails stay native. Remove the hook when the scroller unmounts." },
     { name: "Accessibility", type: "note", description: "The rail is hidden from assistive technology and the browser's own bar is hidden only for a fine pointer, and only once the rail is running; keyboard scrolling is unchanged. Offer the sections elsewhere too, such as a table of contents." },
   ],
 })

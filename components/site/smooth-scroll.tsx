@@ -14,6 +14,8 @@ export function scrollPageTo(target: number | HTMLElement, immediate = false) {
 /** Lenis loads on the first input, only while reduced motion is off. */
 export function SmoothScroll() {
   React.useEffect(() => {
+    const previousScrollTo = window.__otScrollTo
+    window.__otScrollTo = scrollPageTo
     const still = matchMedia("(prefers-reduced-motion: reduce)")
     let gone = false
     let requested = false
@@ -59,6 +61,7 @@ export function SmoothScroll() {
     still.addEventListener("change", stop)
     return () => {
       gone = true
+      if (window.__otScrollTo === scrollPageTo) window.__otScrollTo = previousScrollTo
       document.removeEventListener("click", anchor, true)
       events.forEach((event) => removeEventListener(event, start))
       still.removeEventListener("change", stop)
