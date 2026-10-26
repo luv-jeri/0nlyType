@@ -6,7 +6,6 @@ import { TopRow } from "@/components/site/top-row"
 import { PageRail } from "@/components/site/page-rail"
 import { RegistryStyles } from "@/components/site/registry-styles"
 import { Toaster } from "@/registry/0nlytype/ui/toast"
-import { TooltipProvider } from "@/registry/0nlytype/ui/tooltip"
 import { pageMeta, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site/meta"
 import { places, searchGroups } from "@/lib/site/nav"
 import "./globals.css"
@@ -28,10 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <a className="skip ot-link" href="#content">Skip to the content</a>
-        <TooltipProvider>
-          <TopRow places={places} groups={searchGroups} />
-          {children}
-        </TooltipProvider>
+        {/* No shared TooltipProvider: each Tooltip brings its own, so a page carries tooltip code only when it shows one. */}
+        <TopRow places={places} groups={searchGroups} />
+        {children}
         <PageRail />
         <Toaster />
       </body>
