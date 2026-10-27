@@ -27,6 +27,8 @@ const FLOOR = 0.66
 // What is kept whole or left out whole when a demo is cut: a picture, a control or a run of text.
 const WHOLE = new Set(["svg", "img", "canvas", "video", "picture", "p", "h1", "h2", "h3", "h4", "h5", "h6", "button", "input", "select", "textarea", "label", "a", "legend", "figcaption", "code", "pre"])
 const SKIP = new Set(["link", "style", "script", "template"])
+// When the page last scrolled, shared by the wait for a piece and the wait for its fit.
+let movedAt = -Infinity
 const elements = (el: Element) => [...el.children].filter((c) => !SKIP.has(c.localName)) as HTMLElement[]
 
 export function PiecePreview({ item }: { item: string }) {
@@ -34,14 +36,27 @@ export function PiecePreview({ item }: { item: string }) {
   const room = React.useRef<HTMLDivElement>(null)
   const body = React.useRef<HTMLDivElement>(null)
 
+  // The piece arrives once the page has also stopped moving: its mount, its sidecars and its fit are a whole-page
+  // restyle, and in a scroll frame that is a stall the eye sees. Each scroll starts the wait again.
   React.useEffect(() => {
-    let t: ReturnType<typeof setTimeout>
-    const off = afterOverture(() => {
+    let t: ReturnType<typeof setTimeout> | undefined, ready = false
+    const wait = () => {
+      clearTimeout(t)
       t = setTimeout(() => React.startTransition(() => setShown(item)), SETTLE)
+    }
+    const moved = () => {
+      movedAt = performance.now()
+      if (ready) wait()
+    }
+    const off = afterOverture(() => {
+      ready = true
+      wait()
     })
+    addEventListener("scroll", moved, { passive: true })
     return () => {
       off()
       clearTimeout(t)
+      removeEventListener("scroll", moved)
     }
   }, [item])
 
@@ -58,11 +73,16 @@ export function PiecePreview({ item }: { item: string }) {
     }
   }, [])
 
-  React.useEffect(() => {
+  // Before paint, so a piece that arrives while the page moves is hidden from its first frame, never seen unfitted.
+  React.useLayoutEffect(() => {
     const r = room.current, b = body.current
     if (!r || !b || !shown) return
-    const out =(el: Element) => el.setAttribute("data-pt-out", "")
+    // What the walk leaves out is collected as it measures and marked once after it, so the walk itself writes
+    // nothing. Marked parts keep their place, so the marks do not move what was measured.
+    let left: Element[] = []
+    const out = (el: Element) => { left.push(el) }
     const fit = () => {
+      left = []
       b.style.removeProperty("--pt-k")
       b.style.removeProperty("--pt-y")
       b.style.height = ""
@@ -110,29 +130,43 @@ export function PiecePreview({ item }: { item: string }) {
           h = kept
         } else {
           // What fits is too little to say what the piece is (one large picture, mostly): show it whole and smaller.
-          for (const el of parts[lead].querySelectorAll("[data-pt-out]")) el.removeAttribute("data-pt-out")
+          left = left.filter((el) => !parts[lead].contains(el))
           h = reach(parts.slice(0, lead + 1))
         }
       }
+      for (const el of left) el.setAttribute("data-pt-out", "")
       b.style.height = `${Math.ceil(h)}px`
       b.style.setProperty("--pt-k", String(k))
       b.style.setProperty("--pt-y", `${Math.max(0, (rh - h * k) / 2)}px`)
     }
     // The body's height is set by the last fit, so a new piece arriving is seen by its own root changing size. The
     // pieces that left are let go of, so their trees are not kept alive by being watched.
-    const ro = new ResizeObserver(fit)
+    // The fit reads the whole demo's layout, so it waits until the page has been still as long as the reading must
+    // be; a piece that arrives while the page moves again stays unseen until it is fitted.
+    let idle: ReturnType<typeof setTimeout> | undefined
+    const ask = () => {
+      clearTimeout(idle)
+      const wait = SETTLE - (performance.now() - movedAt)
+      if (wait > 0) return void (idle = setTimeout(ask, wait))
+      fit()
+      b.style.visibility = ""
+    }
+    b.style.visibility = "hidden"
+    const ro = new ResizeObserver(ask)
     const watch = () => {
       ro.disconnect()
       ro.observe(r)
       for (const c of b.children) ro.observe(c)
-      fit()
+      ask()
     }
     const mo = new MutationObserver(watch)
     mo.observe(b, { childList: true })
     watch()
     return () => {
+      clearTimeout(idle)
       ro.disconnect()
       mo.disconnect()
+      b.style.visibility = ""
     }
   }, [shown])
 
