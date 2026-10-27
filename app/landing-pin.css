@@ -5,6 +5,7 @@
    the bar and the pin read as one head. The face and the sizes are the section's own, written by the script. */
 .sec-pin {
   --k: 0;
+  contain: layout;
   position: fixed; inset: var(--bar) 0 auto; z-index: 39; display: grid; align-items: start;
   padding-inline: max(var(--ot-margin), calc((100% - var(--site-max)) / 2));
   padding-block: calc(var(--k) * var(--ot-space-3)) calc(var(--k) * var(--ot-space-4));

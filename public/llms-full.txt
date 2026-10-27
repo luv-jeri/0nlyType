@@ -194,6 +194,8 @@ Under `prefers-reduced-motion: reduce`, every tempo is 1ms and the arpeggio is 0
 
 The owner brought Lenis smooth scrolling back to the site on 2026-10-27 because the landing's scroll-linked animations looked bad with native scrolling, reversing the 2026-10-10 decision. It loads only on the first wheel, pointer press or key event, outside the hero's initial load, and stays off under reduced motion. Scroll-linked pieces read the page in a frame asked for by the scroll event, after the scroller moves it. Anchors use the page's scroll-padding and each target's scroll-margin, with no second offset. Local scrollers and wheel controls keep their `data-lenis-prevent` and `data-lenis-prevent-wheel` marks.
 
+The landing's running section head keeps its title's actual font-size and opening measure, so its lines rebreak as it shrinks. Section typography, direction, padding, column, note fit and unwrapped line widths are cached before hand-over and refreshed on viewport, font and theme changes (including `dir`). Its scroll frame reads the bar and section rects together before it writes. Baseline markers are read after layout in `ResizeObserver`, then the number's shift and the section-rule push-out are written before paint. The pin uses layout containment without paint containment, so its paper and blur keep their reach. Only the bar receives `--pin-k`, rather than inheriting it through the entire document. Phone stacking, right-to-left placement and the fully shrunk reduced-motion head use the same measurements.
+
 Three rules, then one articulation per component.
 
 1. **Pointing sketches, choosing inks.** A hover previews in pencil: a hairline strike, a ring, a lean. A commitment draws in ink or the accent.
